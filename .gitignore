@@ -1,0 +1,16 @@
+# Node.js 実行ファイル
+node.exe
+node-v*/
+
+# Windows 関連
+*.bat
+*.url
+*.xlsm
+Thumbs.db
+
+# 一時作業ファイル
+tmp_*.txt
+words_*.txt
+chars_*.txt
+page_*.txt
+detail_*.txt
