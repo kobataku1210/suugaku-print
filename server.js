@@ -4,9 +4,10 @@
 //   C:\Users\（高津中）先生012\Desktop\node-v24.14.1-win-x64\node.exe server.js
 // ============================================================
 
-const http = require('http');
-const fs   = require('fs');
-const path = require('path');
+const http  = require('http');
+const fs    = require('fs');
+const path  = require('path');
+const { execFile } = require('child_process');
 
 const PORT     = 3000;
 const BASE_DIR = __dirname;
@@ -65,6 +66,35 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+    return;
+  }
+
+  // ===== API: GitHub に push =====
+  if (req.method === 'POST' && url === '/api/git-push') {
+    const body = await readBody(req);
+    try {
+      const payload = JSON.parse(body);
+      if (payload.password !== 'sensei2024') {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'パスワードが違います' }));
+        return;
+      }
+      // git add → commit → push を順番に実行
+      const run = (cmd, args) => new Promise((resolve, reject) => {
+        execFile(cmd, args, { cwd: BASE_DIR }, (err, stdout, stderr) => {
+          if (err) reject(stderr || err.message);
+          else resolve(stdout);
+        });
+      });
+      await run('git', ['add', 'questions.json']);
+      await run('git', ['commit', '--allow-empty', '-m', '問題を更新']);
+      await run('git', ['push', 'origin', 'main']);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: String(e) }));
     }
     return;
   }

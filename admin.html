@@ -48,8 +48,18 @@
       font-weight: 800; font-family: inherit; cursor: pointer;
     }
     .save-all-btn:hover { filter: brightness(1.1); }
+    .push-btn {
+      padding: 0.6rem 1.6rem; background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none; border-radius: 50px; color: white; font-size: 0.9rem;
+      font-weight: 800; font-family: inherit; cursor: pointer; margin-left: 0.7rem;
+    }
+    .push-btn:hover { filter: brightness(1.15); }
+    .push-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
     .save-status {
       font-size: 0.82rem; color: #9ded62; margin-left: 1rem; display: none;
+    }
+    .push-status {
+      font-size: 0.82rem; margin-left: 0.8rem; display: none;
     }
 
     /* ===== コンテンツ ===== */
@@ -213,8 +223,10 @@
   <div class="admin-header">
     <h1>📝 問題管理画面</h1>
     <div style="display:flex;align-items:center">
+      <span id="push-status" class="push-status"></span>
       <span id="save-status" class="save-status">✓ 保存しました</span>
       <button class="save-all-btn" onclick="saveAll()">💾 保存する</button>
+      <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
   <div class="admin-content">
@@ -488,6 +500,58 @@ async function saveAll() {
   }
 
   btn.textContent = '💾 保存する';
+  btn.disabled = false;
+}
+
+// ===== 保存 → GitHub push =====
+async function saveAndPush() {
+  const btn = document.getElementById('push-btn');
+  const status = document.getElementById('push-status');
+
+  // まず保存
+  btn.textContent = '💾 保存中...';
+  btn.disabled = true;
+  status.style.display = 'none';
+
+  const saveRes = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const saveResult = await saveRes.json();
+  if (!saveResult.ok) {
+    alert('保存に失敗しました: ' + saveResult.error);
+    btn.textContent = '🚀 GitHubに反映';
+    btn.disabled = false;
+    return;
+  }
+
+  // push
+  btn.textContent = '🚀 Push中...';
+  status.style.cssText = 'display:inline; color: rgba(255,255,255,0.5);';
+  status.textContent = 'GitHubに送信しています...';
+
+  try {
+    const pushRes = await fetch('/api/git-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: enteredPassword })
+    });
+    const pushResult = await pushRes.json();
+    if (pushResult.ok) {
+      status.style.cssText = 'display:inline; color: #9ded62;';
+      status.textContent = '✓ 生徒の画面に反映しました！';
+      setTimeout(() => { status.style.display = 'none'; }, 4000);
+    } else {
+      status.style.cssText = 'display:inline; color: #ff6b6b;';
+      status.textContent = '✗ エラー: ' + pushResult.error;
+    }
+  } catch (e) {
+    status.style.cssText = 'display:inline; color: #ff6b6b;';
+    status.textContent = '✗ 通信エラー: ' + e.message;
+  }
+
+  btn.textContent = '🚀 GitHubに反映';
   btn.disabled = false;
 }
 
