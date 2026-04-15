@@ -87,7 +87,7 @@ const server = http.createServer(async (req, res) => {
           else resolve(stdout);
         });
       });
-      await run('git', ['add', 'questions.json']);
+      await run('git', ['add', 'index.html', 'app.js', 'style.css', 'data.js', 'questions.json', 'admin.html']);
       await run('git', ['commit', '--allow-empty', '-m', '問題を更新']);
       await run('git', ['push', 'origin', 'main']);
       res.writeHead(200, { 'Content-Type': 'application/json' });
