@@ -746,7 +746,10 @@ function escHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+let quizLocked = false;  // 正解後のアニメーション中に連打されないようにするフラグ
+
 function submitQuizAnswer() {
+  if (quizLocked) return;                          // 処理中は無視
   const input = document.getElementById('quiz-input');
   if (!input) return;
   const entered = normalizeAnswer(input.value);
@@ -759,6 +762,7 @@ function submitQuizAnswer() {
   const correct   = normalizeAnswer(getCorrectAnswer(questions[state.quizQIdx]));
 
   if (entered === correct) {
+    quizLocked = true;                             // 正解→次の問題が表示されるまでロック
     const card = document.getElementById('quiz-card');
     card.classList.add('quiz-correct-flash');
     card.addEventListener('animationend', () => card.classList.remove('quiz-correct-flash'), { once: true });
@@ -769,7 +773,7 @@ function submitQuizAnswer() {
     } else {
       setTimeout(() => {
         state.quizQIdx++;
-        render();
+        render();                                  // render() 内でロック解除
         const newInput = document.getElementById('quiz-input');
         if (newInput) newInput.focus();
       }, 400);
@@ -1170,6 +1174,7 @@ function submitPracticeAnswers() {
 // ===== メインレンダリング =====
 // ============================================================
 function render() {
+  quizLocked = false;   // 画面が切り替わるたびにロック解除
   let content = '';
   if      (state.view === 'home')       content = renderHome();
   else if (state.view === 'sections')   content = renderSections();
