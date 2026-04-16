@@ -878,7 +878,6 @@ function submitMiniTestPassword() {
     return;
   }
   closeMiniTestModal();
-  const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
   state.miniTestQuestions    = generate5Questions(sec);
   state.miniTestPhase        = 'quiz';
   state.miniTestAnswers      = [];
