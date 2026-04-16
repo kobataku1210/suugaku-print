@@ -48,6 +48,13 @@
       font-weight: 800; font-family: inherit; cursor: pointer;
     }
     .save-all-btn:hover { filter: brightness(1.1); }
+    .import-btn {
+      padding: 0.6rem 1.6rem; background: linear-gradient(135deg, #f093fb, #f5576c);
+      border: none; border-radius: 50px; color: white; font-size: 0.9rem;
+      font-weight: 800; font-family: inherit; cursor: pointer; margin-left: 0.7rem;
+    }
+    .import-btn:hover { filter: brightness(1.15); }
+    .import-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
     .push-btn {
       padding: 0.6rem 1.6rem; background: linear-gradient(135deg, #667eea, #764ba2);
       border: none; border-radius: 50px; color: white; font-size: 0.9rem;
@@ -225,6 +232,7 @@
     <div style="display:flex;align-items:center">
       <span id="push-status" class="push-status"></span>
       <span id="save-status" class="save-status">✓ 保存しました</span>
+      <button class="import-btn" id="import-btn" onclick="importFromExcel()">📥 Excelから取り込む</button>
       <button class="save-all-btn" onclick="saveAll()">💾 保存する</button>
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
@@ -500,6 +508,43 @@ async function saveAll() {
   }
 
   btn.textContent = '💾 保存する';
+  btn.disabled = false;
+}
+
+// ===== Excelから取り込む =====
+async function importFromExcel() {
+  const btn = document.getElementById('import-btn');
+  const status = document.getElementById('push-status');
+  if (!confirm('②問題データ.xlsx の内容を questions.json に取り込みます。\n管理画面の現在の内容は上書きされます。よろしいですか？')) return;
+
+  btn.textContent = '📥 変換中...';
+  btn.disabled = true;
+  status.style.cssText = 'display:inline; color:rgba(255,255,255,0.5);';
+  status.textContent = 'Excelを読み込んでいます...';
+
+  try {
+    const res = await fetch('/api/import-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: enteredPassword })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      status.style.cssText = 'display:inline; color:#9ded62;';
+      status.textContent = '✓ ' + result.message;
+      setTimeout(() => { status.style.display = 'none'; }, 5000);
+      // 画面を最新データで再読み込み
+      await loadQuestions();
+    } else {
+      status.style.cssText = 'display:inline; color:#ff6b6b;';
+      status.textContent = '✗ エラー: ' + result.error;
+    }
+  } catch (e) {
+    status.style.cssText = 'display:inline; color:#ff6b6b;';
+    status.textContent = '✗ 通信エラー: ' + e.message;
+  }
+
+  btn.textContent = '📥 Excelから取り込む';
   btn.disabled = false;
 }
 

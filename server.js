@@ -70,6 +70,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ===== API: Excelから questions.json に変換 =====
+  if (req.method === 'POST' && url === '/api/import-excel') {
+    const body = await readBody(req);
+    try {
+      const payload = JSON.parse(body);
+      if (payload.password !== 'sensei2024') {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'パスワードが違います' }));
+        return;
+      }
+      const scriptPath = path.join(BASE_DIR, '..', 'excel_to_json.py');
+      execFile('python3', [scriptPath], {
+        cwd: path.join(BASE_DIR, '..'),
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+      }, (err, stdout, stderr) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ ok: false, error: stderr || err.message }));
+          return;
+        }
+        try {
+          const result = JSON.parse(stdout);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify(result));
+        } catch {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ ok: true, message: stdout.trim() }));
+        }
+      });
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+    return;
+  }
+
   // ===== API: GitHub に push =====
   if (req.method === 'POST' && url === '/api/git-push') {
     const body = await readBody(req);
