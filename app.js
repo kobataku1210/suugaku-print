@@ -866,7 +866,10 @@ function closeMiniTestModal() {
 function submitMiniTestPassword() {
   const pw    = document.getElementById('minitest-pw').value;
   const errEl = document.getElementById('minitest-modal-error');
-  if (pw !== TEACHER_PASSWORD) {
+  // 節ごとのパスワードを使用（未設定の場合は共通パスワードにフォールバック）
+  const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+  const correctPw = String(sec.miniTestPassword || TEACHER_PASSWORD);
+  if (pw !== correctPw) {
     errEl.textContent = 'パスワードが違います';
     errEl.style.display = 'block';
     const card = document.getElementById('minitest-modal-card');

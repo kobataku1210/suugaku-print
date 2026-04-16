@@ -93,6 +93,23 @@
       border: 1px solid rgba(255,255,255,0.1); border-radius: 0 0 12px 12px; overflow: hidden;
     }
 
+    /* ===== 小テストパスワード表示 ===== */
+    .minitest-pw-wrap {
+      margin-left: auto; display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(255,213,0,0.12); border: 1px solid rgba(255,213,0,0.3);
+      border-radius: 8px; padding: 0.2rem 0.7rem; font-size: 0.82rem;
+    }
+    .minitest-pw-label { color: rgba(255,255,255,0.5); }
+    .minitest-pw-code {
+      font-size: 1rem; font-weight: 800; color: #ffd200;
+      letter-spacing: 0.18em; font-family: monospace;
+    }
+    .minitest-pw-regen {
+      background: none; border: none; cursor: pointer; font-size: 0.9rem;
+      padding: 0 0.2rem; opacity: 0.6; transition: opacity 0.15s;
+    }
+    .minitest-pw-regen:hover { opacity: 1; }
+
     /* ===== レベルタブ ===== */
     .level-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .level-tab {
@@ -307,10 +324,38 @@ function migrateToNewFormat(data) {
   return data;
 }
 
+// ===== ランダム4桁パスワード生成 =====
+function genPassword() {
+  return String(Math.floor(Math.random() * 9000) + 1000);
+}
+
+// 未設定の節にパスワードを自動付与
+function ensurePasswords(data) {
+  data.chapters.forEach(ch => {
+    (ch.sections || []).forEach(sec => {
+      if (!sec.miniTestPassword) sec.miniTestPassword = genPassword();
+    });
+  });
+  return data;
+}
+
+// パスワード再生成ボタン
+function regenPassword(chIdx, si) {
+  const newPw = genPassword();
+  questionsData.chapters[chIdx].sections[si].miniTestPassword = newPw;
+  const el = document.getElementById(`pw-display-${chIdx}-${si}`);
+  if (el) {
+    el.textContent = newPw;
+    el.style.transition = 'color 0s';
+    el.style.color = '#ff9f43';
+    setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = '#ffd200'; }, 300);
+  }
+}
+
 // ===== 問題データ読み込み =====
 async function loadQuestions() {
   const res = await fetch('/api/questions');
-  questionsData = migrateToNewFormat(await res.json());
+  questionsData = ensurePasswords(migrateToNewFormat(await res.json()));
   renderChapterTabs();
   renderSections(0);
 }
@@ -349,6 +394,12 @@ function renderSections(chIdx) {
       <div class="section-heading">
         <span style="opacity:0.45">${String(si+1).padStart(2,'0')}</span>
         ${sec.title}
+        <div class="minitest-pw-wrap">
+          <span class="minitest-pw-label">小テストPW</span>
+          <span class="minitest-pw-code" id="pw-display-${chIdx}-${si}">${sec.miniTestPassword || '----'}</span>
+          <button class="minitest-pw-regen" title="パスワードを再生成"
+                  onclick="regenPassword(${chIdx},${si})">🔄</button>
+        </div>
       </div>
       <div class="section-body">
         <div class="level-tabs" id="ltabs-${chIdx}-${si}">
