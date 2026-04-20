@@ -57,6 +57,16 @@ const state = {
   practiceAnswers: [],
   practiceWrongIndices: [],
   practicePeaIsNew: false,
+
+  // タイムアタック
+  timeAttackPhase: 'quiz',
+  timeAttackQuestions: [],
+  timeAttackAnswers: [],
+  timeAttackWrongIndices: [],
+  timeAttackStartTime: null,
+  timeAttackElapsed: null,
+  timeAttackPrevBest: null,        // 今回の挑戦前のベストタイム
+  timeAttackTeacherBeaten: false,  // 今回初めて先生を倒したか
 };
 
 // ===== 背景アニメーション =====
@@ -643,6 +653,41 @@ function renderDifficulty() {
       </div>
     </div>`;
 
+  // ===== タイムアタックカード =====
+  const taData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
+  const taSecData = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+  const taTeacherTime = taSecData.teacherTime || null;
+  const taTierBadgesHtml = TA_TIERS.map(t => {
+    const earned = taData.earnedTiers.includes(t.sec);
+    return `<span class="ta-tier-badge-sm${earned ? ' ta-tier-badge-earned' : ''}">${t.medal} ${t.label} 🌱×${t.peas}</span>`;
+  }).join('');
+  const taTeacherBadge = taTeacherTime !== null
+    ? taData.teacherBeaten
+      ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">👑 小林T撃破済み！</span>`
+      : `<span class="ta-tier-badge-sm ta-teacher-badge">👑 小林T ${taTeacherTime.toFixed(1)}秒 🌱×10</span>`
+    : '';
+  const timeattackCard = `
+    <div class="mt-extra-card mt-extra-timeattack fade-in" style="animation-delay:0.44s"
+         onclick="startTimeAttack()">
+      <div class="mt-extra-left">
+        <div class="mt-extra-icon">⏱</div>
+        <div>
+          <div class="mt-extra-title">タイムアタック</div>
+          <div class="mt-extra-desc">基礎3問・標準1問・応用1問 ／ 全問正解＋タイムで🌱ゲット</div>
+          <div class="ta-tier-badges-sm">
+            ${taTierBadgesHtml}
+            ${taTeacherBadge}
+          </div>
+        </div>
+      </div>
+      <div class="mt-extra-right">
+        ${taData.bestTime !== null
+          ? `<span class="ta-best-time-sm">🏆 ${taData.bestTime.toFixed(1)}秒</span>`
+          : `<span class="mt-pea-hint">まだ記録なし</span>`}
+        <button class="mt-extra-btn mt-btn-timeattack">チャレンジ！</button>
+      </div>
+    </div>`;
+
   return `
     <button class="back-btn" onclick="navigate('sections')">← 節一覧に戻る</button>
     <div class="section-title">
@@ -651,7 +696,8 @@ function renderDifficulty() {
     </div>
     <div class="difficulty-grid">${cards}</div>
     ${minitestCard}
-    ${practiceCard}`;
+    ${practiceCard}
+    ${timeattackCard}`;
 }
 
 function startQuiz(levelIdx) {
@@ -747,6 +793,7 @@ function escHtml(str) {
 }
 
 let quizLocked = false;  // 正解後のアニメーション中に連打されないようにするフラグ
+let taTimerInterval = null;    // タイムアタックのライブタイマー
 
 function submitQuizAnswer() {
   if (quizLocked) return;                          // 処理中は無視
@@ -1173,10 +1220,293 @@ function submitPracticeAnswers() {
 }
 
 // ============================================================
+// ===== タイムアタック =====
+// ============================================================
+
+// ティア定義（30秒/40秒/50秒）
+const TA_TIERS = [
+  { sec: 30, peas: 3, label: '30秒以内', color: '#00d2ff', medal: '🥇' },
+  { sec: 40, peas: 2, label: '40秒以内', color: '#9ded62', medal: '🥈' },
+  { sec: 50, peas: 1, label: '50秒以内', color: '#f7971e', medal: '🥉' },
+];
+
+// ----- localStorage -----
+function getTimeAttackData(chIdx, secIdx) {
+  const p = getProgress();
+  if (!p.timeAttack) return { bestTime: null, earnedTiers: [], teacherBeaten: false };
+  return p.timeAttack[`${chIdx}_${secIdx}`] || { bestTime: null, earnedTiers: [], teacherBeaten: false };
+}
+
+function saveTimeAttackData(chIdx, secIdx, data) {
+  const p = getProgress();
+  if (!p.timeAttack) p.timeAttack = {};
+  p.timeAttack[`${chIdx}_${secIdx}`] = data;
+  saveProgress(p);
+}
+
+// ----- スタート -----
+function startTimeAttack() {
+  const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+  state.timeAttackQuestions    = generate5Questions(sec);
+  state.timeAttackPhase        = 'quiz';
+  state.timeAttackAnswers      = [];
+  state.timeAttackWrongIndices = [];
+  state.timeAttackElapsed      = null;
+  state.timeAttackPrevBest     = null;
+  state.timeAttackStartTime    = Date.now();
+  navigate('timeattack');
+}
+
+// ----- レンダリング -----
+function renderTimeAttack() {
+  const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+  if (state.timeAttackPhase === 'quiz') {
+    const qRows = state.timeAttackQuestions.map((q, i) => {
+      const lv = LEVELS[q.fromLevel];
+      return `
+        <div class="bulk-q-row">
+          <div class="bulk-q-header">
+            <span class="bulk-q-num">問 ${i + 1}</span>
+            <span class="bulk-q-level" style="color:${lv.color}">${lv.stars} ${lv.label}</span>
+          </div>
+          <div class="bulk-q-text">${formatQuestion(q.q)}</div>
+          ${getBlankHint(q) ? `<div class="bulk-q-hint"><span class="bulk-q-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
+          <div class="bulk-q-input-wrap">
+            <input class="bulk-q-input" id="ta-${i}"
+                   type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off">
+          </div>
+        </div>`;
+    }).join('');
+
+    const teacherTime = sec.teacherTime || null;
+    const taCurrentData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
+    const targetHtml = teacherTime !== null && !taCurrentData.teacherBeaten
+      ? `<div class="ta-teacher-target">👑 小林T のタイム：<span>${teacherTime.toFixed(1)}秒</span>を超えれば 🌱×10個！</div>`
+      : teacherTime !== null && taCurrentData.teacherBeaten
+      ? `<div class="ta-teacher-target ta-teacher-beaten-msg">👑 小林T 撃破済み！（${teacherTime.toFixed(1)}秒）</div>`
+      : '';
+    return `
+      <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
+      <div class="quiz-header">
+        <h2>${sec.title}</h2>
+        <span class="quiz-level-badge" style="--lv-color:#00d2ff">⏱ タイムアタック</span>
+      </div>
+      <div class="ta-timer-wrap">
+        <div class="ta-live-timer" id="ta-live-timer">0.0秒</div>
+        <div class="ta-timer-label">タイマー計測中…</div>
+        ${targetHtml}
+      </div>
+      <div class="bulk-form-wrap">
+        <div class="bulk-questions-list">${qRows}</div>
+        <div class="bulk-submit-area">
+          <button class="bulk-submit-btn ta-submit-btn" onclick="submitTimeAttackAnswers()">採点する！</button>
+        </div>
+      </div>`;
+  }
+  return renderTimeAttackResult(sec);
+}
+
+function renderTimeAttackResult(sec) {
+  const questions  = state.timeAttackQuestions;
+  const wrong      = state.timeAttackWrongIndices;
+  const allCorrect = wrong.length === 0;
+  const elapsed    = state.timeAttackElapsed;
+  const taData     = getTimeAttackData(state.chapterIdx, state.sectionIdx);
+
+  // 問題結果行
+  const qRows = questions.map((q, i) => {
+    const isWrong = wrong.includes(i);
+    const lv      = LEVELS[q.fromLevel];
+    const entered = state.timeAttackAnswers[i] || '';
+    return `
+      <div class="bulk-q-row ${isWrong ? 'bulk-q-wrong' : 'bulk-q-correct'}">
+        <div class="bulk-q-header">
+          <span class="bulk-q-num">問 ${i + 1} <span class="bulk-q-mark">${isWrong ? '✗' : '✓'}</span></span>
+          <span class="bulk-q-level" style="color:${lv.color}">${lv.stars} ${lv.label}</span>
+        </div>
+        <div class="bulk-q-text">${formatQuestion(q.q)}</div>
+        ${isWrong
+          ? `<div class="bulk-result-wrong">
+               あなたの答え：<span class="bulk-ans-entered">${escHtml(entered) || '（未入力）'}</span>
+               <span class="bulk-arrow">→</span>
+               正解：<span class="bulk-ans-correct">${escHtml(getCorrectAnswer(q))}</span>
+             </div>`
+          : `<div class="bulk-result-correct">✓ 正解：<span class="bulk-ans-correct">${escHtml(getCorrectAnswer(q))}</span></div>`
+        }
+      </div>`;
+  }).join('');
+
+  // 不正解ありの場合
+  if (!allCorrect) {
+    return `
+      <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
+      <div class="quiz-header">
+        <h2>${sec.title}</h2>
+        <span class="quiz-level-badge" style="--lv-color:#f5576c">⏱ タイムアタック 結果</span>
+      </div>
+      <div class="bulk-form-wrap">
+        <div class="ta-result-time-wrap ta-result-wrong-wrap">
+          <div class="ta-result-time" style="color:#f5576c">${elapsed.toFixed(1)}秒</div>
+          <div class="ta-result-msg">全問正解が必要です！正解してからタイムを競おう 💪</div>
+          ${taData.bestTime !== null ? `<div class="ta-best-display">🏆 最速記録：${taData.bestTime.toFixed(1)}秒</div>` : ''}
+        </div>
+        <div class="bulk-questions-list">${qRows}</div>
+        <div class="bulk-submit-area">
+          <button class="ta-retry-btn" onclick="startTimeAttack()">もう一度チャレンジ！</button>
+          <button class="bulk-back-btn" onclick="navigate('difficulty')">難易度選択に戻る</button>
+        </div>
+      </div>`;
+  }
+
+  // 全問正解の場合
+  const prevBest    = state.timeAttackPrevBest;
+  const isFirstClear = prevBest === null;
+  const isNewBest   = !isFirstClear && elapsed < prevBest;
+
+  // タイム表示の色
+  let timeColor = 'rgba(255,255,255,0.75)';
+  if      (elapsed <= 30) timeColor = '#00d2ff';
+  else if (elapsed <= 40) timeColor = '#9ded62';
+  else if (elapsed <= 50) timeColor = '#f7971e';
+
+  // ティアカード
+  const tierCards = TA_TIERS.map(t => {
+    const achieved  = elapsed <= t.sec;
+    const wasEarned = taData.earnedTiers.includes(t.sec);
+    const newlyEarned = achieved && prevBest !== undefined &&
+      !( prevBest !== null && [30,40,50].some(s => s === t.sec && prevBest <= t.sec) );
+    // より正確な判定：今回新たに追加されたか（submitで記録済み）
+    // → earnedTiersを見て achieved かつ wasEarned なら新規か既存かを
+    //   timeAttackPrevBest から判断
+    const newlyEarnedActual = achieved && wasEarned && (prevBest === null || prevBest > t.sec);
+
+    if (newlyEarnedActual) {
+      return `<div class="ta-tier-card ta-tier-new" style="--tier-color:${t.color}">
+        <span class="ta-tier-medal">${t.medal}</span>
+        <span class="ta-tier-label">${t.label}</span>
+        <span class="ta-tier-peas">🌱×${t.peas} NEW！</span>
+      </div>`;
+    } else if (wasEarned || achieved) {
+      return `<div class="ta-tier-card ta-tier-done">
+        <span class="ta-tier-medal">${t.medal}</span>
+        <span class="ta-tier-label">${t.label}</span>
+        <span class="ta-tier-peas">✓ 獲得済み</span>
+      </div>`;
+    } else {
+      return `<div class="ta-tier-card ta-tier-miss">
+        <span class="ta-tier-medal">${t.medal}</span>
+        <span class="ta-tier-label">${t.label}</span>
+        <span class="ta-tier-peas">🌱×${t.peas}</span>
+      </div>`;
+    }
+  }).join('');
+
+  // 今回獲得グリンピース数
+  const newPeasThisTime = TA_TIERS.filter(t => {
+    const achieved  = elapsed <= t.sec;
+    const wasEarned = prevBest !== null && prevBest <= t.sec;
+    return achieved && !wasEarned;
+  }).reduce((s, t) => s + t.peas, 0);
+
+  return `
+    <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
+    <div class="quiz-header">
+      <h2>${sec.title}</h2>
+      <span class="quiz-level-badge" style="--lv-color:#00d2ff">⏱ タイムアタック 結果</span>
+    </div>
+    <div class="bulk-form-wrap">
+      <div class="ta-result-time-wrap">
+        <div class="ta-result-time" style="color:${timeColor}">${elapsed.toFixed(1)}秒</div>
+        ${isFirstClear ? '<div class="ta-new-record">🎉 初クリア！</div>' : ''}
+        ${isNewBest    ? '<div class="ta-new-record">🏆 新記録！</div>' : ''}
+        ${state.timeAttackTeacherBeaten ? '<div class="ta-teacher-beaten">👑 小林T を倒した！ 🌱×10個ゲット！</div>' : ''}
+        ${newPeasThisTime > 0 ? `<div class="ta-peas-earned">🌱 ×${newPeasThisTime}個 ゲット！</div>` : ''}
+        ${!isFirstClear && !isNewBest && taData.bestTime !== null
+          ? `<div class="ta-best-display">🏆 最速記録：${taData.bestTime.toFixed(1)}秒</div>` : ''}
+      </div>
+      <div class="ta-tier-cards">${tierCards}</div>
+      <div class="bulk-questions-list" style="margin-top:1.2rem">${qRows}</div>
+      <div class="bulk-submit-area">
+        <button class="ta-retry-btn" onclick="startTimeAttack()">もう一度チャレンジ！</button>
+        <button class="bulk-back-btn" onclick="navigate('difficulty')">難易度選択に戻る</button>
+      </div>
+    </div>`;
+}
+
+// ----- 採点 -----
+function submitTimeAttackAnswers() {
+  // タイマー停止
+  clearInterval(taTimerInterval);
+  const elapsed = (Date.now() - state.timeAttackStartTime) / 1000;
+  state.timeAttackElapsed = elapsed;
+
+  const questions = state.timeAttackQuestions;
+  const answers   = questions.map((_, i) => {
+    const el = document.getElementById(`ta-${i}`);
+    return el ? el.value : '';
+  });
+  state.timeAttackAnswers = answers;
+
+  const wrongIndices = questions.reduce((acc, q, i) => {
+    if (normalizeAnswer(answers[i]) !== normalizeAnswer(getCorrectAnswer(q))) acc.push(i);
+    return acc;
+  }, []);
+  state.timeAttackWrongIndices = wrongIndices;
+
+  const allCorrect = wrongIndices.length === 0;
+
+  if (allCorrect) {
+    const taData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
+    state.timeAttackPrevBest = taData.bestTime;  // 今回前のベストを保存
+
+    let newPeas = 0;
+
+    // ティア判定
+    TA_TIERS.forEach(tier => {
+      if (elapsed <= tier.sec && !taData.earnedTiers.includes(tier.sec)) {
+        taData.earnedTiers.push(tier.sec);
+        newPeas += tier.peas;
+      }
+    });
+
+    // 小林T チャレンジ判定
+    const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+    const teacherTime = sec.teacherTime || null;
+    state.timeAttackTeacherBeaten = false;
+    if (teacherTime !== null && elapsed < teacherTime && !taData.teacherBeaten) {
+      taData.teacherBeaten = true;
+      newPeas += 10;
+      state.timeAttackTeacherBeaten = true;  // 今回初めて先生を倒した
+    }
+
+    if (taData.bestTime === null || elapsed < taData.bestTime) {
+      taData.bestTime = elapsed;
+    }
+    saveTimeAttackData(state.chapterIdx, state.sectionIdx, taData);
+
+    if (newPeas > 0) {
+      addPeas(newPeas);
+      setTimeout(() => {
+        for (let i = 0; i < newPeas; i++) {
+          setTimeout(() => bounceAndAddPea(), i * 200);
+        }
+        if (newPeas >= 3) showConfetti();
+      }, 400);
+    }
+  }
+
+  state.timeAttackPhase = 'result';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
 // ===== メインレンダリング =====
 // ============================================================
 function render() {
   quizLocked = false;   // 画面が切り替わるたびにロック解除
+  clearInterval(taTimerInterval);  // タイムアタックタイマーをクリア
+
   let content = '';
   if      (state.view === 'home')       content = renderHome();
   else if (state.view === 'sections')   content = renderSections();
@@ -1184,6 +1514,7 @@ function render() {
   else if (state.view === 'quiz')       content = renderQuiz();
   else if (state.view === 'minitest')   content = renderMiniTest();
   else if (state.view === 'practice')   content = renderPractice();
+  else if (state.view === 'timeattack') content = renderTimeAttack();
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
 
@@ -1196,6 +1527,21 @@ function render() {
         if (e.key === 'Enter') submitQuizAnswer();
       });
     }
+  }
+
+  // タイムアタック：ライブタイマー開始
+  if (state.view === 'timeattack' && state.timeAttackPhase === 'quiz') {
+    const startTime = state.timeAttackStartTime;
+    taTimerInterval = setInterval(() => {
+      const el = document.getElementById('ta-live-timer');
+      if (!el) { clearInterval(taTimerInterval); return; }
+      const elapsed = (Date.now() - startTime) / 1000;
+      el.textContent = elapsed.toFixed(1) + '秒';
+      if      (elapsed > 50) el.style.color = '#f5576c';
+      else if (elapsed > 40) el.style.color = '#f7971e';
+      else if (elapsed > 30) el.style.color = '#ffd200';
+      else                   el.style.color = '#00d2ff';
+    }, 100);
   }
 }
 

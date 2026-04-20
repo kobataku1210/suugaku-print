@@ -1498,3 +1498,222 @@ body {
   .bulk-q-row { padding: 1rem 1rem; }
   .bulk-q-text { font-size: 0.95rem; }
 }
+
+/* ============================================================
+   ===== タイムアタック =====
+   ============================================================ */
+
+/* 難易度選択カード */
+.mt-extra-timeattack {
+  background: linear-gradient(135deg, rgba(0,210,255,0.08), rgba(58,123,213,0.04));
+  border: 2px solid rgba(0,210,255,0.35);
+}
+.mt-extra-timeattack:hover {
+  border-color: rgba(0,210,255,0.75);
+  background: linear-gradient(135deg, rgba(0,210,255,0.16), rgba(58,123,213,0.08));
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,210,255,0.15);
+}
+.mt-extra-timeattack .mt-extra-title { color: #00d2ff; }
+.mt-btn-timeattack { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #0d0d2b; }
+
+/* 難易度カードのミニバッジ */
+.ta-tier-badges-sm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+.ta-tier-badge-sm {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 50px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.38);
+  font-weight: 600;
+}
+.ta-tier-badge-earned {
+  background: rgba(0,210,255,0.12);
+  border-color: rgba(0,210,255,0.4);
+  color: #00d2ff;
+}
+.ta-best-time-sm {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ffd200;
+  text-align: right;
+}
+
+/* ライブタイマー */
+.ta-timer-wrap {
+  text-align: center;
+  margin: 0 auto 1.5rem;
+  padding: 1rem 1.5rem;
+  background: rgba(0,210,255,0.05);
+  border: 1px solid rgba(0,210,255,0.22);
+  border-radius: 16px;
+  max-width: 680px;
+}
+.ta-live-timer {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #00d2ff;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  transition: color 0.3s;
+}
+.ta-timer-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+  margin-top: 0.3rem;
+  letter-spacing: 0.12em;
+}
+
+/* 採点ボタン（シアン色） */
+.ta-submit-btn {
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5) !important;
+}
+
+/* 結果タイム表示 */
+.ta-result-time-wrap {
+  text-align: center;
+  padding: 1.4rem 1.5rem;
+  background: rgba(0,210,255,0.05);
+  border: 2px solid rgba(0,210,255,0.3);
+  border-radius: 20px;
+  margin-bottom: 1.2rem;
+  animation: fadeSlideIn 0.3s ease both;
+}
+.ta-result-time-wrap.ta-result-wrong-wrap {
+  background: rgba(245,87,108,0.05);
+  border-color: rgba(245,87,108,0.3);
+}
+.ta-result-time {
+  font-size: 3.5rem;
+  font-weight: 900;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+.ta-result-msg {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 0.5rem;
+}
+.ta-new-record {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffd200;
+  margin-top: 0.35rem;
+  animation: fadeSlideIn 0.3s ease both;
+}
+.ta-peas-earned {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #9ded62;
+  margin-top: 0.35rem;
+  animation: fadeSlideIn 0.35s ease both;
+}
+.ta-best-display {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.4);
+  margin-top: 0.5rem;
+}
+
+/* ティアカード */
+.ta-tier-cards {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+.ta-tier-card {
+  flex: 1;
+  min-width: 110px;
+  max-width: 180px;
+  padding: 0.9rem 0.7rem;
+  border-radius: 14px;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  animation: fadeSlideIn 0.3s ease both;
+}
+.ta-tier-new {
+  border-color: var(--tier-color, #00d2ff);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 18px rgba(0,0,0,0.25);
+}
+.ta-tier-done {
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+  opacity: 0.75;
+}
+.ta-tier-miss {
+  border-color: rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.08);
+  opacity: 0.4;
+}
+.ta-tier-medal  { font-size: 1.4rem; line-height: 1; }
+.ta-tier-label  { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.7); }
+.ta-tier-new .ta-tier-label { color: var(--tier-color, #00d2ff); }
+.ta-tier-peas   { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.45); }
+.ta-tier-new  .ta-tier-peas { color: #9ded62; font-size: 0.88rem; }
+.ta-tier-done .ta-tier-peas { color: rgba(255,255,255,0.38); }
+
+/* リトライボタン */
+.ta-retry-btn {
+  width: 100%;
+  max-width: 300px;
+  padding: 0.85rem;
+  border: 2px solid #00d2ff;
+  border-radius: 50px;
+  background: rgba(0,210,255,0.1);
+  color: #00d2ff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ta-retry-btn:hover { background: rgba(0,210,255,0.22); transform: scale(1.03); }
+
+/* 先生チャレンジ */
+.ta-teacher-badge {
+  background: rgba(255,213,0,0.12) !important;
+  border-color: rgba(255,213,0,0.45) !important;
+  color: #ffd200 !important;
+}
+.ta-teacher-target {
+  margin-top: 0.6rem;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.6);
+}
+.ta-teacher-target span {
+  color: #ffd200;
+  font-weight: 800;
+}
+.ta-teacher-beaten-msg {
+  color: rgba(157,237,98,0.7);
+}
+.ta-teacher-beaten {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffd200;
+  margin-top: 0.4rem;
+  text-shadow: 0 0 16px rgba(255,213,0,0.5);
+  animation: fadeSlideIn 0.35s ease both;
+}
+
+@media (max-width: 640px) {
+  .ta-tier-cards  { gap: 0.5rem; }
+  .ta-tier-card   { min-width: 90px; padding: 0.7rem 0.5rem; }
+  .ta-live-timer  { font-size: 2.2rem; }
+  .ta-result-time { font-size: 2.5rem; }
+}
