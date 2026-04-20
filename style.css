@@ -1684,6 +1684,16 @@ body {
 }
 .ta-retry-btn:hover { background: rgba(0,210,255,0.22); transform: scale(1.03); }
 
+/* 小林T注意書き */
+.ta-kobayashi-note {
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 0.4rem;
+  margin-bottom: 0.8rem;
+  font-style: italic;
+}
+
 /* 先生チャレンジ */
 .ta-teacher-badge {
   background: rgba(255,213,0,0.12) !important;

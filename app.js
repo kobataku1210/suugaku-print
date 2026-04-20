@@ -726,7 +726,8 @@ function renderDifficulty() {
     <div class="difficulty-grid">${cards}</div>
     ${minitestCard}
     ${practiceCard}
-    ${timeattackCard}`;
+    ${timeattackCard}
+    <p class="ta-kobayashi-note">※小林Tの記録を抜いたら小林Tに報告すること。大人げなくまた抜き返します。</p>`;
 }
 
 function startQuiz(levelIdx) {
