@@ -675,8 +675,8 @@ function renderDifficulty() {
           <div class="mt-extra-title">タイムアタック</div>
           <div class="mt-extra-desc">基礎3問・標準1問・応用1問 ／ 全問正解＋タイムで🌱ゲット</div>
           <div class="ta-tier-badges-sm">
-            ${taTierBadgesHtml}
             ${taTeacherBadge}
+            ${taTierBadgesHtml}
           </div>
         </div>
       </div>
