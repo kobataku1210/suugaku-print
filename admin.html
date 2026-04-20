@@ -93,6 +93,21 @@
       border: 1px solid rgba(255,255,255,0.1); border-radius: 0 0 12px 12px; overflow: hidden;
     }
 
+    /* ===== 先生タイム入力 ===== */
+    .teacher-time-wrap {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(0,210,255,0.10); border: 1px solid rgba(0,210,255,0.3);
+      border-radius: 8px; padding: 0.2rem 0.7rem; font-size: 0.82rem;
+    }
+    .teacher-time-label { color: rgba(255,255,255,0.5); white-space: nowrap; }
+    .teacher-time-input {
+      width: 72px; background: rgba(255,255,255,0.08); border: 1px solid rgba(0,210,255,0.4);
+      border-radius: 6px; color: #00d2ff; font-size: 1rem; font-weight: 800;
+      text-align: center; padding: 0.1rem 0.3rem; font-family: monospace; outline: none;
+    }
+    .teacher-time-input:focus { border-color: #00d2ff; background: rgba(0,210,255,0.15); }
+    .teacher-time-unit { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+
     /* ===== 小テストパスワード表示 ===== */
     .minitest-pw-wrap {
       margin-left: auto; display: flex; align-items: center; gap: 0.5rem;
@@ -340,6 +355,11 @@ function ensurePasswords(data) {
 }
 
 // パスワード再生成ボタン
+function updateTeacherTime(chIdx, si, val) {
+  const num = parseFloat(val);
+  questionsData.chapters[chIdx].sections[si].teacherTime = isNaN(num) ? null : Math.round(num * 10) / 10;
+}
+
 function regenPassword(chIdx, si) {
   const newPw = genPassword();
   questionsData.chapters[chIdx].sections[si].miniTestPassword = newPw;
@@ -394,6 +414,15 @@ function renderSections(chIdx) {
       <div class="section-heading">
         <span style="opacity:0.45">${String(si+1).padStart(2,'0')}</span>
         ${sec.title}
+        <div class="teacher-time-wrap">
+          <span class="teacher-time-label">👑 小林Tタイム</span>
+          <input type="number" class="teacher-time-input" min="0" step="0.1"
+                 value="${sec.teacherTime != null ? sec.teacherTime : ''}"
+                 placeholder="未設定"
+                 onchange="updateTeacherTime(${chIdx},${si},this.value)"
+                 title="タイムアタックで小林Tの記録として表示されます">
+          <span class="teacher-time-unit">秒</span>
+        </div>
         <div class="minitest-pw-wrap">
           <span class="minitest-pw-label">小テストPW</span>
           <span class="minitest-pw-code" id="pw-display-${chIdx}-${si}">${sec.miniTestPassword || '----'}</span>
