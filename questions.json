@@ -8,6 +8,7 @@
       "sections": [
         {
           "title": "式の乗法",
+          "teacherTime": 21.5,
           "basic": [
             {
               "q": "(2x+y)×7x",
@@ -168,6 +169,7 @@
         },
         {
           "title": "式の除法",
+          "teacherTime": 21.5,
           "basic": [
             {
               "q": "(5x²-10x) ÷ 5x",
@@ -328,6 +330,7 @@
         },
         {
           "title": "式の展開",
+          "teacherTime": 22.6,
           "basic": [
             {
               "q": "(a+b)(c-d)",
@@ -488,6 +491,7 @@
         },
         {
           "title": "乗法の公式",
+          "teacherTime": 15.0,
           "basic": [
             {
               "q": "(x+2)(x+3)",
@@ -648,6 +652,7 @@
         },
         {
           "title": "いろいろな式の計算",
+          "teacherTime": 18.8,
           "basic": [
             {
               "q": "(x-3)²+(x-1)(x+7)",
@@ -808,6 +813,7 @@
         },
         {
           "title": "因数分解①",
+          "teacherTime": 22.3,
           "basic": [
             {
               "q": "ab-ac",
@@ -968,6 +974,7 @@
         },
         {
           "title": "因数分解②",
+          "teacherTime": 15.6,
           "basic": [
             {
               "q": "x²+3x+2",
@@ -1128,6 +1135,7 @@
         },
         {
           "title": "いろいろな因数分解",
+          "teacherTime": 22.5,
           "basic": [
             {
               "q": "5x²-45",
@@ -1288,6 +1296,7 @@
         },
         {
           "title": "式の計算の利用",
+          "teacherTime": 18.1,
           "basic": [
             {
               "q": "45²-35²",
