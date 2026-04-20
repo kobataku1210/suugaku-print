@@ -1,0 +1,1100 @@
+// ============================================================
+// sugoroku.js  —  すごろく Phase 1 リニューアル
+// ============================================================
+
+// ===== 定数 =====
+const BALL_COLORS = ['red','blue','yellow','green','purple'];
+const BALL_EMOJI  = {red:'🔴',blue:'🔵',yellow:'🟡',green:'🟢',purple:'🟣'};
+const BALL_NAME   = {red:'赤',blue:'青',yellow:'黄',green:'緑',purple:'紫'};
+const DICE_FACES  = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+// ===== マス定義（①左上スタート・100マス）=====
+const SUGOROKU_SPACES = (() => {
+  const sp = [null];
+  for (let i = 1; i <= 100; i++) sp.push({ num: i, type: 'normal' });
+  const set = (n, type, param) => { sp[n].type = type; if (param !== undefined) sp[n].param = param; };
+
+  // ③ 進む
+  set(3,  'forward', 2);  set(5,  'forward', 1);
+  set(14, 'forward', 3);  set(17, 'forward', 1);
+  set(23, 'forward', 4);  set(27, 'forward', 2);
+  set(32, 'forward', 5);  // レア
+  set(35, 'forward', 3);  set(43, 'forward', 1);
+  set(48, 'forward', 2);  set(53, 'forward', 4);
+  set(63, 'forward', 1);  set(86, 'forward', 2);
+  set(94, 'forward', 3);
+
+  // ③ サイコロを振ってその分進む
+  set(19, 'rollAndForward');
+  set(59, 'rollAndForward');
+
+  // ③ 戻る
+  set(6,  'back', 1);  set(12, 'back', 2);
+  set(22, 'back', 3);  set(33, 'back', 1);
+  set(57, 'back', 2);  set(65, 'back', 1);
+  set(72, 'back', 3);  set(89, 'back', 2);
+
+  // ③ サイコロを振ってその分戻る
+  set(38, 'rollAndBack');
+  set(82, 'rollAndBack');
+
+  // 既存マス（残す）
+  set(16, 'again');  set(44, 'again');  set(68, 'again');
+  set(25, 'rest');   set(51, 'rest');   set(75, 'rest');
+  set(29, 'warp', 45); set(78, 'warp', 65);
+  // ① お宝→モンスターに変更、モンスター増設（計6マス）
+  set(9,  'monster'); set(18, 'monster'); set(37, 'monster');
+  set(47, 'monster'); set(55, 'monster'); set(73, 'monster');
+  // ⑤ 球落としマス（5マス）
+  [10, 21, 41, 64, 87].forEach(n => set(n, 'dropBall'));
+
+  // ② 門出現マス
+  set(85, 'gate_spawn'); set(90, 'gate_spawn');
+
+  // ⑦ 掘れるマス（30個：元20 ＋ ⑤追加10）
+  [2,4,7,8,11,13,20,24,26,31,34,39,40,46,49,52,56,61,62,66,69,70,76,79,80,84,88,92,95,98]
+    .forEach(n => set(n, 'dig'));
+
+  // ⑧ 交換所（8個）
+  [15,30,42,50,60,71,83,91].forEach(n => set(n, 'exchange'));
+
+  // ゴール
+  set(100, 'goal');
+  return sp;
+})();
+
+// ===== ウォーム配色 =====
+const SG_WARM = {
+  normal:         { bg:'#ffffff', bd:'#c8a060' },
+  forward:        { bg:'#d8f2d0', bd:'#40a040' },
+  rollAndForward: { bg:'#b0eeaa', bd:'#208020' },
+  back:           { bg:'#ffd8d8', bd:'#d04040' },
+  rollAndBack:    { bg:'#ffb8b8', bd:'#a02020' },
+  again:          { bg:'#eadaff', bd:'#8040d0' },
+  rest:           { bg:'#e2e0f2', bd:'#8080c0' },
+  warp:           { bg:'#c8eeff', bd:'#0088c0' },
+  monster:        { bg:'#ffdaaa', bd:'#d06020' },
+  dropBall:       { bg:'#ffd0e0', bd:'#c02060' },
+  dig:            { bg:'#f0e0c0', bd:'#806030' },
+  exchange:       { bg:'#ffe0f8', bd:'#c040a0' },
+  goal:           { bg:'#ffe860', bd:'#d0a000' },
+  gate_spawn:     { bg:'#ffe080', bd:'#c07800' },
+};
+
+// ===== セーブ =====
+const SG_SAVE_KEY = 'sgSave_v1';
+
+function getSgSave() {
+  try { const r = localStorage.getItem(SG_SAVE_KEY); if (r) return JSON.parse(r); }
+  catch(e) {}
+  return null;
+}
+function setSgSave(data) { localStorage.setItem(SG_SAVE_KEY, JSON.stringify(data)); }
+
+function ensureSgInit() {
+  let save = getSgSave();
+  if (!save) {
+    let init = 0;
+    try {
+      const raw = localStorage.getItem('mathPrint_v2');
+      if (raw) { const p = JSON.parse(raw); init = (p.peaCupCount||0)*45+(p.peaCount||0); }
+    } catch(e) {}
+    save = {
+      peas: init, pos: 0, maxPos: 0,
+      skipNext: false, cleared: false, touchedGoal: false,
+      balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
+    };
+    setSgSave(save);
+  }
+  // 旧データ移行
+  if (!save.balls)       { save.balls = { red:0, blue:0, yellow:0, green:0, purple:0 }; setSgSave(save); }
+  if (save.touchedGoal  === undefined) { save.touchedGoal  = false; setSgSave(save); }
+  if (save.gate85Active === undefined) { save.gate85Active = false; setSgSave(save); }
+  if (save.gate90Active === undefined) { save.gate90Active = false; setSgSave(save); }
+  // passedGate1 移行：マス81以降にいた or touchedGoal なら門1通過済みとみなす
+  if (save.passedGate1  === undefined) {
+    save.passedGate1 = (save.pos >= 81) || (save.touchedGoal || false);
+    setSgSave(save);
+  }
+  return save;
+}
+
+// ===== ヘルパー =====
+function getSgPeas()      { return ensureSgInit().peas; }
+function getSgDiceCount() { return Math.floor(getSgPeas() / 10); }
+function getSgPos()       { return ensureSgInit().pos; }
+
+function addSgPeas(n) {
+  const save = ensureSgInit(); save.peas += n; setSgSave(save);
+}
+function spendSgPeas(n) {
+  const save = ensureSgInit();
+  if (save.peas < n) return false;
+  save.peas -= n; setSgSave(save); return true;
+}
+function moveSgTo(rawPos) {
+  const save = ensureSgInit();
+  save.pos = Math.max(0, Math.min(100, rawPos));
+  if (save.pos > save.maxPos) save.maxPos = save.pos;
+  setSgSave(save);
+}
+function hasAllBalls() {
+  const b = ensureSgInit().balls;
+  return BALL_COLORS.every(c => (b[c]||0) > 0);
+}
+function addBall(color) {
+  const save = ensureSgInit(); save.balls[color] = (save.balls[color]||0)+1; setSgSave(save);
+}
+function removeBallRandom() {
+  const save = ensureSgInit();
+  const have = BALL_COLORS.filter(c => (save.balls[c]||0) > 0);
+  if (!have.length) return null;
+  const c = have[Math.floor(Math.random()*have.length)];
+  save.balls[c]--; setSgSave(save); return c;
+}
+function getRandomBallColor() { return BALL_COLORS[Math.floor(Math.random()*5)]; }
+
+function getSgCharIcon() {
+  const save = ensureSgInit();
+  if (save.cleared) return '👑🧑';
+  const total = BALL_COLORS.reduce((a,c) => a+(save.balls[c]||0), 0);
+  if (total >= 5) return '🧙‍♂️';
+  if (total >= 3) return '🤺';
+  if (total >= 1) return '🗡️🧒';
+  return '🧒';
+}
+
+// ===== モンスター問題バンク（式の乗法・除法）=====
+const MONSTER_QUESTIONS = [
+  { q: '(x+3)(x+5) を展開すると？',   choices: ['x²+8x+15', 'x²+15x+8', 'x²+8x+8',  'x²+15'],      ans: 0 },
+  { q: '(x+4)² を展開すると？',        choices: ['x²+16',    'x²+4x+16', 'x²+8x+16', 'x²+8x+8'],    ans: 2 },
+  { q: '(x+6)(x−6) を展開すると？',   choices: ['x²+36',    'x²−36',    'x²−12x−36','x²+12x+36'], ans: 1 },
+  { q: '(x−3)² を展開すると？',        choices: ['x²+6x+9',  'x²−9',     'x²−6x−9',  'x²−6x+9'],   ans: 3 },
+  { q: '(x+2)(x−7) を展開すると？',   choices: ['x²−5x+14', 'x²+5x−14', 'x²−5x−14', 'x²+5x+14'],  ans: 2 },
+  { q: '(2x+3)(x+1) を展開すると？',  choices: ['2x²+5x+3', '2x²+4x+3', '2x²+3x+3', '2x²+5x+1'],  ans: 0 },
+  { q: '(a+b)² を展開すると？',        choices: ['a²+b²',    'a²+2ab+b²','a²−2ab+b²','a²+ab+b²'],  ans: 1 },
+  { q: '(a+b)(a−b) を展開すると？',   choices: ['a²+b²',    'a²+2ab−b²','a²−2ab−b²','a²−b²'],     ans: 3 },
+  { q: '6x²y ÷ 3x を計算すると？',    choices: ['2xy',       '3xy',       '2x²y',     '2y'],          ans: 0 },
+  { q: '(3a)² を計算すると？',          choices: ['6a²',       '3a²',       '9a',        '9a²'],         ans: 3 },
+  { q: '4ab ÷ 2b を計算すると？',      choices: ['2b',        '2a',        '4a',        '2ab'],         ans: 1 },
+  { q: '(x−2)(x+9) を展開すると？',   choices: ['x²+7x−18', 'x²−7x−18', 'x²+7x+18', 'x²−7x+18'],  ans: 0 },
+  { q: '2a(3a−b) を展開すると？',      choices: ['6a²−2ab',  '6a²+2ab',  '6a−2ab',   '6a²−2b'],    ans: 0 },
+  { q: '(x−5)² を展開すると？',        choices: ['x²+25',    'x²−25',    'x²−10x+25','x²+10x+25'], ans: 2 },
+  { q: '12x³y ÷ 4xy を計算すると？',  choices: ['3x²',       '3xy',       '4x²',       '3x²y'],        ans: 0 },
+];
+
+let sgMonsterQ   = null;
+let _sgMonsterDone = null;
+let _sgDropDone    = null;
+
+// ===== ④ 特殊マス効果オーバーレイ（自動消去） =====
+function showSpaceOv(icon, title, sub, ms, onComplete) {
+  document.querySelector('.sg-space-ov')?.remove();
+  const ov = document.createElement('div');
+  ov.className = 'sg-space-ov';
+  ov.innerHTML = `
+    <div class="sg-sp-ov-icon">${icon}</div>
+    <div class="sg-sp-ov-title">${title}</div>
+    ${sub ? `<div class="sg-sp-ov-sub">${sub}</div>` : ''}
+  `;
+  document.body.appendChild(ov);
+  setTimeout(() => { ov.remove(); onComplete(); }, ms || 1200);
+}
+
+// ===== ③ モンスターオーバーレイ =====
+function showMonsterOverlay(onDone) {
+  _sgMonsterDone = onDone;
+  sgMonsterQ = MONSTER_QUESTIONS[Math.floor(Math.random() * MONSTER_QUESTIONS.length)];
+  document.getElementById('sg-monster-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'sg-monster-overlay';
+  ov.className = 'sg-monster-overlay';
+  ov.innerHTML = _monsterQuestionHtml(sgMonsterQ);
+  document.body.appendChild(ov);
+}
+function _monsterQuestionHtml(q) {
+  const choices = q.choices.map((c, i) =>
+    `<button class="sg-mq-choice" onclick="sgMonsterAnswer(${i})">${c}</button>`
+  ).join('');
+  return `
+    <div class="sg-monster-ov-icon">👾</div>
+    <div class="sg-monster-ov-title">モンスター出現！</div>
+    <div class="sg-monster-ov-q">${q.q}</div>
+    <div class="sg-monster-ov-choices">${choices}</div>
+  `;
+}
+function sgMonsterAnswer(idx) {
+  const q  = sgMonsterQ;
+  const ov = document.getElementById('sg-monster-overlay');
+  if (!ov) return;
+  if (idx === q.ans) {
+    // 正解 → 好きな球を1つ選ぶ
+    const ballBtns = BALL_COLORS.map(c =>
+      `<button class="sg-ball-pick-btn" onclick="sgMonsterPickBall('${c}')">${BALL_EMOJI[c]}<span>${BALL_NAME[c]}</span></button>`
+    ).join('');
+    ov.innerHTML = `
+      <div class="sg-monster-ov-icon">✨</div>
+      <div class="sg-monster-ov-title sg-mq-correct">正解！</div>
+      <div class="sg-monster-ov-sub">好きな球を1つ選べ！</div>
+      <div class="sg-ball-pick-row">${ballBtns}</div>
+    `;
+  } else {
+    // ① 不正解 → 球を1つ失う
+    const lost = removeBallRandom();
+    let lostMsg;
+    if (lost) {
+      lostMsg = `${BALL_EMOJI[lost]} ${BALL_NAME[lost]}の球を取られた…`;
+      sgMsg = `👾 不正解！${BALL_EMOJI[lost]}${BALL_NAME[lost]}の球を取られた！`; sgMsgType = 'bad';
+    } else {
+      lostMsg = '…球を持っていないので助かった！';
+      sgMsg = '👾 不正解！（球を持っていないので失わずに済んだ）'; sgMsgType = 'info';
+    }
+    ov.innerHTML = `
+      <div class="sg-monster-ov-icon">💀</div>
+      <div class="sg-monster-ov-title sg-mq-wrong">不正解…</div>
+      <div class="sg-monster-ov-sub">正解は「${q.choices[q.ans]}」<br>${lostMsg}</div>
+      <button class="sg-dig-ov-continue" onclick="sgMonsterClose()">続ける</button>
+    `;
+  }
+}
+function sgMonsterPickBall(color) {
+  addBall(color);
+  sgMsg = `✨ 正解！${BALL_EMOJI[color]}${BALL_NAME[color]}の球をゲット！`; sgMsgType = 'good';
+  sgMonsterClose();
+}
+function sgMonsterClose() {
+  document.getElementById('sg-monster-overlay')?.remove();
+  sgMonsterQ = null;
+  const done = _sgMonsterDone; _sgMonsterDone = null;
+  if (done) done();
+}
+
+// ===== ⑤ 球落としオーバーレイ =====
+function showDropBallOverlay(onDone) {
+  _sgDropDone = onDone;
+  const lost = removeBallRandom();
+  let icon, title, sub;
+  if (lost) {
+    icon  = BALL_EMOJI[lost];
+    title = '球を落とした！';
+    sub   = `${BALL_NAME[lost]}の球を失った…`;
+    sgMsg = `💀 ${BALL_EMOJI[lost]}${BALL_NAME[lost]}の球を落としてしまった…`; sgMsgType = 'bad';
+  } else {
+    icon  = '🕳';
+    title = '球を落とした！';
+    sub   = '…でも球を持っていなかった！';
+    sgMsg = '💀 球落としマス！（持っていないので助かった）'; sgMsgType = 'info';
+  }
+  document.getElementById('sg-drop-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'sg-drop-overlay';
+  ov.className = 'sg-drop-overlay';
+  ov.innerHTML = `
+    <div class="sg-drop-ov-icon">${icon}</div>
+    <div class="sg-drop-ov-title">${title}</div>
+    <div class="sg-drop-ov-sub">${sub}</div>
+    <button class="sg-dig-ov-continue" onclick="sgDropBallClose()">続ける</button>
+  `;
+  document.body.appendChild(ov);
+}
+function sgDropBallClose() {
+  document.getElementById('sg-drop-overlay')?.remove();
+  const done = _sgDropDone; _sgDropDone = null;
+  if (done) done();
+}
+
+// ===== リセット =====
+function sgReset() {
+  if (!confirm('データをリセットして最初からやり直しますか？\n（グリンピース・球・進捗がすべて消えます）')) return;
+  // 表示中のオーバーレイを消す
+  document.getElementById('sg-dice-overlay')?.remove();
+  document.getElementById('sg-dig-overlay')?.remove();
+  // セーブデータ削除
+  localStorage.removeItem(SG_SAVE_KEY);
+  // 状態変数リセット
+  sgPhase = 'idle';
+  sgMsg = ''; sgMsgType = 'info';
+  sgDiceVal = null; sgPendingRoll = null;
+  sgFreeRoll = false; sgBonusDir = null;
+  sgDigSpaceNum = null; sgDigResult = null; sgDigBallColor = null;
+  sgExchangeGive = null;
+  sgDisplayPos = null; sgIsAnimating = false;
+  renderSugoroku();
+}
+
+// ===== ゲーム状態 =====
+// idle | rolling | digChoice | digAnySelect | digging | digResult | exchange | bonusRoll
+let sgPhase        = 'idle';
+let sgMsg          = '';
+let sgMsgType      = 'info';
+let sgDiceVal      = null;
+let sgPendingRoll  = null;
+let sgFreeRoll     = false;
+let sgBonusDir     = null;   // 'forward' | 'back'
+let sgDigSpaceNum  = null;
+let sgDigResult    = null;   // 'ball' | 'nothing' | 'lost'
+let sgDigBallColor = null;
+let sgExchangeGive = null;
+let sgDiceAnimInterval = null;
+
+// ③ 一歩ずつアニメーション
+let sgDisplayPos  = null;
+let sgIsAnimating = false;
+
+// ===== サイコロを振る =====
+function sgRoll() {
+  const save = ensureSgInit();
+  if (save.cleared || sgPhase !== 'idle' || sgIsAnimating) return;
+
+  // 1回休み中：🌱×10で解除＋そのままロール（合計10個）
+  if (save.skipNext) {
+    if (!sgFreeRoll) {
+      if (save.peas < 10) {
+        sgMsg = '💤 1回休み中。解除するには🌱×10必要です。'; sgMsgType = 'bad';
+        renderSugoroku(); return;
+      }
+      spendSgPeas(10);
+    }
+    const s = ensureSgInit();
+    s.skipNext = false; setSgSave(s);
+    sgFreeRoll = true; // 解除費用でロールも兼ねる
+  }
+
+  // グリンピースチェック（通常ロール）
+  if (!sgFreeRoll) {
+    if (save.peas < 10) {
+      sgMsg = '🌱 グリンピースが足りません（10個必要）'; sgMsgType = 'bad';
+      renderSugoroku(); return;
+    }
+    spendSgPeas(10);
+  }
+  sgFreeRoll = false;
+
+  // アニメーション開始
+  sgPendingRoll = Math.floor(Math.random()*6)+1;
+  sgPhase = 'rolling';
+  renderSugoroku(); // → startSgDiceAnimation() が呼ばれる
+}
+
+// ===== ④ 3Dサイコロ =====
+const DICE_DOT_POS = {
+  1: [5],
+  2: [3, 7],
+  3: [3, 5, 7],
+  4: [1, 3, 7, 9],
+  5: [1, 3, 5, 7, 9],
+  6: [1, 3, 4, 6, 7, 9],
+};
+// cube を各面が見えるように回すための [rotateX, rotateY]
+const DICE_3D_ROT = { 1:[0,0], 2:[0,-90], 3:[90,0], 4:[-90,0], 5:[0,90], 6:[0,180] };
+
+function sgDiceFaceHtml(n) {
+  const on = DICE_DOT_POS[n];
+  let grid = '';
+  for (let i = 1; i <= 9; i++) {
+    grid += `<div class="sg-dot${on.includes(i) ? ' sg-dot-on' : ''}"></div>`;
+  }
+  return `<div class="sg-die-face sg-df-${n}"><div class="sg-dot-grid">${grid}</div></div>`;
+}
+
+// label: オーバーレイに表示するテキスト, onComplete(roll): アニメーション後に呼ばれるコールバック
+function startSgDiceAnimation(label, onComplete) {
+  label      = label      || '🎲 サイコロを振っています…';
+  onComplete = onComplete || (roll => { sgDiceVal=roll; sgPhase='idle'; sgExecuteRoll(roll); });
+
+  // 全画面オーバーレイを作成
+  const overlay = document.createElement('div');
+  overlay.id = 'sg-dice-overlay';
+  overlay.className = 'sg-dice-overlay';
+  const faces = [1,2,3,4,5,6].map(sgDiceFaceHtml).join('');
+  overlay.innerHTML = `
+    <div class="sg-dice-3d-wrap-lg">
+      <div class="sg-die-3d sg-die-3d-lg" id="sg-3d-die">${faces}</div>
+    </div>
+    <div class="sg-rolling-label-lg">${label}</div>
+  `;
+  document.body.appendChild(overlay);
+
+  const el = document.getElementById('sg-3d-die');
+  if (!el) {
+    overlay.remove();
+    onComplete(sgPendingRoll); return;
+  }
+  const [rx, ry] = DICE_3D_ROT[sgPendingRoll];
+
+  // ランダムな初期向きを設定（transition なし）
+  el.style.transition = 'none';
+  el.style.transform  = `rotateX(${30+Math.random()*40}deg) rotateY(${Math.random()*60}deg)`;
+  // reflow を強制
+  void el.offsetWidth;
+
+  // 2回転 + 目標面へアニメーション
+  const finalX = 720 + rx;
+  const finalY = 720 + ry;
+  el.style.transition = 'transform 1.1s cubic-bezier(0.25,0.46,0.45,0.94)';
+  el.style.transform  = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
+
+  setTimeout(() => {
+    document.getElementById('sg-dice-overlay')?.remove();
+    onComplete(sgPendingRoll);
+  }, 1300);
+}
+
+// ===== ③ 一歩ずつ移動パス =====
+function sgBuildMovePath(fromPos, roll) {
+  const target = fromPos + roll;
+  const path = [];
+  if (target <= 100) {
+    for (let p = fromPos + 1; p <= target; p++) path.push(p);
+  } else {
+    for (let p = fromPos + 1; p <= 100; p++) path.push(p);
+    const over = target - 100;
+    for (let p = 99; p >= 100 - over; p--) path.push(p);
+  }
+  return path;
+}
+
+function sgAnimateAlongPath(path, onComplete) {
+  if (!path.length) { onComplete(); return; }
+  sgIsAnimating = true;
+  let i = 0;
+  function tick() {
+    if (i >= path.length) {
+      sgDisplayPos = null; sgIsAnimating = false; onComplete(); return;
+    }
+    sgDisplayPos = path[i++];
+    const boardEl = document.querySelector('.sg-path-area');
+    if (boardEl) boardEl.innerHTML = renderSgBoardGrid(sgDisplayPos);
+    setTimeout(tick, 380);
+  }
+  tick();
+}
+
+// ===== ② 門チェック =====
+// path を進む際に門があれば手前で止める
+function sgTrimPathAtGate(fromPos, path) {
+  if (hasAllBalls()) return { path, blocked: false }; // 5色揃い → 通過OK
+
+  const save = ensureSgInit();
+  // 常時アクティブな門（80→81）＋ 動的な門
+  const gates = [
+    { crossAt: 81, stopAt: 80 },
+    ...(save.gate85Active ? [{ crossAt: 86, stopAt: 85 }] : []),
+    ...(save.gate90Active ? [{ crossAt: 91, stopAt: 90 }] : []),
+  ];
+
+  for (const gate of gates) {
+    for (let i = 0; i < path.length; i++) {
+      if (path[i] === gate.crossAt) {
+        const prev = i === 0 ? fromPos : path[i - 1];
+        if (prev < gate.crossAt) {
+          // 前進で門に到達 → 手前で停止
+          let trimmed = path.slice(0, i);
+          if (!trimmed.length || trimmed[trimmed.length - 1] !== gate.stopAt) {
+            trimmed.push(gate.stopAt);
+          }
+          return {
+            path: trimmed, blocked: true, stopAt: gate.stopAt,
+            msg: `🚪 門！5色の球が揃っていないとマス${gate.stopAt + 1}へは進めない！（マス${gate.stopAt}で止まった）`,
+          };
+        }
+      }
+    }
+  }
+  return { path, blocked: false };
+}
+
+function sgExecuteRoll(roll) {
+  const save   = ensureSgInit();
+  const oldPos = save.pos;
+  let   newPos = oldPos + roll;
+  let   bounced = false;
+  let   willTouchGoal = false;
+
+  // ⑤ ゴールはピッタリ：オーバーしたら折り返し
+  if (newPos > 100) {
+    bounced = true;
+    newPos  = 100 - (newPos - 100);
+    willTouchGoal = true;
+  } else if (newPos === 100) {
+    willTouchGoal = true;
+  }
+
+  // ② 門チェック（前進パスのみ対象）
+  const rawPath = sgBuildMovePath(oldPos, roll);
+  const gateResult = sgTrimPathAtGate(oldPos, rawPath);
+  if (gateResult.blocked) {
+    sgAnimateAlongPath(gateResult.path, () => {
+      moveSgTo(gateResult.stopAt);
+      sgMsg = gateResult.msg; sgMsgType = 'bad'; sgPhase = 'idle';
+      renderSugoroku();
+    });
+    return;
+  }
+
+  // touchedGoal を保存
+  if (willTouchGoal) {
+    const s = ensureSgInit(); s.touchedGoal = true; setSgSave(s);
+  }
+  // passedGate1 チェック（門1を初めて突破）
+  const crossingGate1 = oldPos <= 80 && newPos >= 81;
+
+  sgAnimateAlongPath(rawPath, () => {
+    moveSgTo(newPos);
+
+    // 門1初突破を記録
+    if (crossingGate1) {
+      const s = ensureSgInit();
+      if (!s.passedGate1) { s.passedGate1 = true; setSgSave(s); }
+    }
+
+    if (newPos === 100 && !bounced) {
+      if (hasAllBalls()) {
+        const s = ensureSgInit(); s.cleared = true; setSgSave(s);
+        sgMsg = `🎲 ${roll} が出た！ 🏆 ゴール！おめでとう！！`;
+        sgMsgType = 'good'; sgPhase = 'idle';
+      } else {
+        sgMsg = `🎲 ${roll} が出た！ ゴール到着！でも球が揃っていない…まず球を集めよう！`;
+        sgMsgType = 'info'; sgPhase = 'idle';
+      }
+      renderSugoroku(); return;
+    }
+    if (bounced) {
+      sgMsg = `🎲 ${roll} が出た！ ゴールを超えてマス${newPos}に折り返し！`;
+      sgMsgType = 'info'; sgPhase = 'idle';
+      renderSugoroku(); return;
+    }
+    applySpaceEffect(newPos, () => renderSugoroku());
+  });
+}
+
+// ボーナスロール（rollAndForward / rollAndBack）
+function sgBonusRoll() {
+  if (sgPhase !== 'bonusRoll') return;
+  sgPendingRoll = Math.floor(Math.random()*6)+1;
+  const label = sgBonusDir === 'forward' ? '🎲 ボーナス！振って進む！' : '🎲 ボーナス！振って戻る…';
+  startSgDiceAnimation(label, roll => {
+    sgDiceVal = roll;
+    const save = ensureSgInit();
+    const old  = save.pos;
+    let dest, path;
+    if (sgBonusDir === 'forward') {
+      const target = old + roll;
+      if (target > 100) {
+        dest = 100 - (target - 100);
+        const s = ensureSgInit(); s.touchedGoal = true; setSgSave(s);
+      } else {
+        dest = target;
+      }
+      path = sgBuildMovePath(old, roll);
+      sgMsg = `🎲 ボーナス：${roll} が出た！ マス${old}→マス${dest}へ進む！`;
+      sgMsgType = 'good';
+    } else {
+      dest = Math.max(old - roll, 0);
+      path = [];
+      for (let p = old - 1; p >= dest; p--) path.push(p);
+      sgMsg = `🎲 ボーナス：${roll} が出た！ マス${old}→マス${dest}へ戻る…`;
+      sgMsgType = 'bad';
+    }
+    sgBonusDir = null;
+    sgPhase    = 'idle';
+    sgAnimateAlongPath(path, () => { moveSgTo(dest); applySpaceEffect(dest, () => renderSugoroku()); });
+  });
+}
+
+// ===== マス効果（② 進む・戻る・ワープも一歩ずつアニメーション）=====
+function applySpaceEffect(pos, onDone) {
+  onDone = onDone || (() => {});
+  const save  = ensureSgInit();
+  const space = SUGOROKU_SPACES[pos];
+  if (!space) { onDone(); return; }
+
+  switch (space.type) {
+    case 'normal':
+      sgMsg = `マス${pos}に到着。`; sgMsgType = 'info'; onDone(); break;
+
+    case 'forward': {
+      const n = space.param||1;
+      let dest = pos + n;
+      const s = ensureSgInit();
+      if (dest > 100) { s.touchedGoal=true; setSgSave(s); dest = 100-(dest-100); }
+      const fwdPath = sgBuildMovePath(pos, n);
+      // ① 全画面表示してからアニメーション → ② 着地先の効果も発動
+      showSpaceOv('⬆', `さらに${n}マス進む！`, `マス${pos} → マス${dest}`, 1200, () => {
+        sgMsg = `⬆ ${n}マス進む！ マス${pos}→マス${dest}`; sgMsgType='good';
+        renderSugoroku();
+        sgAnimateAlongPath(fwdPath, () => { moveSgTo(dest); onDone(); });
+      });
+      break;
+    }
+    case 'rollAndForward':
+      showSpaceOv('🎲⬆', '振って進む！', 'サイコロを振ってその分進む！', 1000, () => {
+        sgBonusDir='forward'; sgPhase='bonusRoll'; onDone();
+      }); break;
+
+    case 'back': {
+      const n = space.param||1;
+      const dest = Math.max(pos-n, 0);
+      const bkPath = [];
+      for (let p = pos-1; p >= dest; p--) bkPath.push(p);
+      // ① 全画面表示してからアニメーション → ② 着地先の効果も発動
+      showSpaceOv('⬇', `${n}マス戻る…`, `マス${pos} → マス${dest}`, 1200, () => {
+        sgMsg=`⬇ ${n}マス戻る… マス${pos}→マス${dest}`; sgMsgType='bad';
+        renderSugoroku();
+        sgAnimateAlongPath(bkPath, () => { moveSgTo(dest); onDone(); });
+      });
+      break;
+    }
+    case 'rollAndBack':
+      showSpaceOv('🎲⬇', '振って戻る…', 'サイコロを振ってその分戻る…', 1000, () => {
+        sgBonusDir='back'; sgPhase='bonusRoll'; onDone();
+      }); break;
+
+    case 'again':
+      showSpaceOv('🎲', 'もう一度！', 'もう一回サイコロを振れる！', 1200, () => {
+        sgMsg='🎲 もう一度サイコロを振ろう！'; sgMsgType='good'; sgFreeRoll=true; onDone();
+      }); break;
+
+    case 'rest':
+      showSpaceOv('💤', '1回休み…', '次のターンはお休みです', 1400, () => {
+        save.skipNext=true; setSgSave(save);
+        sgMsg='💤 次のターンは1回休み…'; sgMsgType='bad'; onDone();
+      }); break;
+
+    case 'warp': {
+      const dest = space.param;
+      const wDir = dest > pos;
+      showSpaceOv('🌀', wDir?'ワープ！':'落とし穴…', `マス${dest}へ${wDir?'飛ぶ！':'戻る…'}`, 1200, () => {
+        sgMsg = wDir ? `🌀 ワープ！マス${dest}へ！` : `🌀 落とし穴…マス${dest}に戻った`;
+        sgMsgType = wDir ? 'good' : 'bad';
+        const wpPath = [];
+        if (wDir) { for (let p=pos+1; p<=dest; p++) wpPath.push(p); }
+        else       { for (let p=pos-1; p>=dest; p--) wpPath.push(p); }
+        sgAnimateAlongPath(wpPath, () => { moveSgTo(dest); onDone(); });
+      }); break;
+    }
+    case 'gate_spawn': {
+      const key = pos === 85 ? 'gate85Active' : 'gate90Active';
+      const s = ensureSgInit();
+      if (!s[key]) {
+        s[key] = true; setSgSave(s);
+        showSpaceOv('🚪', '門が出現！', '5色の球が揃わないと先へ進めない！', 2000, () => {
+          sgMsg = `🚪 門が出現！もう一度5色の球を集めよう！`; sgMsgType = 'bad'; onDone();
+        });
+      } else {
+        sgMsg = `マス${pos}に到着。（門はすでに出現中）`; sgMsgType = 'info'; onDone();
+      }
+      break;
+    }
+
+    case 'monster':
+      showSpaceOv('👾', 'モンスター出現！', '問題に正解すれば球をもらえる！', 1400, () => {
+        showMonsterOverlay(onDone);
+      }); break;
+
+    case 'dropBall':
+      showSpaceOv('💀', '球を落とした！', 'ここは危険なマス…', 1200, () => {
+        showDropBallOverlay(onDone);
+      }); break;
+
+    case 'dig':
+      sgMsg='⛏ 穴を掘れそう！'; sgMsgType='info';
+      sgPhase='digChoice'; sgDigSpaceNum=pos; onDone(); break;
+
+    case 'exchange':
+      sgMsg='🔄 球の交換所！'; sgMsgType='info';
+      sgExchangeGive=null; sgPhase='exchange'; onDone(); break;
+
+    case 'goal':
+      if (hasAllBalls()) {
+        const s=ensureSgInit(); s.cleared=true; setSgSave(s);
+        showSpaceOv('🏆', 'ゴール！おめでとう！', '5色の球を集めてクリア！', 2500, () => {
+          sgMsg='🏆 ゴール！おめでとう！！'; sgMsgType='good'; onDone();
+        });
+      } else {
+        showSpaceOv('🏆', 'ゴールに到着！', 'でも球が揃っていない…\nまず球を5色集めよう！', 2000, () => {
+          sgMsg='ゴール！でも球が揃っていない…'; sgMsgType='info'; onDone();
+        });
+      }
+      break;
+
+    default:
+      sgMsg=`マス${pos}に到着。`; sgMsgType='info'; onDone(); break;
+  }
+}
+
+// ===== 掘る =====
+function sgTryDig() {
+  if (sgPhase!=='digChoice' && sgPhase!=='digAnySelect') return;
+  // ③ どこでも掘るモードは🌱×10消費
+  if (sgPhase==='digAnySelect') {
+    const sv = ensureSgInit();
+    if (sv.peas < 10) {
+      sgMsg='🌱 グリンピースが足りません（掘るには🌱×10必要）'; sgMsgType='bad';
+      sgPhase='idle'; renderSugoroku(); return;
+    }
+    spendSgPeas(10);
+  }
+  sgPhase='digging';
+  renderSugoroku();
+
+  // 全画面オーバーレイを作成
+  const overlay = document.createElement('div');
+  overlay.id = 'sg-dig-overlay';
+  overlay.className = 'sg-dig-overlay';
+  overlay.innerHTML = `
+    <div class="sg-dig-ov-shovel">⛏</div>
+    <div class="sg-dig-ov-ground">
+      <span class="sg-dirt sg-dirt1">💨</span>
+      <span class="sg-dirt sg-dirt2">💨</span>
+      <span class="sg-dirt sg-dirt3">💨</span>
+    </div>
+    <div class="sg-dig-ov-msg">掘っています…</div>
+  `;
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    const r = Math.random();
+    if (r < 0.70) {
+      sgDigResult='ball';
+      sgDigBallColor=getRandomBallColor();
+      addBall(sgDigBallColor);
+    } else if (r < 0.90) {
+      sgDigResult='nothing'; sgDigBallColor=null;
+    } else {
+      const lost=removeBallRandom();
+      sgDigResult='lost'; sgDigBallColor=lost;
+    }
+    sgPhase='digResult';
+
+    // オーバーレイを結果表示に切り替え
+    const ov = document.getElementById('sg-dig-overlay');
+    if (ov) {
+      let resultHtml, cls;
+      if (sgDigResult==='ball') {
+        resultHtml = `${BALL_EMOJI[sgDigBallColor]}<br><span>${BALL_NAME[sgDigBallColor]}の球を発見！</span>`;
+        cls = 'sg-dig-ov-good';
+      } else if (sgDigResult==='nothing') {
+        resultHtml = `🕳<br><span>何もなかった…</span>`;
+        cls = 'sg-dig-ov-nothing';
+      } else {
+        resultHtml = sgDigBallColor
+          ? `${BALL_EMOJI[sgDigBallColor]}<br><span>${BALL_NAME[sgDigBallColor]}の球を落としてしまった…</span>`
+          : `🕳<br><span>何もなかった…</span>`;
+        cls = 'sg-dig-ov-bad';
+      }
+      ov.innerHTML = `
+        <div class="sg-dig-ov-result ${cls}">${resultHtml}</div>
+        <button class="sg-dig-ov-continue" onclick="sgFinishDig()">続ける</button>
+      `;
+    }
+    renderSugoroku();
+  }, 1500);
+}
+
+function sgFinishDig() {
+  document.getElementById('sg-dig-overlay')?.remove();
+  sgPhase='idle'; sgDigResult=null; sgDigBallColor=null; sgDigSpaceNum=null;
+  renderSugoroku();
+}
+
+function sgDigAnyMode() {
+  const sv = ensureSgInit();
+  if (sv.peas < 10) {
+    sgMsg='🌱 グリンピースが足りません（掘るには🌱×10必要）'; sgMsgType='bad';
+    renderSugoroku(); return;
+  }
+  sgPhase='digAnySelect';
+  sgMsg='掘るマスをタップしてください（🌱×10消費）'; sgMsgType='info';
+  renderSugoroku();
+}
+function sgSelectDigSpace(spaceNum) {
+  if (sgPhase!=='digAnySelect') return;
+  sgDigSpaceNum=spaceNum; sgTryDig();
+}
+
+// ===== 交換 =====
+function sgSelectGive(color) {
+  if ((ensureSgInit().balls[color]||0)<1) return;
+  sgExchangeGive=color; renderSugoroku();
+}
+function sgDoExchange(toColor) {
+  if (!sgExchangeGive||toColor===sgExchangeGive) return;
+  const save=ensureSgInit();
+  if ((save.balls[sgExchangeGive]||0)<1) return;
+  save.balls[sgExchangeGive]--;
+  save.balls[toColor]=(save.balls[toColor]||0)+1;
+  setSgSave(save);
+  sgMsg=`🔄 ${BALL_EMOJI[sgExchangeGive]}→${BALL_EMOJI[toColor]} 交換完了！`;
+  sgMsgType='good'; sgExchangeGive=null; sgPhase='idle';
+  renderSugoroku();
+}
+function sgSkipExchange() { sgExchangeGive=null; sgPhase='idle'; renderSugoroku(); }
+
+// ===== レンダー =====
+function renderSugoroku() {
+  const save      = ensureSgInit();
+  const peas      = save.peas;
+  const diceCount = Math.floor(peas/10);
+  const pos       = save.pos;
+  const balls     = save.balls;
+  const allBalls  = hasAllBalls();
+  const charIcon  = getSgCharIcon();
+
+  // 球バー
+  const ballsHtml = BALL_COLORS.map(c => {
+    const n = balls[c]||0;
+    return `<div class="sg-ball-slot ${n>0?'sg-ball-have':'sg-ball-miss'}">
+      <span class="sg-ball-em">${BALL_EMOJI[c]}</span>
+      <span class="sg-ball-cnt">${n>0?`×${n}`:'―'}</span>
+    </div>`;
+  }).join('');
+
+  const completeTag = allBalls
+    ? `<div class="sg-ball-complete">✨ 5色揃った！ゴールへ急げ！</div>` : '';
+
+  const msgHtml  = sgMsg ? `<div class="sg-message sg-message-${sgMsgType}">${sgMsg}</div>` : '';
+  const skipHtml = save.skipNext ? `<div class="sg-skip-notice">💤 次は1回休み</div>` : '';
+
+  const html = `
+    <button class="back-btn" onclick="navigate('home')">← 章一覧に戻る</button>
+    <div class="sg-wrap">
+
+      <div class="sg-sticky-top">
+        <div class="sg-status-bar">
+          <div class="sg-status-item"><span>🌱</span><strong>${peas}</strong><small>個</small></div>
+          <div class="sg-status-item"><span>🎲</span><strong>${diceCount}</strong><small>回</small></div>
+          <div class="sg-status-item"><span>📍</span><strong>${pos}</strong><small>/ 100</small></div>
+          <div class="sg-status-item sg-status-char"><span>${charIcon}</span></div>
+          <button class="sg-reset-btn" onclick="sgReset()">🔄 最初から</button>
+        </div>
+        <div class="sg-ball-bar">
+          <div class="sg-ball-title">集めた球</div>
+          <div class="sg-ball-slots">${ballsHtml}</div>
+          ${completeTag}
+        </div>
+        <div class="sg-action-area">${renderSgActionArea(save)}</div>
+      </div>
+
+      ${msgHtml}${skipHtml}
+
+      <div class="sg-board-scroll"><div class="sg-board-frame">
+        <div class="sg-board-inner-title">すごろく</div>
+        <div class="sg-path-area">${renderSgBoardGrid(pos)}</div>
+        <div class="sg-legend">
+          ${[
+            {t:'forward',        i:'⬆',   l:'進む'},
+            {t:'rollAndForward', i:'🎲⬆', l:'振って進む'},
+            {t:'back',           i:'⬇',   l:'戻る'},
+            {t:'rollAndBack',    i:'🎲⬇', l:'振って戻る'},
+            {t:'again',          i:'🎲',  l:'もう一度'},
+            {t:'rest',           i:'💤',  l:'1回休み'},
+            {t:'warp',           i:'🌀',  l:'ワープ'},
+            {t:'monster',        i:'👾',  l:'モンスター'},
+            {t:'dropBall',       i:'💀',  l:'球落とし'},
+            {t:'dig',            i:'⛏',  l:'穴掘り'},
+            {t:'exchange',       i:'🔄',  l:'交換所'},
+            {t:'gate_spawn',     i:'🚪',  l:'門出現'},
+            {t:'goal',           i:'🏆',  l:'ゴール'},
+          ].map(({t,i,l})=>`
+            <div class="sg-legend-item">
+              <span class="sg-legend-dot sg-ld-${t}">${i}</span>
+              <span class="sg-legend-label">${l}</span>
+            </div>`).join('')}
+        </div>
+      </div></div>
+    </div>`;
+
+  const el = document.getElementById('main-content');
+  if (el) el.innerHTML = html;
+
+  if (sgPhase==='rolling') startSgDiceAnimation('🎲 サイコロを振っています…', roll => {
+    sgDiceVal = roll; sgPhase = 'idle'; sgExecuteRoll(roll);
+  });
+}
+
+// ===== アクションエリア =====
+function renderSgActionArea(save) {
+  if (save.cleared)
+    return `<div class="sg-cleared-msg">🏆 ゴール達成！5色コンプリート！おめでとう！</div>`;
+
+  switch (sgPhase) {
+    case 'idle': {
+      const free = sgFreeRoll;
+      const skip = save.skipNext;
+      const can  = !skip && (free || save.peas>=10);
+      const btn  = free  ? `<button class="sg-roll-btn sg-roll-free" onclick="sgRoll()">🎲 もう一度！（無料）</button>`
+                 : skip  ? `<button class="sg-roll-btn sg-roll-skip" onclick="sgRoll()">💤 1回休みを解除（🌱×10）</button>`
+                 : can   ? `<button class="sg-roll-btn" onclick="sgRoll()">🎲 サイコロを振る（🌱×10）</button>`
+                         : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
+      const digAny = save.passedGate1
+        ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
+      return btn + digAny;
+    }
+
+    case 'rolling': {
+      return `<div class="sg-rolling-inline">🎲 振っています…</div>`;
+    }
+
+    case 'digChoice':
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">⛏ 穴を掘りますか？</div>
+        <div class="sg-sub-btns">
+          <button class="sg-dig-btn" onclick="sgTryDig()">⛏ 掘る！</button>
+          <button class="sg-skip-btn" onclick="sgFinishDig()">スキップ</button>
+        </div>
+      </div>`;
+
+    case 'digAnySelect':
+      return `<div class="sg-sub-panel sg-sub-select">
+        <div class="sg-sub-title">⛏ 掘りたいマスをタップ！</div>
+        <button class="sg-skip-btn" onclick="sgFinishDig()">キャンセル</button>
+      </div>`;
+
+    case 'digging':
+      return `<div class="sg-digging-area">
+        <span class="sg-dig-anim">⛏</span>
+        <div class="sg-digging-msg">掘っています…</div>
+      </div>`;
+
+    case 'digResult': {
+      let res = '';
+      if (sgDigResult==='ball')
+        res = `<div class="sg-dig-result sg-dig-good">${BALL_EMOJI[sgDigBallColor]} ${BALL_NAME[sgDigBallColor]}の球を発見！</div>`;
+      else if (sgDigResult==='nothing')
+        res = `<div class="sg-dig-result sg-dig-nothing">…何もなかった。</div>`;
+      else
+        res = sgDigBallColor
+          ? `<div class="sg-dig-result sg-dig-bad">${BALL_EMOJI[sgDigBallColor]} ${BALL_NAME[sgDigBallColor]}の球を落としてしまった…</div>`
+          : `<div class="sg-dig-result sg-dig-nothing">…何もなかった。</div>`;
+      return res + `<button class="sg-continue-btn" onclick="sgFinishDig()">続ける</button>`;
+    }
+
+    case 'exchange': {
+      const balls = ensureSgInit().balls;
+      const hasSome = BALL_COLORS.some(c=>(balls[c]||0)>0);
+      if (!hasSome)
+        return `<div class="sg-sub-panel">
+          <div class="sg-sub-title">🔄 球の交換所</div>
+          <div class="sg-exchange-msg">球を持っていません。</div>
+          <button class="sg-skip-btn" onclick="sgSkipExchange()">閉じる</button>
+        </div>`;
+
+      const giveHtml = BALL_COLORS.map(c => {
+        const n=balls[c]||0; if (!n) return '';
+        const act = sgExchangeGive===c ? ' sg-ex-active':'';
+        return `<button class="sg-ex-btn${act}" onclick="sgSelectGive('${c}')">${BALL_EMOJI[c]}×${n}</button>`;
+      }).join('');
+
+      const getHtml = sgExchangeGive
+        ? BALL_COLORS.filter(c=>c!==sgExchangeGive).map(c=>
+            `<button class="sg-ex-btn sg-ex-get" onclick="sgDoExchange('${c}')">${BALL_EMOJI[c]} ${BALL_NAME[c]}</button>`
+          ).join('')
+        : '';
+
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">🔄 球の交換所（1個↔1個）</div>
+        <div class="sg-exchange-row">
+          <span class="sg-ex-label">渡す球：</span>${giveHtml}
+        </div>
+        ${sgExchangeGive?`<div class="sg-exchange-row"><span class="sg-ex-label">もらう球：</span>${getHtml}</div>`:''}
+        <button class="sg-skip-btn" onclick="sgSkipExchange()">スキップ</button>
+      </div>`;
+    }
+
+    case 'bonusRoll':
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">🎲 もう一度振って${sgBonusDir==='forward'?'進む！':'戻る…'}</div>
+        <button class="sg-roll-btn ${sgBonusDir==='forward'?'sg-roll-free':'sg-roll-back'}"
+                onclick="sgBonusRoll()">🎲 振る！</button>
+      </div>`;
+
+    default: return '';
+  }
+}
+
+// ===== ボードグリッド（①左上スタート）=====
+function renderSgBoardGrid(currentPos) {
+  let html = '';
+  const digMode  = (sgPhase==='digAnySelect');
+  const sgSv     = ensureSgInit();   // キャッシュ（ループ内で毎回読まない）
+  const allOK    = hasAllBalls();
+  // アクティブな門の「通行不可セル番号」
+  const gateCells = new Set([81]);
+  if (sgSv.gate85Active) gateCells.add(86);
+  if (sgSv.gate90Active) gateCells.add(91);
+
+  for (let r=0; r<10; r++) {
+    // ①左上スタート：r=0 上段（偶数=LTR）、スペース番号 = r*10+posInRow+1
+    const isOdd = (r%2!==0);
+    html += `<div class="sg-path-row">`;
+
+    for (let c=0; c<10; c++) {
+      const posInRow = isOdd?(9-c):c;
+      const spaceNum = r*10+posInRow+1;
+      const space    = SUGOROKU_SPACES[spaceNum];
+      const isHere   = (currentPos===spaceNum);
+      const w        = SG_WARM[space.type]||SG_WARM.normal;
+
+      // ② 門ビジュアル
+      const isGateBlocked = !isHere && gateCells.has(spaceNum) && !allOK;
+
+      let icon='', label='', numStr='';
+      if (!isHere) {
+        if      (isGateBlocked)  { icon='🚪'; label='門'; }
+        else if (spaceNum===1)   { icon='🚩'; label='S'; }
+        else if (spaceNum===100) { icon='🏆'; label='GOAL'; }
+        else {
+          numStr = String(spaceNum);  // 全マスに番号を表示
+          switch(space.type){
+            case 'forward':        icon='⬆'; label=`+${space.param}`; break;
+            case 'rollAndForward': icon='🎲'; label='⬆'; break;
+            case 'back':           icon='⬇'; label=`-${space.param}`; break;
+            case 'rollAndBack':    icon='🎲'; label='⬇'; break;
+            case 'again':          icon='🎲'; break;
+            case 'rest':           icon='💤'; break;
+            case 'warp':           icon='🌀'; label=`→${space.param}`; break;
+            case 'monster':        icon='👾'; break;
+            case 'dropBall':       icon='💀'; break;
+            case 'dig':            icon='⛏'; break;
+            case 'exchange':       icon='🔄'; break;
+            case 'gate_spawn':     icon='🚪'; break;
+            default: break;  // normal: numStr のみ
+          }
+        }
+      }
+
+      const bg  = isGateBlocked ? '#7a1010' : w.bg;
+      const bd  = isHere ? '#2a7a1a' : (isGateBlocked ? '#ff3030' : w.bd);
+      const cls = `sg-cell${isHere?' sg-cell-here':''}${space.type!=='normal'?' sg-cell-sp':''}${digMode?' sg-cell-dig-mode':''}${isGateBlocked?' sg-gate-blocked':''}`;
+      const click = digMode?`onclick="sgSelectDigSpace(${spaceNum})"` : '';
+
+      html += `<div class="${cls}" style="background:${bg};border-color:${bd}" ${click}
+                    title="マス${spaceNum}：${sgTypeName(space.type)}">
+        ${isHere
+          ? `<img src="グリン.png" class="sg-char-img" alt="●">`
+          : icon
+            ? `${numStr ? `<span class="sg-num">${numStr}</span>` : ''}<span class="sg-ci">${icon}</span>${label ? `<span class="sg-cn">${label}</span>` : ''}`
+            : `<span class="sg-cn">${numStr}</span>`
+        }
+      </div>`;
+    }
+
+    html += `</div>`;
+    if (r<9) {
+      const side=(r%2===0)?'right':'left';
+      html += `<div class="sg-conn-wrap sg-conn-${side}"><div class="sg-conn-seg"></div></div>`;
+    }
+  }
+  return html;
+}
+
+// ===== ユーティリティ =====
+function sgTypeName(type) {
+  return {
+    normal:'普通', forward:'進む', rollAndForward:'振って進む',
+    back:'戻る', rollAndBack:'振って戻る', again:'もう一度',
+    rest:'1回休み', treasure:'お宝', warp:'ワープ',
+    monster:'モンスター', dig:'穴掘り', exchange:'交換所', goal:'ゴール', gate_spawn:'門出現マス',
+  }[type] || type;
+}

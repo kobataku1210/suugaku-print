@@ -1717,3 +1717,994 @@ body {
   .ta-live-timer  { font-size: 2.2rem; }
   .ta-result-time { font-size: 2.5rem; }
 }
+
+/* ============================================================
+   すごろく  ―  温かいボードゲーム風デザイン
+   ============================================================ */
+
+/* ホームバナー */
+.sg-home-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #7a4520 0%, #c47840 60%, #e8a060 100%);
+  border: 3px solid #7a4520;
+  border-radius: 18px;
+  padding: 1rem 1.4rem;
+  margin: 0 auto 1.5rem;
+  max-width: 700px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 18px rgba(120,60,0,0.4);
+}
+.sg-home-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(120,60,0,0.55);
+}
+.sg-home-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.sg-home-banner-icon {
+  font-size: 2.2rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.sg-home-banner-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #fff8e8;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+}
+.sg-home-banner-sub {
+  font-size: 0.82rem;
+  color: #ffe0b0;
+  margin-top: 0.15rem;
+}
+.sg-home-banner-arrow {
+  font-size: 2rem;
+  color: #fff8e8;
+  opacity: 0.8;
+}
+
+/* ===== すごろく全体ラップ ===== */
+.sg-wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 0.5rem 2rem;
+}
+
+/* ===== ステータスバー ===== */
+.sg-status-bar {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+}
+.sg-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 12px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+}
+.sg-status-item strong { font-size: 1.2rem; color: #ffe87c; font-weight: 900; }
+.sg-status-item small  { color: #aaa; font-size: 0.75rem; }
+.sg-status-char        { font-size: 1.4rem; padding: 0.3rem 0.6rem; }
+
+/* ===== 球バー ===== */
+.sg-ball-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: rgba(255,248,220,0.07);
+  border: 1px solid rgba(255,230,160,0.2);
+  border-radius: 14px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.8rem;
+}
+.sg-ball-title {
+  font-size: 0.82rem;
+  color: #c8a860;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sg-ball-slots {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.sg-ball-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 2.2rem;
+}
+.sg-ball-em  { font-size: 1.4rem; line-height: 1; }
+.sg-ball-cnt { font-size: 0.68rem; font-weight: 700; }
+.sg-ball-have .sg-ball-em { filter: drop-shadow(0 0 4px rgba(255,200,80,0.6)); }
+.sg-ball-have .sg-ball-cnt { color: #ffe87c; }
+.sg-ball-miss .sg-ball-em  { filter: grayscale(1) opacity(0.3); }
+.sg-ball-miss .sg-ball-cnt { color: #666; }
+.sg-ball-complete {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffe87c;
+  text-shadow: 0 0 8px rgba(255,220,80,0.6);
+  animation: fadeSlideIn 0.4s ease;
+  width: 100%;
+  text-align: center;
+}
+
+/* ===== アクションエリア ===== */
+.sg-action-area {
+  text-align: center;
+  margin-bottom: 0;
+  min-height: 3rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+/* ===== サイコロボタン ===== */
+.sg-roll-btn {
+  background: linear-gradient(135deg, #c47020, #e89040);
+  color: #fff8e8;
+  border: 3px solid #8a4a10;
+  border-radius: 50px;
+  padding: 0.85rem 2.2rem;
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 4px 14px rgba(140,70,0,0.5);
+}
+.sg-roll-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 7px 22px rgba(140,70,0,0.65);
+}
+.sg-roll-free {
+  background: linear-gradient(135deg, #1a9050, #30c870);
+  border-color: #0a6030;
+}
+.sg-roll-skip {
+  background: linear-gradient(135deg, #606070, #808090);
+  border-color: #404050;
+}
+.sg-roll-back {
+  background: linear-gradient(135deg, #a02020, #c04040);
+  border-color: #701010;
+}
+.sg-roll-disabled {
+  background: #444450; border-color: #333340; color: #666; cursor: not-allowed;
+}
+.sg-cleared-msg {
+  font-size: 1.3rem; font-weight: 900; color: #ffe87c;
+  text-shadow: 0 0 16px rgba(255,220,80,0.7);
+}
+
+/* どこでも掘るボタン */
+.sg-dig-any-btn {
+  background: linear-gradient(135deg, #705030, #a07848);
+  color: #fff8e8;
+  border: 2px solid #503820;
+  border-radius: 40px;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.sg-dig-any-btn:hover { transform: translateY(-1px); }
+
+/* サブパネル（掘る・交換・ボーナス）*/
+.sg-sub-panel {
+  background: rgba(245,228,192,0.12);
+  border: 2px solid rgba(200,160,80,0.35);
+  border-radius: 16px;
+  padding: 0.9rem 1.2rem;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
+.sg-sub-title {
+  font-size: 1rem; font-weight: 700; color: #ffe87c; margin-bottom: 0.7rem;
+}
+.sg-sub-btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+.sg-sub-select { border-color: rgba(200,120,60,0.5); background: rgba(200,120,40,0.1); }
+
+/* 掘るボタン */
+.sg-dig-btn {
+  background: linear-gradient(135deg, #7a5020, #c08040);
+  color: #fff8e8; border: 2px solid #5a3810;
+  border-radius: 12px; padding: 0.6rem 1.4rem;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: transform 0.1s;
+}
+.sg-dig-btn:hover { transform: scale(1.04); }
+.sg-skip-btn {
+  background: rgba(255,255,255,0.08); color: #aaa;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 0.5rem 1rem;
+  font-size: 0.85rem; cursor: pointer;
+}
+
+/* ===== ダイスアニメーション ===== */
+.sg-rolling-area {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.sg-dice-face {
+  font-size: 3.5rem; display: inline-block; line-height: 1;
+  transition: color 0.1s;
+}
+.sg-rolling-label { font-size: 0.85rem; color: #aaa; }
+
+@keyframes sgDiceSpin {
+  0%   { transform: scale(0.7) rotate(-20deg); opacity:0.6; }
+  50%  { transform: scale(1.3) rotate(20deg);  opacity:1;   }
+  100% { transform: scale(0.7) rotate(-20deg); opacity:0.6; }
+}
+.sg-dice-spin { animation: sgDiceSpin 0.17s ease-in-out; }
+
+@keyframes sgDiceLand {
+  0%   { transform: scale(1.6); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1.0); }
+}
+.sg-dice-land { animation: sgDiceLand 0.4s ease-out; color: #ffe87c; }
+
+/* ===== 掘るアニメーション（旧・インライン用） ===== */
+.sg-digging-area {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.sg-digging-msg { font-size: 0.85rem; color: #c8a060; }
+
+@keyframes sgDigShovel {
+  0%   { transform: rotate(-30deg) translateY(0); }
+  40%  { transform: rotate(30deg)  translateY(4px); }
+  100% { transform: rotate(-30deg) translateY(0); }
+}
+.sg-dig-anim {
+  font-size: 2.8rem; display: inline-block;
+  animation: sgDigShovel 0.5s ease-in-out infinite;
+  transform-origin: bottom right;
+}
+
+/* ===== 穴掘り 全画面オーバーレイ ===== */
+.sg-dig-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(10, 6, 2, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  backdrop-filter: blur(3px);
+}
+
+/* ショベルアニメ */
+@keyframes sgDigOvShovel {
+  0%   { transform: rotate(-40deg) translateY(0);   }
+  35%  { transform: rotate(25deg)  translateY(8px);  }
+  55%  { transform: rotate(25deg)  translateY(8px);  }
+  100% { transform: rotate(-40deg) translateY(0);   }
+}
+.sg-dig-ov-shovel {
+  font-size: 6rem;
+  display: inline-block;
+  transform-origin: bottom right;
+  animation: sgDigOvShovel 0.55s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(180,120,40,0.6));
+}
+
+/* 土煙パーティクル */
+.sg-dig-ov-ground {
+  position: relative;
+  height: 30px;
+  width: 140px;
+}
+@keyframes sgDirt1 {
+  0%   { transform: translate(0,0)    scale(1);   opacity: 0.8; }
+  100% { transform: translate(-30px,-28px) scale(0.3); opacity: 0; }
+}
+@keyframes sgDirt2 {
+  0%   { transform: translate(0,0)    scale(1);   opacity: 0.8; }
+  100% { transform: translate(0px,-36px)   scale(0.3); opacity: 0; }
+}
+@keyframes sgDirt3 {
+  0%   { transform: translate(0,0)    scale(1);   opacity: 0.8; }
+  100% { transform: translate(30px,-28px)  scale(0.3); opacity: 0; }
+}
+.sg-dirt {
+  position: absolute;
+  font-size: 1.4rem;
+  top: 0;
+}
+.sg-dirt1 { left: 20px;  animation: sgDirt1 0.55s ease-out infinite; }
+.sg-dirt2 { left: 58px;  animation: sgDirt2 0.55s ease-out 0.1s infinite; }
+.sg-dirt3 { left: 96px;  animation: sgDirt3 0.55s ease-out 0.05s infinite; }
+
+.sg-dig-ov-msg {
+  color: #c8a060;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  animation: sgLabelPulse 0.7s ease-in-out infinite alternate;
+}
+
+/* 結果表示 */
+.sg-dig-ov-result {
+  font-size: 3rem;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.4;
+  border-radius: 20px;
+  padding: 1.4rem 2.5rem;
+  animation: sgDigResultPop 0.45s cubic-bezier(0.18,1.4,0.4,1) both;
+}
+.sg-dig-ov-result span {
+  display: block;
+  font-size: 1.2rem;
+  margin-top: 0.4rem;
+  font-weight: 700;
+}
+@keyframes sgDigResultPop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.sg-dig-ov-good    { background: rgba(30,140,70,0.30);  color: #80ffb0; border: 2px solid rgba(40,200,90,0.5); }
+.sg-dig-ov-nothing { background: rgba(100,80,40,0.30);  color: #d4b880; border: 2px solid rgba(140,110,50,0.4); }
+.sg-dig-ov-bad     { background: rgba(180,40,40,0.30);  color: #ffaaaa; border: 2px solid rgba(220,60,60,0.5); }
+
+.sg-dig-ov-continue {
+  background: linear-gradient(135deg, #2060a0, #3080d0);
+  color: #fff;
+  border: 2px solid #104878;
+  border-radius: 50px;
+  padding: 0.85rem 2.8rem;
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(20,80,160,0.5);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.sg-dig-ov-continue:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 7px 22px rgba(20,80,160,0.65);
+}
+
+/* 掘る結果 */
+.sg-dig-result {
+  font-size: 1.05rem; font-weight: 700;
+  border-radius: 12px; padding: 0.7rem 1.2rem;
+  margin-bottom: 0.6rem; animation: fadeSlideIn 0.4s ease;
+}
+.sg-dig-good    { background:rgba(40,160,80,0.25);  color:#80ffb0; border:1px solid rgba(40,160,80,0.5); }
+.sg-dig-nothing { background:rgba(120,100,60,0.2);  color:#c8b080; border:1px solid rgba(120,100,60,0.4); }
+.sg-dig-bad     { background:rgba(200,60,60,0.22);  color:#ffb0b0; border:1px solid rgba(200,60,60,0.45); }
+.sg-continue-btn {
+  background: linear-gradient(135deg,#2060a0,#3080d0);
+  color:#fff; border:2px solid #104878;
+  border-radius:12px; padding:0.55rem 1.5rem;
+  font-size:0.9rem; font-weight:700; cursor:pointer;
+}
+
+/* ===== 交換所UI ===== */
+.sg-exchange-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex-wrap: wrap; justify-content: center;
+  margin-bottom: 0.5rem;
+}
+.sg-ex-label { font-size: 0.82rem; color: #c8a060; font-weight:600; white-space:nowrap; }
+.sg-ex-btn {
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(200,160,80,0.5);
+  border-radius: 10px; padding: 0.4rem 0.8rem;
+  font-size: 1rem; cursor: pointer; transition: transform 0.1s, background 0.1s;
+}
+.sg-ex-btn:hover    { transform: scale(1.08); background: rgba(255,255,255,0.18); }
+.sg-ex-active       { background: rgba(255,220,80,0.3) !important; border-color:#ffe87c !important; }
+.sg-ex-get          { background: rgba(80,160,255,0.15); border-color: rgba(80,160,255,0.5); }
+.sg-ex-get:hover    { background: rgba(80,160,255,0.28); }
+.sg-exchange-msg    { color:#aaa; font-size:0.9rem; margin-bottom:0.5rem; }
+
+/* ===== クリックモード（どこでも掘る）===== */
+.sg-cell-dig-mode {
+  cursor: pointer !important;
+  animation: sgDigModeGlow 1.2s ease-in-out infinite alternate;
+}
+@keyframes sgDigModeGlow {
+  from { box-shadow: inset 0 1px 3px rgba(255,255,255,0.8), 0 0 0 rgba(200,150,60,0); }
+  to   { box-shadow: inset 0 1px 3px rgba(255,255,255,0.8), 0 0 6px 2px rgba(200,150,60,0.6); }
+}
+.sg-cell-dig-mode:hover { transform: scale(1.25) !important; z-index: 5; }
+
+/* スキップ通知 */
+.sg-skip-notice {
+  text-align:center; padding:0.4rem; color:#ffcc80; font-size:0.88rem; margin-bottom:0.4rem;
+}
+
+/* ===== メッセージ ===== */
+.sg-message {
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+  animation: fadeSlideIn 0.3s ease both;
+}
+.sg-message-info { background: rgba(80,120,200,0.2);  color: #b0ccff; border: 1px solid rgba(80,120,200,0.35); }
+.sg-message-good { background: rgba(40,160,80,0.22);  color: #80ffb0; border: 1px solid rgba(40,160,80,0.4);  }
+.sg-message-bad  { background: rgba(200,60,60,0.22);  color: #ffb0b0; border: 1px solid rgba(200,60,60,0.4);  }
+
+.sg-dice-display {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+  color: #ccc;
+}
+.sg-dice-val {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #ffe87c;
+  vertical-align: middle;
+}
+.sg-skip-notice {
+  text-align: center;
+  padding: 0.4rem;
+  color: #ffcc80;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== サイコロボタン ===== */
+.sg-roll-area {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+.sg-roll-btn {
+  background: linear-gradient(135deg, #c47020, #e89040);
+  color: #fff8e8;
+  border: 3px solid #8a4a10;
+  border-radius: 50px;
+  padding: 0.85rem 2.4rem;
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 4px 14px rgba(140,70,0,0.5);
+  letter-spacing: 0.05em;
+}
+.sg-roll-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 7px 22px rgba(140,70,0,0.65);
+}
+.sg-roll-free {
+  background: linear-gradient(135deg, #1a9050, #30c870);
+  border-color: #0a6030;
+  box-shadow: 0 4px 14px rgba(0,150,60,0.45);
+}
+.sg-roll-skip {
+  background: linear-gradient(135deg, #606070, #808090);
+  border-color: #404050;
+}
+.sg-roll-disabled {
+  background: #444450;
+  border-color: #333340;
+  color: #666;
+  cursor: not-allowed;
+}
+.sg-cleared-msg {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ffe87c;
+  text-shadow: 0 0 16px rgba(255,220,80,0.7);
+}
+
+/* ===== ボードフレーム（温かいスタイル）===== */
+.sg-board-frame {
+  background: #f5e4c0;
+  border: 5px solid #7a4a20;
+  border-radius: 22px;
+  padding: 1.2rem 1rem 1rem;
+  box-shadow: 0 6px 24px rgba(80,30,0,0.35), inset 0 2px 8px rgba(255,240,200,0.6);
+  position: relative;
+}
+
+/* ボード内タイトル */
+.sg-board-inner-title {
+  text-align: center;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 900;
+  color: #5a2808;
+  text-shadow: 2px 2px 0 #c89050, 4px 4px 0 rgba(80,30,0,0.2);
+  margin-bottom: 1rem;
+  letter-spacing: 0.12em;
+}
+
+/* ===== パスエリア（行＋コネクタ）===== */
+.sg-path-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 1rem;
+}
+
+/* 各行（ピル型トラック）*/
+.sg-path-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  background: #b8783a;
+  border-radius: 999px;
+  padding: 4px 5px;
+  box-shadow: 0 2px 6px rgba(80,30,0,0.25), inset 0 1px 3px rgba(255,220,160,0.25);
+  position: relative;
+  z-index: 1;
+}
+
+/* セルは常に最前面（橋に隠れない）*/
+.sg-cell { position: relative; z-index: 10; }
+
+/* 行間コネクタ ― 橋方式 */
+.sg-conn-wrap {
+  position: relative;
+  height: 16px;   /* 行間の隙間 */
+  overflow: visible;
+  z-index: 0;
+}
+/* 古い .sg-conn-seg は非表示にして ::after で橋を描く */
+.sg-conn-seg { display: none; }
+
+/* 橋本体：両隣の行に食い込む高さ＋同色＋外側に丸みをつける */
+.sg-conn-wrap::after {
+  content: '';
+  position: absolute;
+  top: -14px;     /* 上の行に 14px 食い込む */
+  bottom: -14px;  /* 下の行に 14px 食い込む */
+  z-index: 2;     /* 行(z:1)より手前、セル(z:10)より後ろ */
+  width: 28px;    /* 橋の幅（ピル端のキャップ径に相当）*/
+  background: #b8783a;
+  box-shadow: 0 3px 8px rgba(80,30,0,0.35);
+}
+.sg-conn-right::after {
+  right: 0;
+  border-radius: 0 0 14px 0;   /* 右下だけ丸める（U字の外側カーブ）*/
+}
+.sg-conn-left::after {
+  left: 0;
+  border-radius: 0 0 0 14px;   /* 左下だけ丸める */
+}
+
+/* ===== マス（円形）===== */
+.sg-cell {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid #c8a060;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  position: relative;
+  transition: transform 0.12s, box-shadow 0.12s;
+  overflow: hidden;
+  min-width: 0;
+  box-shadow: inset 0 1px 3px rgba(255,255,255,0.8), 0 1px 3px rgba(80,30,0,0.2);
+}
+.sg-cell:hover { transform: scale(1.18); z-index: 2; box-shadow: 0 3px 10px rgba(80,30,0,0.35); }
+
+/* ② .sg-ci / .sg-cn / .sg-cell-here → 下部の新スタイルで上書き */
+
+/* ===== 凡例 ===== */
+.sg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  justify-content: center;
+  padding-top: 0.6rem;
+  border-top: 2px dashed #c4a060;
+}
+.sg-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: #6a4010;
+  font-weight: 600;
+}
+.sg-legend-dot {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid #c8a060;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+.sg-legend-label { white-space: nowrap; }
+
+/* 凡例マスの色 */
+.sg-ld-forward        { background: #d8f2d0; border-color: #40a040; }
+.sg-ld-rollAndForward { background: #b0eeaa; border-color: #208020; }
+.sg-ld-back           { background: #ffd8d8; border-color: #d04040; }
+.sg-ld-rollAndBack    { background: #ffb8b8; border-color: #a02020; }
+.sg-ld-again          { background: #eadaff; border-color: #8040d0; }
+.sg-ld-rest           { background: #e2e0f2; border-color: #8080c0; }
+.sg-ld-warp           { background: #c8eeff; border-color: #0088c0; }
+.sg-ld-monster        { background: #ffdaaa; border-color: #d06020; }
+.sg-ld-dropBall       { background: #ffd0e0; border-color: #c02060; }
+.sg-ld-dig            { background: #f0e0c0; border-color: #806030; }
+.sg-ld-exchange       { background: #ffe0f8; border-color: #c040a0; }
+.sg-ld-goal           { background: #ffe860; border-color: #d0a000; }
+.sg-ld-gate_spawn     { background: #ffe080; border-color: #c07800; }
+
+/* ② 門セルの点滅 */
+.sg-gate-blocked {
+  animation: sgGatePulse 1s ease-in-out infinite alternate;
+}
+@keyframes sgGatePulse {
+  from { box-shadow: 0 0 4px 1px rgba(255,50,50,0.5); }
+  to   { box-shadow: 0 0 10px 3px rgba(255,50,50,0.9); }
+}
+
+/* ===== ② ボードスクロールラッパー ===== */
+.sg-board-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.4rem;
+}
+.sg-board-scroll .sg-board-frame {
+  min-width: 760px;
+}
+
+/* マス番号（効果マスの上部） */
+.sg-num {
+  font-size: clamp(0.36rem, 0.85vw, 0.56rem);
+  color: #8a5520;
+  font-weight: 700;
+  line-height: 1;
+  display: block;
+  text-align: center;
+  opacity: 0.85;
+}
+
+/* アイコン */
+.sg-ci {
+  font-size: clamp(0.95rem, 2.2vw, 1.35rem);
+  line-height: 1.1;
+  display: block;
+}
+/* 通常マスの数字 */
+.sg-cn {
+  font-size: clamp(0.56rem, 1.35vw, 0.88rem);
+  color: #5a3010;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 0 1px;
+}
+/* 効果マス下部ラベル（+3 / -2 / →45 など） */
+.sg-cell-sp .sg-cn {
+  font-size: clamp(0.42rem, 1.0vw, 0.65rem);
+}
+
+/* リセットボタン */
+.sg-reset-btn {
+  margin-left: auto;
+  background: rgba(180, 40, 40, 0.18);
+  color: #ff9090;
+  border: 1px solid rgba(200, 60, 60, 0.45);
+  border-radius: 20px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.sg-reset-btn:hover {
+  background: rgba(200, 50, 50, 0.35);
+  transform: scale(1.05);
+}
+
+/* ===== ④ 特殊マス効果オーバーレイ（自動消去） ===== */
+.sg-space-ov {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(5, 5, 20, 0.88);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1rem;
+  backdrop-filter: blur(4px);
+  animation: sgSpaceOvIn 0.3s ease-out;
+}
+@keyframes sgSpaceOvIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.sg-sp-ov-icon {
+  font-size: 5.5rem;
+  animation: sgSpaceOvIn 0.4s cubic-bezier(0.18,1.4,0.4,1);
+}
+.sg-sp-ov-title {
+  font-size: 2rem; font-weight: 900; color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  text-align: center;
+}
+.sg-sp-ov-sub {
+  font-size: 1rem; color: #ccc; text-align: center;
+  white-space: pre-line;
+}
+
+/* ===== ③ モンスターオーバーレイ ===== */
+.sg-monster-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15, 5, 5, 0.94);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.2rem; padding: 1.5rem;
+  backdrop-filter: blur(4px);
+}
+.sg-monster-ov-icon { font-size: 5rem; animation: sgSpaceOvIn 0.4s ease; }
+.sg-monster-ov-title {
+  font-size: 1.8rem; font-weight: 900; color: #ff9060;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+}
+.sg-mq-correct { color: #60ff90 !important; }
+.sg-mq-wrong   { color: #ff5050 !important; }
+.sg-monster-ov-q {
+  font-size: 1.15rem; color: #fff; font-weight: 700;
+  text-align: center; max-width: 520px;
+  background: rgba(255,255,255,0.08); border-radius: 14px;
+  padding: 0.9rem 1.4rem;
+}
+.sg-monster-ov-choices {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.7rem; width: 100%; max-width: 480px;
+}
+.sg-mq-choice {
+  background: rgba(60,40,80,0.8); color: #fff;
+  border: 2px solid rgba(160,100,200,0.5);
+  border-radius: 12px; padding: 0.75rem 1rem;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.sg-mq-choice:hover { background: rgba(120,60,180,0.9); transform: scale(1.04); }
+.sg-monster-ov-sub { font-size: 1.1rem; color: #ccc; text-align: center; }
+
+/* 球選択ボタン */
+.sg-ball-pick-row {
+  display: flex; flex-wrap: wrap; gap: 0.8rem;
+  justify-content: center; max-width: 400px;
+}
+.sg-ball-pick-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 16px; padding: 0.8rem 1.2rem;
+  font-size: 2rem; cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.sg-ball-pick-btn span { font-size: 0.8rem; color: #ddd; font-weight: 700; }
+.sg-ball-pick-btn:hover { transform: scale(1.15); background: rgba(255,255,255,0.22); }
+
+/* ===== ⑤ 球落としオーバーレイ ===== */
+.sg-drop-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(40, 0, 10, 0.94);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.2rem;
+  backdrop-filter: blur(4px);
+}
+.sg-drop-ov-icon {
+  font-size: 5.5rem;
+  animation: sgDropShake 0.5s ease 0.1s both;
+}
+@keyframes sgDropShake {
+  0%,100% { transform: translateY(0); }
+  20%     { transform: translateY(-16px) rotate(-8deg); }
+  40%     { transform: translateY(0)   rotate(8deg); }
+  60%     { transform: translateY(-8px) rotate(-4deg); }
+  80%     { transform: translateY(0)   rotate(4deg); }
+}
+.sg-drop-ov-title {
+  font-size: 2rem; font-weight: 900; color: #ff5080;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+}
+.sg-drop-ov-sub { font-size: 1.1rem; color: #ddd; text-align: center; }
+
+/* ① ステータスバー・球バー・アクションエリア sticky */
+.sg-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #0d0d2b;
+  padding: 0.5rem 0 0.5rem;
+  margin: 0 -0.2rem;
+  border-bottom: 2px solid rgba(255,255,255,0.10);
+}
+/* sticky内のアクションエリア（余白調整） */
+.sg-sticky-top .sg-action-area {
+  margin-top: 0.7rem;
+  margin-bottom: 0;
+  padding: 0 0.5rem;
+}
+
+/* ===== サイコロ全画面オーバーレイ ===== */
+.sg-dice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(5, 5, 20, 0.90);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  backdrop-filter: blur(3px);
+}
+.sg-dice-3d-wrap-lg {
+  perspective: 500px;
+  width: 160px;
+  height: 160px;
+}
+.sg-die-3d-lg {
+  width: 160px;
+  height: 160px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.sg-die-3d-lg .sg-die-face {
+  width: 160px;
+  height: 160px;
+  border-radius: 26px;
+  border-width: 4px;
+}
+.sg-die-3d-lg .sg-df-1 { transform: translateZ(80px); }
+.sg-die-3d-lg .sg-df-6 { transform: rotateY(180deg) translateZ(80px); }
+.sg-die-3d-lg .sg-df-2 { transform: rotateY(90deg)  translateZ(80px); }
+.sg-die-3d-lg .sg-df-5 { transform: rotateY(-90deg) translateZ(80px); }
+.sg-die-3d-lg .sg-df-3 { transform: rotateX(-90deg) translateZ(80px); }
+.sg-die-3d-lg .sg-df-4 { transform: rotateX(90deg)  translateZ(80px); }
+.sg-die-3d-lg .sg-dot-grid {
+  width: 118px;
+  height: 118px;
+  padding: 10px;
+  gap: 8px;
+}
+.sg-die-3d-lg .sg-dot-on {
+  border-radius: 50%;
+}
+.sg-rolling-label-lg {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+  animation: sgLabelPulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes sgLabelPulse {
+  from { opacity: 0.75; }
+  to   { opacity: 1; }
+}
+/* ローリング中のインライン表示（sticky内） */
+.sg-rolling-inline {
+  color: #e8b060;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.3rem 0;
+  letter-spacing: 0.04em;
+}
+
+/* ① すごろく画面ではお椀・完成パネルを非表示 */
+.sg-mode #bowl-widget,
+.sg-mode #completed-bowls-panel {
+  display: none !important;
+}
+
+/* ① グリンキャラ画像（③ 中央揃え対応） */
+.sg-char-img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+}
+/* isHere のセルは flex 中央に直接 img を置く */
+.sg-cell-here {
+  border-color: #2a7a1a !important;
+  box-shadow: 0 0 0 2px #50c830, 0 0 14px rgba(60,200,60,0.7) !important;
+  transform: scale(1.26);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== ④ 3Dサイコロ ===== */
+.sg-dice-3d-wrap {
+  perspective: 280px;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 0.6rem;
+}
+.sg-die-3d {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.sg-die-face {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
+  border: 3px solid #7a4a18;
+  background: #fffef0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.12);
+}
+.sg-df-1 { transform: translateZ(40px); }
+.sg-df-6 { transform: rotateY(180deg) translateZ(40px); }
+.sg-df-2 { transform: rotateY(90deg)  translateZ(40px); }
+.sg-df-5 { transform: rotateY(-90deg) translateZ(40px); }
+.sg-df-3 { transform: rotateX(-90deg) translateZ(40px); }
+.sg-df-4 { transform: rotateX(90deg)  translateZ(40px); }
+
+.sg-dot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: 58px;
+  height: 58px;
+  padding: 5px;
+}
+.sg-dot {
+  border-radius: 50%;
+  background: transparent;
+}
+.sg-dot-on {
+  background: #2a0e02;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.25);
+  border-radius: 50%;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 640px) {
+  .sg-board-frame       { padding: 0.7rem 0.5rem 0.8rem; }
+  .sg-board-scroll .sg-board-frame { min-width: 640px; }
+  .sg-board-inner-title { font-size: 1.5rem; margin-bottom: 0.6rem; }
+  .sg-path-row          { gap: 2px; padding: 3px 4px; }
+  .sg-conn-wrap         { height: 12px; }
+  .sg-conn-wrap::after  { top: -10px; bottom: -10px; width: 22px; }
+  .sg-home-banner       { padding: 0.8rem 0.9rem; }
+  .sg-home-banner-icon  { font-size: 1.8rem; }
+  .sg-roll-btn          { font-size: 1rem; padding: 0.75rem 1.5rem; }
+  .sg-legend-dot        { width: 1.3rem; height: 1.3rem; font-size: 0.65rem; }
+  .sg-legend-item       { font-size: 0.66rem; }
+  .sg-ball-em           { font-size: 1.1rem; }
+  .sg-dice-face         { font-size: 2.8rem; }
+}

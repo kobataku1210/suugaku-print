@@ -185,6 +185,8 @@ function addPeas(n) {
   p.peaCount    = cur;
   p.peaCupCount = cups;
   saveProgress(p);
+  // すごろく用グリンピースにも反映
+  if (typeof addSgPeas === 'function') addSgPeas(n);
   // 1杯以上完成した場合は祝いアニメーション
   if (newCups > 0) {
     for (let i = 0; i < newCups; i++) {
@@ -517,11 +519,38 @@ function renderHome() {
           : `<span class="coming-badge">準備中</span>`}
       </div>`;
   }).join('');
+  // すごろくバナー
+  const sgSave = (typeof getSgSave === 'function') ? getSgSave() : null;
+  const sgPeas = sgSave ? (sgSave.peas || 0) : 0;
+  const sgDice = Math.floor(sgPeas / 10);
+  const sgPos  = sgSave ? (sgSave.pos || 0) : 0;
+  const sgBalls = sgSave ? (sgSave.balls || {}) : {};
+  const sgBallCount = ['red','blue','yellow','green','purple'].filter(c => (sgBalls[c]||0) > 0).length;
+  const sgBallIcons = ['🔴','🔵','🟡','🟢','🟣'].map((em, i) => {
+    const c = ['red','blue','yellow','green','purple'][i];
+    return `<span style="opacity:${(sgBalls[c]||0)>0?1:0.25}">${em}</span>`;
+  }).join('');
+  const sgCleared = sgSave && sgSave.cleared;
+  const sgBanner = `
+    <div class="sg-home-banner" onclick="navigate('sugoroku')">
+      <div class="sg-home-banner-left">
+        <span class="sg-home-banner-icon">${sgCleared ? '👑' : '🎲'}</span>
+        <div class="sg-home-banner-text">
+          <div class="sg-home-banner-title">${sgCleared ? '🏆 クリア済み！' : 'すごろく冒険'}</div>
+          <div class="sg-home-banner-sub">
+            マス ${sgPos}/100　🌱${sgPeas}　🎲${sgDice}回　${sgBallIcons}
+          </div>
+        </div>
+      </div>
+      <div class="sg-home-banner-arrow">›</div>
+    </div>`;
+
   return `
     <div class="section-title">
       <h2>章を選ぼう！</h2>
       <p>学習したい単元をタップしてね</p>
     </div>
+    ${sgBanner}
     <div class="chapters-grid">${cards}</div>`;
 }
 
@@ -1515,6 +1544,14 @@ function render() {
   else if (state.view === 'minitest')   content = renderMiniTest();
   else if (state.view === 'practice')   content = renderPractice();
   else if (state.view === 'timeattack') content = renderTimeAttack();
+  else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
+
+  if (state.view === 'sugoroku') {
+    document.body.classList.add('sg-mode');    // ① お椀を隠す
+    renderSugoroku();
+    return;
+  }
+  document.body.classList.remove('sg-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
 
