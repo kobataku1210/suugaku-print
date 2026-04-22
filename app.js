@@ -4,7 +4,7 @@
 
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
-const TEACHER_PASSWORD = 'sensei2024'; // 先生用グリンピース追加パスワード（サーバー側で使用）
+const TEACHER_PASSWORD_HASH = '9b380d3722160f266902894934bfb2e27c853736602a93e669ef9f28acc63f98';
 
 // ===== パスワードハッシュ関数 =====
 const _PW_SALT = 'mathprint_';
@@ -302,12 +302,12 @@ function closeTeacherModal() {
   setTimeout(() => overlay.remove(), 300);
 }
 
-function submitTeacherPeas() {
+async function submitTeacherPeas() {
   const pw    = document.getElementById('teacher-pw').value;
   const count = parseInt(document.getElementById('teacher-pea-count').value);
   const errEl = document.getElementById('teacher-modal-error');
 
-  if (pw !== TEACHER_PASSWORD) {
+  if (await hashPw(pw) !== TEACHER_PASSWORD_HASH) {
     errEl.textContent = 'パスワードが違います';
     errEl.style.display = 'block';
     return;
@@ -957,7 +957,8 @@ async function submitMiniTestPassword() {
   const stored = String(sec.miniTestPassword || '');
   // ハッシュ済みなら入力をハッシュ化して比較、平文ならそのまま比較（移行期対応）
   const entered = isHashed(stored) ? await hashPw(pw) : pw;
-  const correct = stored || TEACHER_PASSWORD;
+  // フォールバック：セクションにパスワード未設定の場合は先生パスワードのハッシュと比較
+  const correct = stored || TEACHER_PASSWORD_HASH;
   if (entered !== correct) {
     errEl.textContent = 'パスワードが違います';
     errEl.style.display = 'block';
