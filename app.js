@@ -4,17 +4,74 @@
 
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
-const TEACHER_PASSWORD_HASH = '9b380d3722160f266902894934bfb2e27c853736602a93e669ef9f28acc63f98';
 
-// ===== パスワードハッシュ関数 =====
-const _PW_SALT = 'mathprint_';
-async function hashPw(plain) {
-  const buf = await crypto.subtle.digest('SHA-256',
-    new TextEncoder().encode(_PW_SALT + plain));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-// ハッシュ済み判定（64文字の16進数）
-function isHashed(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
+// ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
+(function() {
+  const H = '7b8db1960382568dc55c35fe268f1800b0d9716be46963a633e9db5981ab657e';
+  const S = 'mathprint_';
+  async function _h(p) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(S + p));
+    return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+  function _ih(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
+
+  window.submitTeacherPeas = async function() {
+    const pw    = document.getElementById('teacher-pw').value;
+    const count = parseInt(document.getElementById('teacher-pea-count').value);
+    const errEl = document.getElementById('teacher-modal-error');
+    if (await _h(pw) !== H) {
+      errEl.textContent = 'パスワードが違います';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!count || count < 1 || count > 99) {
+      errEl.textContent = '1〜99の数を入力してください';
+      errEl.style.display = 'block';
+      return;
+    }
+    addPeas(count);
+    const p = getProgress();
+    const cups = p.peaCupCount || 0;
+    const cur  = p.peaCount    || 0;
+    const cupLabel = `${cups + 1}杯目`;
+    const card = document.getElementById('teacher-modal-card');
+    card.classList.add('modal-success');
+    card.innerHTML = `
+      <div class="modal-success-icon">🌱</div>
+      <div class="modal-success-text">+${count}個 追加！</div>
+      <div class="modal-success-stars">${cupLabel}：${cur} / 45個</div>
+    `;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => bounceAndAddPea(), i * 200);
+    }
+    if (count >= 3) showConfetti();
+    setTimeout(() => closeTeacherModal(), 2000);
+  };
+
+  window.submitMiniTestPassword = async function() {
+    const pw    = document.getElementById('minitest-pw').value;
+    const errEl = document.getElementById('minitest-modal-error');
+    const sec    = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
+    const stored = String(sec.miniTestPassword || '');
+    const entered = _ih(stored) ? await _h(pw) : pw;
+    const correct = stored || H;
+    if (entered !== correct) {
+      errEl.textContent = 'パスワードが違います';
+      errEl.style.display = 'block';
+      const card = document.getElementById('minitest-modal-card');
+      card.classList.add('shake');
+      card.addEventListener('animationend', () => card.classList.remove('shake'), { once: true });
+      return;
+    }
+    closeMiniTestModal();
+    state.miniTestQuestions    = generate5Questions(sec);
+    state.miniTestPhase        = 'quiz';
+    state.miniTestAnswers      = [];
+    state.miniTestWrongIndices = [];
+    state.miniTestPeaIsNew     = false;
+    navigate('minitest');
+  };
+})();
 
 // レベル設定
 const LEVELS = [
@@ -302,41 +359,6 @@ function closeTeacherModal() {
   setTimeout(() => overlay.remove(), 300);
 }
 
-async function submitTeacherPeas() {
-  const pw    = document.getElementById('teacher-pw').value;
-  const count = parseInt(document.getElementById('teacher-pea-count').value);
-  const errEl = document.getElementById('teacher-modal-error');
-
-  if (await hashPw(pw) !== TEACHER_PASSWORD_HASH) {
-    errEl.textContent = 'パスワードが違います';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!count || count < 1 || count > 99) {
-    errEl.textContent = '1〜99の数を入力してください';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  addPeas(count);
-  const p = getProgress();
-  const cups = p.peaCupCount || 0;
-  const cur  = p.peaCount    || 0;
-  const cupLabel = `${cups + 1}杯目`;
-
-  const card = document.getElementById('teacher-modal-card');
-  card.classList.add('modal-success');
-  card.innerHTML = `
-    <div class="modal-success-icon">🌱</div>
-    <div class="modal-success-text">+${count}個 追加！</div>
-    <div class="modal-success-stars">${cupLabel}：${cur} / 45個</div>
-  `;
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => bounceAndAddPea(), i * 200);
-  }
-  if (count >= 3) showConfetti();
-  setTimeout(() => closeTeacherModal(), 2000);
-}
 
 function bounceAndAddPea() {
   updateBowlWidget(true);
@@ -950,31 +972,6 @@ function closeMiniTestModal() {
   setTimeout(() => overlay.remove(), 300);
 }
 
-async function submitMiniTestPassword() {
-  const pw    = document.getElementById('minitest-pw').value;
-  const errEl = document.getElementById('minitest-modal-error');
-  const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
-  const stored = String(sec.miniTestPassword || '');
-  // ハッシュ済みなら入力をハッシュ化して比較、平文ならそのまま比較（移行期対応）
-  const entered = isHashed(stored) ? await hashPw(pw) : pw;
-  // フォールバック：セクションにパスワード未設定の場合は先生パスワードのハッシュと比較
-  const correct = stored || TEACHER_PASSWORD_HASH;
-  if (entered !== correct) {
-    errEl.textContent = 'パスワードが違います';
-    errEl.style.display = 'block';
-    const card = document.getElementById('minitest-modal-card');
-    card.classList.add('shake');
-    card.addEventListener('animationend', () => card.classList.remove('shake'), { once: true });
-    return;
-  }
-  closeMiniTestModal();
-  state.miniTestQuestions    = generate5Questions(sec);
-  state.miniTestPhase        = 'quiz';
-  state.miniTestAnswers      = [];
-  state.miniTestWrongIndices = [];
-  state.miniTestPeaIsNew     = false;
-  navigate('minitest');
-}
 
 // ----- 小テスト画面レンダリング -----
 function renderMiniTest() {
