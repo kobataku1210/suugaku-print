@@ -51,9 +51,12 @@ const SUGOROKU_SPACES = (() => {
   // ② 門出現マス
   set(85, 'gate_spawn'); set(90, 'gate_spawn');
 
-  // ⑦ 掘れるマス（30個：元20 ＋ ⑤追加10）
-  [2,4,7,8,11,13,20,24,26,31,34,39,40,46,49,52,56,61,62,66,69,70,76,79,80,84,88,92,95,98]
+  // ⑦ 掘れるマス（29個：元30 から80を☆に変更）
+  [2,4,7,8,11,13,20,24,26,31,34,39,40,46,49,52,56,61,62,66,69,70,76,79,84,88,92,95,98]
     .forEach(n => set(n, 'dig'));
+
+  // ⭐ ラッキースターマス
+  set(80, 'star');
 
   // ⑧ 交換所（8個）
   [15,30,42,50,60,71,83,91].forEach(n => set(n, 'exchange'));
@@ -77,6 +80,7 @@ const SG_WARM = {
   dropBall:       { bg:'#ffd0e0', bd:'#c02060' },
   dig:            { bg:'#f0e0c0', bd:'#806030' },
   exchange:       { bg:'#ffe0f8', bd:'#c040a0' },
+  star:           { bg:'#fffacd', bd:'#e6b800' },
   goal:           { bg:'#ffe860', bd:'#d0a000' },
   gate_spawn:     { bg:'#ffe080', bd:'#c07800' },
 };
@@ -318,12 +322,13 @@ function sgReset() {
   sgFreeRoll = false; sgBonusDir = null;
   sgDigSpaceNum = null; sgDigResult = null; sgDigBallColor = null;
   sgExchangeGive = null;
+  sgStarActive = false; sgStarExchangeGive = null;
   sgDisplayPos = null; sgIsAnimating = false;
   renderSugoroku();
 }
 
 // ===== ゲーム状態 =====
-// idle | rolling | digChoice | digAnySelect | digging | digResult | exchange | bonusRoll
+// idle | rolling | digChoice | digAnySelect | digging | digResult | exchange | bonusRoll | starExchange
 let sgPhase        = 'idle';
 let sgMsg          = '';
 let sgMsgType      = 'info';
@@ -334,7 +339,9 @@ let sgBonusDir     = null;   // 'forward' | 'back'
 let sgDigSpaceNum  = null;
 let sgDigResult    = null;   // 'ball' | 'nothing' | 'lost'
 let sgDigBallColor = null;
-let sgExchangeGive = null;
+let sgExchangeGive     = null;
+let sgStarActive       = false;  // ⭐マス滞在中フラグ
+let sgStarExchangeGive = null;   // ⭐交換所で渡す球の色
 let sgDiceAnimInterval = null;
 
 // ③ 一歩ずつアニメーション
@@ -345,6 +352,7 @@ let sgIsAnimating = false;
 function sgRoll() {
   const save = ensureSgInit();
   if (save.cleared || sgPhase !== 'idle' || sgIsAnimating) return;
+  sgStarActive = false; sgStarExchangeGive = null;  // ⭐メニューを閉じる
 
   // 1回休み中：🌱×10で解除＋そのままロール（合計10個）
   if (save.skipNext) {
@@ -705,6 +713,14 @@ function applySpaceEffect(pos, onDone) {
       sgMsg='🔄 球の交換所！'; sgMsgType='info';
       sgExchangeGive=null; sgPhase='exchange'; onDone(); break;
 
+    case 'star':
+      showSpaceOv('⭐', 'ラッキースター！', '🌱×10で掘る or 交換所が使えます！', 2000, () => {
+        sgStarActive = true;
+        sgMsg='⭐ ラッキースター！何回でも使えるよ！'; sgMsgType='good';
+        onDone();
+      });
+      break;
+
     case 'goal':
       if (hasAllBalls()) {
         const s=ensureSgInit(); s.cleared=true; setSgSave(s);
@@ -831,6 +847,49 @@ function sgDoExchange(toColor) {
 }
 function sgSkipExchange() { sgExchangeGive=null; sgPhase='idle'; renderSugoroku(); }
 
+// ===== ⭐ ラッキースター操作 =====
+function sgStarEnterDig() {
+  const sv = ensureSgInit();
+  if (sv.peas < 10) {
+    sgMsg='🌱 グリンピースが足りません（🌱×10必要）'; sgMsgType='bad';
+    renderSugoroku(); return;
+  }
+  // peas消費はsgTryDig()内で行われる
+  sgPhase='digAnySelect';
+  sgMsg='⭐ 掘りたいマスをタップ！（🌱×10消費）'; sgMsgType='info';
+  renderSugoroku();
+}
+function sgStarEnterExchange() {
+  const sv = ensureSgInit();
+  if (sv.peas < 10) {
+    sgMsg='🌱 グリンピースが足りません（🌱×10必要）'; sgMsgType='bad';
+    renderSugoroku(); return;
+  }
+  spendSgPeas(10);
+  sgStarExchangeGive = null;
+  sgPhase = 'starExchange';
+  sgMsg='⭐ 交換所：渡す球を選んでね'; sgMsgType='info';
+  renderSugoroku();
+}
+function sgStarSelectGive(color) {
+  if ((ensureSgInit().balls[color]||0)<1) return;
+  sgStarExchangeGive=color; renderSugoroku();
+}
+function sgStarDoExchange(toColor) {
+  if (!sgStarExchangeGive||toColor===sgStarExchangeGive) return;
+  const save=ensureSgInit();
+  if ((save.balls[sgStarExchangeGive]||0)<1) return;
+  save.balls[sgStarExchangeGive]--;
+  save.balls[toColor]=(save.balls[toColor]||0)+1;
+  setSgSave(save);
+  sgMsg=`⭐🔄 ${BALL_EMOJI[sgStarExchangeGive]}→${BALL_EMOJI[toColor]} 交換完了！`;
+  sgMsgType='good'; sgStarExchangeGive=null; sgPhase='idle';
+  renderSugoroku();
+}
+function sgStarSkipExchange() {
+  sgStarExchangeGive=null; sgPhase='idle'; renderSugoroku();
+}
+
 // ===== レンダー =====
 function renderSugoroku() {
   const save      = ensureSgInit();
@@ -929,7 +988,15 @@ function renderSgActionArea(save) {
                          : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
       const digAny = save.passedGate1
         ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
-      return btn + digAny;
+      const starMenu = sgStarActive ? `
+        <div class="sg-star-menu">
+          <div class="sg-star-menu-title">⭐ ラッキースター特典（🌱×10でどちらでも使えます）</div>
+          <div class="sg-star-menu-btns">
+            <button class="sg-star-btn sg-star-dig" onclick="sgStarEnterDig()">⛏ 好きなマスを掘る</button>
+            <button class="sg-star-btn sg-star-ex"  onclick="sgStarEnterExchange()">🔄 交換所へ行く</button>
+          </div>
+        </div>` : '';
+      return btn + digAny + starMenu;
     }
 
     case 'rolling': {
@@ -1002,6 +1069,33 @@ function renderSgActionArea(save) {
       </div>`;
     }
 
+    case 'starExchange': {
+      const balls = ensureSgInit().balls;
+      const hasSome = BALL_COLORS.some(c=>(balls[c]||0)>0);
+      if (!hasSome)
+        return `<div class="sg-sub-panel">
+          <div class="sg-sub-title">⭐🔄 球の交換所</div>
+          <div class="sg-exchange-msg">球を持っていません。</div>
+          <button class="sg-skip-btn" onclick="sgStarSkipExchange()">閉じる</button>
+        </div>`;
+      const giveHtml = BALL_COLORS.map(c => {
+        const n=balls[c]||0; if (!n) return '';
+        const act = sgStarExchangeGive===c ? ' sg-ex-active':'';
+        return `<button class="sg-ex-btn${act}" onclick="sgStarSelectGive('${c}')">${BALL_EMOJI[c]}×${n}</button>`;
+      }).join('');
+      const getHtml = sgStarExchangeGive
+        ? BALL_COLORS.filter(c=>c!==sgStarExchangeGive).map(c=>
+            `<button class="sg-ex-btn sg-ex-get" onclick="sgStarDoExchange('${c}')">${BALL_EMOJI[c]} ${BALL_NAME[c]}</button>`
+          ).join('')
+        : '';
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">⭐🔄 球の交換所（1個↔1個）</div>
+        <div class="sg-exchange-row"><span class="sg-ex-label">渡す球：</span>${giveHtml}</div>
+        ${sgStarExchangeGive?`<div class="sg-exchange-row"><span class="sg-ex-label">もらう球：</span>${getHtml}</div>`:''}
+        <button class="sg-skip-btn" onclick="sgStarSkipExchange()">キャンセル</button>
+      </div>`;
+    }
+
     case 'bonusRoll':
       return `<div class="sg-sub-panel">
         <div class="sg-sub-title">🎲 もう一度振って${sgBonusDir==='forward'?'進む！':'戻る…'}</div>
@@ -1059,6 +1153,7 @@ function renderSgBoardGrid(currentPos) {
             case 'dig':            icon='⛏'; break;
             case 'exchange':       icon='🔄'; break;
             case 'gate_spawn':     icon='🚪'; break;
+            case 'star':           icon='⭐'; break;
             default: break;  // normal: numStr のみ
           }
         }
@@ -1066,8 +1161,9 @@ function renderSgBoardGrid(currentPos) {
 
       const bg  = isGateBlocked ? '#7a1010' : w.bg;
       const bd  = isHere ? '#2a7a1a' : (isGateBlocked ? '#ff3030' : w.bd);
-      const cls = `sg-cell${isHere?' sg-cell-here':''}${space.type!=='normal'?' sg-cell-sp':''}${digMode?' sg-cell-dig-mode':''}${isGateBlocked?' sg-gate-blocked':''}`;
-      const click = digMode?`onclick="sgSelectDigSpace(${spaceNum})"` : '';
+      const isDigTarget = digMode && space.type==='dig';
+      const cls = `sg-cell${isHere?' sg-cell-here':''}${space.type!=='normal'?' sg-cell-sp':''}${digMode?' sg-cell-dig-mode':''}${isDigTarget?' sg-cell-dig-selectable':''}${isGateBlocked?' sg-gate-blocked':''}`;
+      const click = isDigTarget ? `onclick="sgSelectDigSpace(${spaceNum})"` : '';
 
       html += `<div class="${cls}" style="background:${bg};border-color:${bd}" ${click}
                     title="マス${spaceNum}：${sgTypeName(space.type)}">
@@ -1095,6 +1191,6 @@ function sgTypeName(type) {
     normal:'普通', forward:'進む', rollAndForward:'振って進む',
     back:'戻る', rollAndBack:'振って戻る', again:'もう一度',
     rest:'1回休み', treasure:'お宝', warp:'ワープ',
-    monster:'モンスター', dig:'穴掘り', exchange:'交換所', goal:'ゴール', gate_spawn:'門出現マス',
+    monster:'モンスター', dig:'穴掘り', exchange:'交換所', star:'ラッキースター', goal:'ゴール', gate_spawn:'門出現マス',
   }[type] || type;
 }

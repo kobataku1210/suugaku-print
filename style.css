@@ -1916,6 +1916,59 @@ body {
 }
 .sg-dig-any-btn:hover { transform: translateY(-1px); }
 
+/* ⭐ ラッキースターメニュー */
+.sg-star-menu {
+  margin-top: 0.6rem;
+  background: linear-gradient(135deg, rgba(255,230,0,0.12), rgba(255,180,0,0.08));
+  border: 2px solid rgba(230,184,0,0.5);
+  border-radius: 14px;
+  padding: 0.6rem 0.9rem;
+}
+.sg-star-menu-title {
+  font-size: 0.78rem;
+  color: #e6b800;
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+  text-align: center;
+}
+.sg-star-menu-btns {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.sg-star-btn {
+  border: none;
+  border-radius: 40px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.sg-star-btn:hover { transform: translateY(-2px); }
+.sg-star-dig {
+  background: linear-gradient(135deg, #705030, #a07848);
+  color: #fff8e8;
+  border: 2px solid #503820;
+}
+.sg-star-ex {
+  background: linear-gradient(135deg, #7030a0, #b060e0);
+  color: #fff;
+  border: 2px solid #50208a;
+}
+
+/* ⭐ 掘るモード：掘れるマスをハイライト */
+.sg-cell-dig-selectable {
+  cursor: pointer !important;
+  box-shadow: 0 0 0 2px #e6a000, 0 0 8px 2px rgba(230,160,0,0.6) !important;
+  animation: sg-dig-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes sg-dig-pulse {
+  from { box-shadow: 0 0 0 2px #e6a000, 0 0 6px 1px rgba(230,160,0,0.5); }
+  to   { box-shadow: 0 0 0 2px #ffcc00, 0 0 12px 3px rgba(255,200,0,0.8); }
+}
+
 /* サブパネル（掘る・交換・ボーナス）*/
 .sg-sub-panel {
   background: rgba(245,228,192,0.12);
