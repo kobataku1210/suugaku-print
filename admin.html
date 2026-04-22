@@ -339,12 +339,24 @@ function migrateToNewFormat(data) {
   return data;
 }
 
+// ===== パスワードハッシュ =====
+const _PW_SALT = 'mathprint_';
+async function hashPw(plain) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(_PW_SALT + plain));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function isHashed(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
+
+// 平文パスワードを一時保持（再生成後・保存前に表示用）
+const _pwPlain = {};  // key: `${chIdx}_${si}` → 平文
+
 // ===== ランダム4桁パスワード生成 =====
 function genPassword() {
   return String(Math.floor(Math.random() * 9000) + 1000);
 }
 
-// 未設定の節にパスワードを自動付与
+// 未設定の節にパスワードを自動付与（平文のまま。保存時にハッシュ化）
 function ensurePasswords(data) {
   data.chapters.forEach(ch => {
     (ch.sections || []).forEach(sec => {
@@ -354,15 +366,16 @@ function ensurePasswords(data) {
   return data;
 }
 
-// パスワード再生成ボタン
 function updateTeacherTime(chIdx, si, val) {
   const num = parseFloat(val);
   questionsData.chapters[chIdx].sections[si].teacherTime = isNaN(num) ? null : Math.round(num * 10) / 10;
 }
 
+// パスワード再生成ボタン
 function regenPassword(chIdx, si) {
   const newPw = genPassword();
-  questionsData.chapters[chIdx].sections[si].miniTestPassword = newPw;
+  _pwPlain[`${chIdx}_${si}`] = newPw;           // 平文を一時保存
+  questionsData.chapters[chIdx].sections[si].miniTestPassword = newPw;  // 保存時にハッシュ化される
   const el = document.getElementById(`pw-display-${chIdx}-${si}`);
   if (el) {
     el.textContent = newPw;
@@ -370,6 +383,18 @@ function regenPassword(chIdx, si) {
     el.style.color = '#ff9f43';
     setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = '#ffd200'; }, 300);
   }
+}
+
+// 保存前に全パスワードをハッシュ化
+async function hashAllPasswords(data) {
+  for (const ch of data.chapters) {
+    for (const sec of (ch.sections || [])) {
+      if (sec.miniTestPassword && !isHashed(sec.miniTestPassword)) {
+        sec.miniTestPassword = await hashPw(sec.miniTestPassword);
+      }
+    }
+  }
+  return data;
 }
 
 // ===== 問題データ読み込み =====
@@ -425,7 +450,7 @@ function renderSections(chIdx) {
         </div>
         <div class="minitest-pw-wrap">
           <span class="minitest-pw-label">小テストPW</span>
-          <span class="minitest-pw-code" id="pw-display-${chIdx}-${si}">${sec.miniTestPassword || '----'}</span>
+          <span class="minitest-pw-code" id="pw-display-${chIdx}-${si}">${_pwPlain[`${chIdx}_${si}`] || (isHashed(sec.miniTestPassword) ? '🔒設定済み' : (sec.miniTestPassword || '----'))}</span>
           <button class="minitest-pw-regen" title="パスワードを再生成"
                   onclick="regenPassword(${chIdx},${si})">🔄</button>
         </div>
@@ -566,13 +591,17 @@ async function saveAll() {
   btn.disabled = true;
 
   try {
+    // 保存前にパスワードをハッシュ化（平文のまま残っているものだけ）
+    const dataToSave = JSON.parse(JSON.stringify(questionsData));
+    await hashAllPasswords(dataToSave);
+
     const res = await fetch('/api/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         password: enteredPassword,
         adminPassword: enteredPassword,
-        data: questionsData
+        data: dataToSave
       })
     });
     const result = await res.json();

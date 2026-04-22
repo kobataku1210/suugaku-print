@@ -4,7 +4,17 @@
 
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
-const TEACHER_PASSWORD = 'sensei2024'; // 先生用グリンピース追加パスワード
+const TEACHER_PASSWORD = 'sensei2024'; // 先生用グリンピース追加パスワード（サーバー側で使用）
+
+// ===== パスワードハッシュ関数 =====
+const _PW_SALT = 'mathprint_';
+async function hashPw(plain) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(_PW_SALT + plain));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// ハッシュ済み判定（64文字の16進数）
+function isHashed(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
 
 // レベル設定
 const LEVELS = [
@@ -940,13 +950,15 @@ function closeMiniTestModal() {
   setTimeout(() => overlay.remove(), 300);
 }
 
-function submitMiniTestPassword() {
+async function submitMiniTestPassword() {
   const pw    = document.getElementById('minitest-pw').value;
   const errEl = document.getElementById('minitest-modal-error');
-  // 節ごとのパスワードを使用（未設定の場合は共通パスワードにフォールバック）
   const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
-  const correctPw = String(sec.miniTestPassword || TEACHER_PASSWORD);
-  if (pw !== correctPw) {
+  const stored = String(sec.miniTestPassword || '');
+  // ハッシュ済みなら入力をハッシュ化して比較、平文ならそのまま比較（移行期対応）
+  const entered = isHashed(stored) ? await hashPw(pw) : pw;
+  const correct = stored || TEACHER_PASSWORD;
+  if (entered !== correct) {
     errEl.textContent = 'パスワードが違います';
     errEl.style.display = 'block';
     const card = document.getElementById('minitest-modal-card');
