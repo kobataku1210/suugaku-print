@@ -691,7 +691,7 @@ function renderDifficulty() {
     return `<span class="ta-tier-badge-sm${earned ? ' ta-tier-badge-earned' : ''}">${t.medal} ${t.label} 🌱×${t.peas}</span>`;
   }).join('');
   const taTeacherBadge = taTeacherTime !== null
-    ? taData.teacherBeaten
+    ? isTeacherBeaten(taData, taTeacherTime)
       ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">👑 小林T撃破済み！</span>`
       : `<span class="ta-tier-badge-sm ta-teacher-badge">👑 小林T ${taTeacherTime.toFixed(1)}秒 🌱×10</span>`
     : '';
@@ -1263,8 +1263,13 @@ const TA_TIERS = [
 // ----- localStorage -----
 function getTimeAttackData(chIdx, secIdx) {
   const p = getProgress();
-  if (!p.timeAttack) return { bestTime: null, earnedTiers: [], teacherBeaten: false };
-  return p.timeAttack[`${chIdx}_${secIdx}`] || { bestTime: null, earnedTiers: [], teacherBeaten: false };
+  if (!p.timeAttack) return { bestTime: null, earnedTiers: [], teacherBeaten: false, teacherTimeWhenBeaten: null };
+  return p.timeAttack[`${chIdx}_${secIdx}`] || { bestTime: null, earnedTiers: [], teacherBeaten: false, teacherTimeWhenBeaten: null };
+}
+
+// 先生を撃破済みかどうか（先生がタイム更新した場合はリセット）
+function isTeacherBeaten(taData, currentTeacherTime) {
+  return taData.teacherBeaten && taData.teacherTimeWhenBeaten === currentTeacherTime;
 }
 
 function saveTimeAttackData(chIdx, secIdx, data) {
@@ -1310,9 +1315,9 @@ function renderTimeAttack() {
 
     const teacherTime = sec.teacherTime || null;
     const taCurrentData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
-    const targetHtml = teacherTime !== null && !taCurrentData.teacherBeaten
+    const targetHtml = teacherTime !== null && !isTeacherBeaten(taCurrentData, teacherTime)
       ? `<div class="ta-teacher-target">👑 小林T のタイム：<span>${teacherTime.toFixed(1)}秒</span>を超えれば 🌱×10個！</div>`
-      : teacherTime !== null && taCurrentData.teacherBeaten
+      : teacherTime !== null && isTeacherBeaten(taCurrentData, teacherTime)
       ? `<div class="ta-teacher-target ta-teacher-beaten-msg">👑 小林T 撃破済み！（${teacherTime.toFixed(1)}秒）</div>`
       : '';
     return `
@@ -1503,8 +1508,9 @@ function submitTimeAttackAnswers() {
     const sec = mathData.chapters[state.chapterIdx].sections[state.sectionIdx];
     const teacherTime = sec.teacherTime || null;
     state.timeAttackTeacherBeaten = false;
-    if (teacherTime !== null && elapsed < teacherTime && !taData.teacherBeaten) {
+    if (teacherTime !== null && elapsed < teacherTime && !isTeacherBeaten(taData, teacherTime)) {
       taData.teacherBeaten = true;
+      taData.teacherTimeWhenBeaten = teacherTime;  // 倒したときの先生タイムを記録
       newPeas += 10;
       state.timeAttackTeacherBeaten = true;  // 今回初めて先生を倒した
     }
