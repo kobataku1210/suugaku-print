@@ -434,6 +434,9 @@ function updateCompletedBowlsPanel() {
   }
   panel.style.display = 'flex';
 
+  const p = getProgress();
+  const totalPeas = (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
+
   // 左パネル用スケール 0.28（62px幅、5pxのpea）
   const CBP_SCALE = 0.28;
   const cbpMW = Math.round(220 * CBP_SCALE); // 62
@@ -442,7 +445,9 @@ function updateCompletedBowlsPanel() {
     `<div class="cbp-pea" style="left:${Math.round(pos.x*CBP_SCALE)}px;top:${Math.round(pos.y*CBP_SCALE)}px"></div>`
   ).join('');
 
-  let html = `<div class="cbp-title">完成したお椀</div>`;
+  let html = `
+    <div class="cbp-total">🌱 累計 ${totalPeas.toLocaleString()} 個</div>
+    <div class="cbp-title">完成したお椀</div>`;
   for (let i = 0; i < cups; i++) {
     html += `
       <div class="cbp-bowl" title="${i+1}杯目">

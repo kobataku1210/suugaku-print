@@ -327,6 +327,14 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
+.cbp-total {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #9ded62;
+  text-align: center;
+  margin-bottom: 0.15rem;
+  letter-spacing: 0.02em;
+}
 .cbp-title {
   font-size: 0.65rem;
   font-weight: 700;
