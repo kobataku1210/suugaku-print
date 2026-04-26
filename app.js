@@ -588,8 +588,8 @@ function btIpClose() {
   if (el) el.remove();
 }
 
-// バナーのサブテキストを更新
-(function initBattleBanner() {
+// バナーのサブテキストを更新（renderHome() の後に呼ぶ）
+function initBattleBanner() {
   const sub = document.getElementById('bt-banner-sub');
   if (!sub) return;
   const isLocal = window.location.hostname !== 'kobataku1210.github.io';
@@ -616,7 +616,7 @@ function btIpClose() {
         <span class="bt-banner-change" onclick="event.stopPropagation();btIpChange()">変更</span>`;
     }
   }
-})();
+}
 
 // IPアドレスを変更する（GitHub Pages用）
 function btIpChange() {
@@ -1706,6 +1706,7 @@ function render() {
   document.body.classList.remove('sg-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
+  if (state.view === 'home') initBattleBanner();
 
   // クイズ画面のキーボードイベント設定
   if (state.view === 'quiz') {
