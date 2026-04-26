@@ -37,6 +37,22 @@ function readBody(req) {
 const server = http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
 
+  // ===== API: サーバーIP取得 =====
+  if (req.method === 'GET' && url === '/api/server-ip') {
+    const { networkInterfaces } = require('os');
+    const nets = networkInterfaces();
+    let localIP = 'localhost';
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) localIP = net.address;
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8',
+                         'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ ip: localIP, port: PORT }));
+    return;
+  }
+
   // ===== API: 問題データ取得 =====
   if (req.method === 'GET' && url === '/api/questions') {
     try {

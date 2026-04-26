@@ -514,6 +514,69 @@ function showConfetti() {
   setTimeout(() => cel.remove(), 4000);
 }
 
+// ===== 対戦モード起動 =====
+function openBattleMode() {
+  const isLocal = window.location.hostname !== 'kobataku1210.github.io';
+  if (isLocal) {
+    // ローカルサーバー → 直接対戦画面へ
+    location.href = 'battle.html';
+    return;
+  }
+  // GitHub Pages → IPアドレス入力モーダルを表示
+  const saved = localStorage.getItem('battleServerIP') || '';
+  const overlay = document.createElement('div');
+  overlay.id = 'bt-ip-overlay';
+  overlay.innerHTML = `
+    <div class="bt-ip-modal">
+      <div class="bt-ip-title">⚔️ 学校で対戦</div>
+      <div class="bt-ip-desc">先生に聞いた<strong>IPアドレス</strong>を入力してね</div>
+      <input id="bt-ip-input" class="bt-ip-input" type="text"
+             placeholder="例: 192.168.1.5"
+             value="${saved}"
+             onkeydown="if(event.key==='Enter') btIpGo()">
+      <div class="bt-ip-hint">（一度入力すれば次回から自動入力）</div>
+      <div class="bt-ip-btns">
+        <button class="bt-ip-btn bt-ip-go" onclick="btIpGo()">対戦する！</button>
+        <button class="bt-ip-btn bt-ip-cancel" onclick="btIpClose()">キャンセル</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    const inp = document.getElementById('bt-ip-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 80);
+}
+
+function btIpGo() {
+  const inp = document.getElementById('bt-ip-input');
+  if (!inp) return;
+  const ip = inp.value.trim();
+  if (!ip) { inp.focus(); return; }
+  localStorage.setItem('battleServerIP', ip);
+  btIpClose();
+  location.href = `http://${ip}:3000/battle.html`;
+}
+
+function btIpClose() {
+  const el = document.getElementById('bt-ip-overlay');
+  if (el) el.remove();
+}
+
+// ローカルサーバー起動時：IPアドレスをバナーに表示
+(function initBattleBanner() {
+  if (window.location.hostname === 'kobataku1210.github.io') return;
+  fetch('/api/server-ip')
+    .then(r => r.json())
+    .then(d => {
+      const sub = document.getElementById('bt-banner-sub');
+      if (sub && d.ip && d.ip !== 'localhost') {
+        sub.innerHTML = `友達と1対1で勝負！&nbsp;
+          <span class="bt-banner-ip">📡 http://${d.ip}:${d.port}</span>`;
+      }
+    })
+    .catch(() => {});
+})();
+
 // ===== ナビゲーション =====
 function navigate(view, opts = {}) {
   state.view = view;
@@ -582,16 +645,16 @@ function renderHome() {
       <div class="sg-home-banner-arrow">›</div>
     </div>`;
 
-  // 対戦バナー：ローカルサーバー上でのみ表示
-  const battleBanner = (window.location.hostname !== 'kobataku1210.github.io') ? `
-    <div class="bt-home-banner" onclick="location.href='battle.html'">
+  // 対戦バナー：常に表示（GitHub Pages では IP 入力モーダルへ）
+  const battleBanner = `
+    <div class="bt-home-banner" id="bt-home-banner" onclick="openBattleMode()">
       <span class="bt-home-banner-icon">⚔️</span>
       <div class="bt-home-banner-text">
         <div class="bt-home-banner-title">対戦モード</div>
-        <div class="bt-home-banner-sub">友達と1対1で勝負しよう！勝ったら🌱×3</div>
+        <div class="bt-home-banner-sub" id="bt-banner-sub">友達と1対1で勝負しよう！勝ったら🌱×3</div>
       </div>
       <div class="bt-home-banner-arrow">›</div>
-    </div>` : '';
+    </div>`;
 
   return `
     <div class="section-title">

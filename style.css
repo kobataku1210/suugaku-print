@@ -3125,6 +3125,59 @@ body {
   white-space: nowrap;
 }
 
+/* ---- IPアドレス表示バッジ（ローカルサーバー用） ---- */
+.bt-banner-ip {
+  display: inline-block;
+  background: rgba(102,126,234,0.25);
+  border: 1px solid rgba(102,126,234,0.5);
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  font-size: 0.82em;
+  font-weight: 700;
+  color: #a5b4fc;
+  letter-spacing: 0.03em;
+}
+
+/* ---- IP入力モーダル（GitHub Pages用） ---- */
+#bt-ip-overlay {
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: btFadeIn 0.2s ease;
+}
+.bt-ip-modal {
+  background: #1a1a3e;
+  border: 1.5px solid rgba(102,126,234,0.45);
+  border-radius: 22px;
+  padding: 2rem 1.8rem;
+  width: 90%; max-width: 380px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  animation: btPopUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.bt-ip-title  { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+.bt-ip-desc   { font-size: 0.9rem; color: #9ab; margin-bottom: 1rem; }
+.bt-ip-input  {
+  width: 100%; padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #fff; font-size: 1.1rem; font-family: inherit;
+  text-align: center; letter-spacing: 0.05em;
+  outline: none;
+}
+.bt-ip-input:focus { border-color: #667eea; }
+.bt-ip-hint   { font-size: 0.75rem; color: #667; margin: 0.5rem 0 1rem; }
+.bt-ip-btns   { display: flex; gap: 0.7rem; justify-content: center; }
+.bt-ip-btn    {
+  padding: 0.65rem 1.3rem; border-radius: 12px;
+  font-size: 0.95rem; font-weight: 700; border: none; cursor: pointer;
+  font-family: inherit;
+}
+.bt-ip-go     { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+.bt-ip-cancel { background: rgba(255,255,255,0.08); color:#aaa; border:1px solid rgba(255,255,255,0.15); }
+
 /* ---- ホームバナー（対戦ボタン）---- */
 .bt-home-banner {
   display: flex; align-items: center;
