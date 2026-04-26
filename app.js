@@ -592,7 +592,7 @@ function openBattleMode() {
       <div class="bt-ip-desc">先生の画面に表示されている<br><strong>IPアドレス</strong>を入力してね</div>
       <div class="bt-ip-hint-box" id="bt-url-ip-hint"></div>
       <input id="bt-ip-input" class="bt-ip-input" type="text"
-             placeholder="例: 192.168.1.5"
+             placeholder="例: 100.64.1.26"
              value=""
              onkeydown="if(event.key==='Enter') btIpGo()">
       <div class="bt-ip-note">次回からは自動でジャンプします</div>
