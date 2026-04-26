@@ -2779,3 +2779,370 @@ body {
   .sg-ball-em           { font-size: 1.1rem; }
   .sg-dice-face         { font-size: 2.8rem; }
 }
+
+/* ============================================================
+   対戦モード（battle.html）
+   ============================================================ */
+
+/* ---- 全体ラッパー ---- */
+#bt-app {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+#bt-screen {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* ---- 共通ボタン ---- */
+.bt-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.75rem 1.6rem;
+  border-radius: 14px;
+  font-size: 1rem; font-weight: 700;
+  border: none; cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.bt-btn:active { transform: scale(0.96); }
+.bt-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(102,126,234,0.45);
+}
+.bt-primary:hover { box-shadow: 0 6px 20px rgba(102,126,234,0.6); }
+.bt-secondary {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(56,239,125,0.35);
+}
+.bt-ghost {
+  background: rgba(255,255,255,0.1);
+  color: #ccc;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.bt-back {
+  display: block; margin: 1.2rem auto 0;
+  background: none; border: none;
+  color: #8899bb; font-size: 0.9rem; cursor: pointer;
+  font-family: inherit;
+}
+.bt-back:hover { color: #aac; }
+
+/* ---- 共通フィールド ---- */
+.bt-label {
+  display: block; font-size: 0.82rem; color: #9ab; margin-bottom: 0.35rem;
+}
+.bt-field-row { margin-bottom: 1rem; }
+.bt-input, .bt-select {
+  width: 100%; padding: 0.7rem 1rem;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  color: #fff; font-size: 1rem; font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.bt-input:focus, .bt-select:focus {
+  border-color: #667eea;
+}
+.bt-select option { background: #1e1e3e; color: #fff; }
+.bt-code-input {
+  font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em;
+  text-align: center;
+}
+
+/* ---- ロビー ---- */
+.bt-lobby {
+  text-align: center;
+  padding: 2rem 1.2rem;
+}
+.bt-logo {
+  font-size: 2rem; font-weight: 900;
+  margin-bottom: 0.3rem;
+}
+.bt-pea-total {
+  font-size: 0.85rem; color: #9ded62; margin-bottom: 1.4rem;
+}
+.bt-lobby-btns {
+  display: flex; flex-direction: column; gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+/* ---- 単元選択 / 参加 ---- */
+.bt-create, .bt-join {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 1.8rem 1.4rem;
+}
+.bt-screen-title {
+  font-size: 1.2rem; font-weight: 700;
+  margin-bottom: 1.2rem; text-align: center;
+}
+
+/* ---- 待機中 ---- */
+.bt-waiting {
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 2rem 1.4rem;
+}
+.bt-room-code {
+  font-size: 3.5rem; font-weight: 900; letter-spacing: 0.25em;
+  color: #ffe87c;
+  background: rgba(255,232,124,0.08);
+  border: 2px dashed rgba(255,232,124,0.4);
+  border-radius: 16px;
+  padding: 0.6rem 1rem;
+  margin: 1rem auto;
+  display: inline-block;
+}
+.bt-waiting-hint { font-size: 0.9rem; color: #9ab; margin-bottom: 1.2rem; }
+.bt-spinner-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.6rem; font-size: 0.9rem; color: #aaa;
+}
+.bt-spinner { animation: btSpin 1.2s linear infinite; display: inline-block; }
+@keyframes btSpin { to { transform: rotate(360deg); } }
+
+/* ---- カウントダウン ---- */
+.bt-countdown-wrap {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+.bt-vs-strip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 1rem; margin-bottom: 1.8rem;
+}
+.bt-vs-name {
+  font-size: 1.1rem; font-weight: 700; max-width: 130px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bt-vs-me  { color: #67e8f9; }
+.bt-vs-op  { color: #fda4af; }
+.bt-vs-label {
+  font-size: 1.4rem; font-weight: 900; color: #ffe87c;
+}
+.bt-cd-num {
+  font-size: 5rem; font-weight: 900;
+  color: #ffe87c;
+  animation: btCdPulse 1s ease-in-out infinite;
+}
+@keyframes btCdPulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.15); }
+}
+.bt-cd-sub { font-size: 1rem; color: #aaa; margin-top: 0.5rem; }
+
+/* ---- 対戦中 ---- */
+.bt-playing { display: flex; flex-direction: column; gap: 0.8rem; }
+
+/* スコアバー */
+.bt-score-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 0.6rem 1rem;
+}
+.bt-score-block { text-align: center; flex: 1; }
+.bt-score-mine .bt-score-name { color: #67e8f9; }
+.bt-score-op   .bt-score-name { color: #fda4af; }
+.bt-score-name  { font-size: 0.78rem; font-weight: 600; margin-bottom: 0.1rem;
+                   max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 auto 0.1rem; }
+.bt-score-num   { font-size: 2rem; font-weight: 900; line-height: 1; }
+
+/* タイマー */
+.bt-score-center { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.bt-qnum { font-size: 0.72rem; color: #8899bb; }
+.bt-timer-wrap {
+  position: relative; width: 52px; height: 52px;
+}
+.bt-timer-ring-bg,
+.bt-timer-ring-fill {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+}
+.bt-timer-ring-bg {
+  background: rgba(255,255,255,0.08);
+}
+.bt-timer-ring-fill {
+  background: conic-gradient(#22c55e 360deg, transparent 360deg);
+  border-radius: 50%;
+  transition: background 0.1s;
+}
+/* 内側の白丸でドーナツに */
+.bt-timer-ring-fill::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background: #0d0d2b;
+  border-radius: 50%;
+}
+.bt-timer-num {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 900;
+  z-index: 1;
+}
+
+/* 問題カード */
+.bt-q-card {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 1.4rem 1.2rem;
+  text-align: center;
+}
+.bt-q-text {
+  font-size: 1.35rem; font-weight: 700; line-height: 1.5;
+}
+.bt-q-hint {
+  font-size: 0.85rem; color: #9ab; margin-top: 0.6rem;
+}
+/* インライン分数 */
+.bt-frac {
+  display: inline-flex; flex-direction: column;
+  align-items: center; line-height: 1.1;
+  vertical-align: middle; margin: 0 0.1em;
+}
+.bt-frac-n { border-bottom: 1.5px solid currentColor; padding: 0 0.1em; }
+.bt-frac-d { padding: 0 0.1em; }
+
+/* 解答エリア */
+.bt-ans-area {
+  display: flex; gap: 0.6rem; align-items: stretch;
+}
+.bt-ans-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.09);
+  border: 1.5px solid rgba(255,255,255,0.22);
+  border-radius: 12px;
+  color: #fff; font-size: 1rem; font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.bt-ans-input:focus { border-color: #667eea; }
+.bt-ans-input.bt-ans-locked {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+  color: #666;
+}
+.bt-submit-btn {
+  padding: 0.75rem 1.2rem;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* ステータスメッセージ */
+.bt-status {
+  min-height: 1.4rem;
+  font-size: 0.88rem; color: #aaa; text-align: center;
+}
+.bt-wrong-msg { color: #ef4444 !important; }
+
+/* ---- ラウンド結果オーバーレイ ---- */
+.bt-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  animation: btFadeIn 0.2s ease;
+}
+@keyframes btFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.bt-ov-card {
+  background: rgba(20,20,40,0.95);
+  border-radius: 22px;
+  padding: 2rem 2.5rem;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.15);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+  animation: btPopUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes btPopUp {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.bt-ov-icon  { font-size: 3rem; margin-bottom: 0.4rem; }
+.bt-ov-msg   { font-size: 1.4rem; font-weight: 900; margin-bottom: 0.5rem; }
+.bt-ov-ans   { font-size: 0.95rem; color: #9ab; margin-bottom: 0.4rem; }
+.bt-ov-score { font-size: 1.6rem; font-weight: 900; color: #ffe87c; }
+.bt-ov-win     .bt-ov-msg { color: #22c55e; }
+.bt-ov-lose    .bt-ov-msg { color: #ef4444; }
+.bt-ov-timeout .bt-ov-msg { color: #f59e0b; }
+.bt-ov-both    .bt-ov-msg { color: #a78bfa; }
+
+/* ---- ゲームオーバー ---- */
+.bt-gameover {
+  text-align: center;
+  padding: 2.5rem 1.2rem;
+}
+.bt-go-icon  { font-size: 4rem; margin-bottom: 0.5rem; }
+.bt-go-title {
+  font-size: 2.2rem; font-weight: 900; margin-bottom: 1.2rem;
+}
+.bt-go-win  { color: #ffe87c; }
+.bt-go-lose { color: #9ab; }
+.bt-go-score-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 1.2rem; margin-bottom: 1.2rem;
+}
+.bt-go-player { text-align: center; }
+.bt-go-pname  { font-size: 0.85rem; color: #9ab; margin-bottom: 0.2rem; }
+.bt-go-pts    { font-size: 2.8rem; font-weight: 900; }
+.bt-go-winner .bt-go-pts { color: #ffe87c; }
+.bt-go-dash   { font-size: 1.4rem; color: #555; }
+.bt-go-pea-award {
+  font-size: 1.1rem; font-weight: 700;
+  color: #9ded62;
+  background: rgba(157,237,98,0.12);
+  border: 1px solid rgba(157,237,98,0.3);
+  border-radius: 12px;
+  padding: 0.5rem 1.2rem;
+  display: inline-block; margin-bottom: 0.8rem;
+}
+.bt-go-btns {
+  display: flex; gap: 0.8rem; justify-content: center;
+  margin-top: 1.2rem;
+}
+
+/* ---- トースト ---- */
+.bt-toast {
+  position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  background: rgba(239,68,68,0.9);
+  color: #fff; font-size: 0.9rem; font-weight: 700;
+  padding: 0.65rem 1.4rem;
+  border-radius: 50px;
+  z-index: 99999;
+  animation: btFadeIn 0.2s ease;
+  white-space: nowrap;
+}
+
+/* ---- ホームバナー（対戦ボタン）---- */
+.bt-home-banner {
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, rgba(102,126,234,0.25), rgba(118,75,162,0.25));
+  border: 1.5px solid rgba(102,126,234,0.45);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  gap: 0.9rem;
+}
+.bt-home-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102,126,234,0.35);
+}
+.bt-home-banner-icon  { font-size: 2rem; flex-shrink: 0; }
+.bt-home-banner-text  { flex: 1; }
+.bt-home-banner-title { font-size: 1rem; font-weight: 700; }
+.bt-home-banner-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
+.bt-home-banner-arrow { font-size: 1.4rem; color: #667eea; }

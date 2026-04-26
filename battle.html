@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚔️ 対戦モード</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="bt-app">
+  <div id="bt-screen"></div>
+</div>
+
+<script>
+// ============================================================
+// battle.js インライン
+// ============================================================
+const STORAGE_KEY = 'mathPrint_v2';
+
+// ---- localStorage ----
+function bpGet()    { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+function bpSave(p)  { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+function bpAddPeas(n) {
+  const p = bpGet();
+  let c    = (p.peaCount    || 0) + n;
+  let cups = (p.peaCupCount || 0);
+  while (c >= 45) { c -= 45; cups++; }
+  p.peaCount = c; p.peaCupCount = cups;
+  bpSave(p);
+}
+function bpTotal() {
+  const p = bpGet();
+  return (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
+}
+
+// ---- State ----
+let ws          = null;
+let phase       = 'lobby';
+let myName      = localStorage.getItem('battleName') || '';
+let opName      = '';
+let myScore     = 0, opScore = 0;
+let isCreator   = false;
+let timerVal    = 30;
+let timerIv     = null;
+let isLocked    = false;
+let currentQ    = null;
+let mathData    = null;
+let selCh = 0, selSec = 0;
+
+// ---- Helpers ----
+function $$(id) { return document.getElementById(id); }
+function render(html) { $$('bt-screen').innerHTML = html; }
+function escH(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtQ(str) {
+  // 分数 {a/b} を縦表示に変換
+  let s = String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s.replace(/\{([^/{}]+)\/([^/{}]+)\}/g,
+    (_, n, d) => `<span class="bt-frac"><span class="bt-frac-n">${n}</span><span class="bt-frac-d">${d}</span></span>`);
+  return s;
+}
+
+// ---- Load questions ----
+async function loadMathData() {
+  try {
+    const r = await fetch('/api/questions');
+    mathData = await r.json();
+  } catch (e) { mathData = null; }
+}
+
+// ============================================================
+// 画面描画
+// ============================================================
+
+// ---- ロビー ----
+function showLobby() {
+  phase = 'lobby';
+  stopTimer();
+  if (ws) { try { ws.close(); } catch(e){} ws = null; }
+  render(`
+    <div class="bt-lobby">
+      <div class="bt-logo">⚔️ 対戦モード</div>
+      <div class="bt-pea-total">🌱 累計 ${bpTotal().toLocaleString()} 個</div>
+      <div class="bt-field-row">
+        <label class="bt-label">ニックネーム</label>
+        <input id="bt-name" class="bt-input" type="text"
+               value="${escH(myName)}" maxlength="12"
+               placeholder="例: 3-1 TK">
+      </div>
+      <div class="bt-lobby-btns">
+        <button class="bt-btn bt-primary" onclick="goCreate()">🏠 部屋を作る</button>
+        <button class="bt-btn bt-secondary" onclick="goJoin()">🚪 部屋に参加</button>
+      </div>
+      <button class="bt-back" onclick="location.href='index.html'">← 戻る</button>
+    </div>
+  `);
+}
+
+function saveName() {
+  const v = ($$('bt-name') ? $$('bt-name').value.trim() : myName) || 'プレイヤー';
+  myName = v;
+  localStorage.setItem('battleName', v);
+  return v;
+}
+
+// ---- 部屋作成（単元選択） ----
+function goCreate() {
+  saveName();
+  if (!mathData) { showToast('問題データを読み込み中です'); return; }
+  isCreator = true;
+  phase = 'create';
+  const chOpts = mathData.chapters.map((ch, i) =>
+    `<option value="${i}">第${ch.id}章　${escH(ch.title)}</option>`).join('');
+  render(`
+    <div class="bt-create">
+      <div class="bt-screen-title">📖 単元を選ぼう</div>
+      <div class="bt-field-row">
+        <label class="bt-label">章</label>
+        <select id="bt-ch" class="bt-select" onchange="updateSecs()">${chOpts}</select>
+      </div>
+      <div class="bt-field-row">
+        <label class="bt-label">単元</label>
+        <select id="bt-sec" class="bt-select"></select>
+      </div>
+      <button class="bt-btn bt-primary" onclick="createRoom()">🎮 部屋を作成</button>
+      <button class="bt-back" onclick="showLobby()">← 戻る</button>
+    </div>
+  `);
+  updateSecs();
+}
+
+function updateSecs() {
+  const chIdx = parseInt($$('bt-ch').value);
+  const secs  = mathData.chapters[chIdx].sections;
+  $$('bt-sec').innerHTML = secs.map((s, i) =>
+    `<option value="${i}">${escH(s.title)}</option>`).join('');
+}
+
+function createRoom() {
+  const name = saveName();
+  selCh  = parseInt($$('bt-ch').value);
+  selSec = parseInt($$('bt-sec').value);
+  connectWS(() => wsSendMsg({ type: 'create', name, chapter: selCh, section: selSec }));
+}
+
+// ---- 部屋参加 ----
+function goJoin() {
+  saveName();
+  isCreator = false;
+  phase = 'join';
+  render(`
+    <div class="bt-join">
+      <div class="bt-screen-title">🚪 部屋に参加</div>
+      <div class="bt-field-row">
+        <label class="bt-label">ルームコード</label>
+        <input id="bt-code" class="bt-input bt-code-input" type="number"
+               placeholder="4ケタの数字" min="1000" max="9999"
+               onkeydown="if(event.key==='Enter')joinRoom()">
+      </div>
+      <button class="bt-btn bt-secondary" onclick="joinRoom()">参加する</button>
+      <button class="bt-back" onclick="showLobby()">← 戻る</button>
+    </div>
+  `);
+  setTimeout(() => { if($$('bt-code')) $$('bt-code').focus(); }, 100);
+}
+
+function joinRoom() {
+  const name = saveName();
+  const code = String($$('bt-code').value).trim();
+  if (code.length !== 4) { showToast('ルームコードは4ケタです'); return; }
+  connectWS(() => wsSendMsg({ type: 'join', name, code }));
+}
+
+// ---- 待機中（コード表示） ----
+function showWaiting(code) {
+  phase = 'waiting';
+  render(`
+    <div class="bt-waiting">
+      <div class="bt-screen-title">🏠 部屋を作りました！</div>
+      <div class="bt-room-code">${escH(code)}</div>
+      <div class="bt-waiting-hint">このコードを相手に教えよう！</div>
+      <div class="bt-spinner-row">
+        <span class="bt-spinner">⏳</span>
+        <span>相手を待っています…</span>
+      </div>
+      <button class="bt-back" onclick="showLobby()">← キャンセル</button>
+    </div>
+  `);
+}
+
+// ---- カウントダウン ----
+function showCountdown(opponent) {
+  opName  = opponent;
+  myScore = 0; opScore = 0;
+  phase   = 'countdown';
+  render(`
+    <div class="bt-countdown-wrap">
+      <div class="bt-vs-strip">
+        <div class="bt-vs-name bt-vs-me">${escH(myName)}</div>
+        <div class="bt-vs-label">VS</div>
+        <div class="bt-vs-name bt-vs-op">${escH(opName)}</div>
+      </div>
+      <div class="bt-cd-num" id="bt-cd">3</div>
+      <div class="bt-cd-sub">対戦スタート！</div>
+    </div>
+  `);
+  let n = 3;
+  const iv = setInterval(() => {
+    n--;
+    const el = $$('bt-cd');
+    if (el) el.textContent = n > 0 ? n : 'GO!';
+    if (n <= 0) clearInterval(iv);
+  }, 1000);
+}
+
+// ---- 問題表示 ----
+function showQuestion(q, qNum, mySc, opSc, timeLimit) {
+  currentQ = q; myScore = mySc; opScore = opSc;
+  isLocked = false; phase = 'playing';
+
+  const hasBlank = q.b && q.b.trim();
+  const hintTxt  = hasBlank
+    ? fmtQ(q.a.replace(q.b, '＿＿'))
+    : null;
+
+  render(`
+    <div class="bt-playing">
+
+      <div class="bt-score-bar">
+        <div class="bt-score-block bt-score-mine">
+          <div class="bt-score-name">${escH(myName)}</div>
+          <div class="bt-score-num">${myScore}</div>
+        </div>
+        <div class="bt-score-center">
+          <div class="bt-qnum">Q${qNum}</div>
+          <div class="bt-timer-wrap">
+            <div class="bt-timer-ring-bg"></div>
+            <div class="bt-timer-ring-fill" id="bt-ring-fill"></div>
+            <div class="bt-timer-num" id="bt-timer-num">${timeLimit}</div>
+          </div>
+        </div>
+        <div class="bt-score-block bt-score-op">
+          <div class="bt-score-name">${escH(opName)}</div>
+          <div class="bt-score-num">${opScore}</div>
+        </div>
+      </div>
+
+      <div class="bt-q-card" id="bt-q-card">
+        <div class="bt-q-text">${fmtQ(q.q)}</div>
+        ${hintTxt ? `<div class="bt-q-hint">答えの形：${hintTxt}</div>` : ''}
+      </div>
+
+      <div class="bt-ans-area">
+        <input id="bt-ans" class="bt-ans-input" type="text"
+               placeholder="${hasBlank ? '＿＿ に入る答え' : '答えを入力'}"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter') btSubmit()">
+        <button id="bt-sub-btn" class="bt-btn bt-primary bt-submit-btn" onclick="btSubmit()">答える！</button>
+      </div>
+
+      <div id="bt-status" class="bt-status"></div>
+
+    </div>
+  `);
+
+  startTimer(timeLimit);
+  setTimeout(() => { if ($$('bt-ans')) $$('bt-ans').focus(); }, 80);
+}
+
+// ---- タイマー ----
+function startTimer(total) {
+  stopTimer();
+  timerVal = total;
+  updateTimerUI(total, total);
+  timerIv = setInterval(() => {
+    timerVal--;
+    updateTimerUI(timerVal, total);
+    if (timerVal <= 0) stopTimer();
+  }, 1000);
+}
+
+function updateTimerUI(val, total) {
+  const numEl  = $$('bt-timer-num');
+  const fillEl = $$('bt-ring-fill');
+  if (numEl)  numEl.textContent = Math.max(0, val);
+  if (fillEl) {
+    const pct   = val / total;
+    const deg   = pct * 360;
+    const color = val <= 5 ? '#ef4444' : val <= 10 ? '#f59e0b' : '#22c55e';
+    fillEl.style.background =
+      `conic-gradient(${color} ${deg}deg, transparent ${deg}deg)`;
+  }
+}
+
+function stopTimer() {
+  clearInterval(timerIv);
+  timerIv = null;
+}
+
+// ---- 入力ロック ----
+function btLockInput() {
+  isLocked = true;
+  const inp = $$('bt-ans');
+  const btn = $$('bt-sub-btn');
+  if (inp) { inp.disabled = true; inp.classList.add('bt-ans-locked'); }
+  if (btn) { btn.disabled = true; }
+}
+
+// ---- 回答送信 ----
+function btSubmit() {
+  if (isLocked || phase !== 'playing') return;
+  const inp = $$('bt-ans');
+  if (!inp) return;
+  const ans = inp.value.trim();
+  if (!ans) return;
+  wsSendMsg({ type: 'answer', answer: ans });
+}
+
+// ---- ラウンド結果オーバーレイ ----
+function showRoundOverlay(type, correct, mySc, opSc) {
+  stopTimer();
+  myScore = mySc; opScore = opSc;
+  const existing = document.querySelector('.bt-overlay');
+  if (existing) existing.remove();
+
+  let icon, msg, cls;
+  if      (type === 'win')     { icon = '✅'; msg = '正解！';           cls = 'bt-ov-win'; }
+  else if (type === 'lose')    { icon = '😢'; msg = '相手が正解した！'; cls = 'bt-ov-lose'; }
+  else if (type === 'timeout') { icon = '⏱';  msg = '時間切れ！';       cls = 'bt-ov-timeout'; }
+  else                         { icon = '💥'; msg = '両方不正解…';      cls = 'bt-ov-both'; }
+
+  const el = document.createElement('div');
+  el.className = 'bt-overlay';
+  el.innerHTML = `
+    <div class="bt-ov-card ${cls}">
+      <div class="bt-ov-icon">${icon}</div>
+      <div class="bt-ov-msg">${msg}</div>
+      <div class="bt-ov-ans">正解：<strong>${escH(correct)}</strong></div>
+      <div class="bt-ov-score">${mySc} ─ ${opSc}</div>
+    </div>`;
+  $$('bt-app').appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 2200);
+}
+
+// ---- ゲームオーバー ----
+function showGameOver(result, mySc, opSc) {
+  stopTimer();
+  phase = 'gameover';
+  if (ws) { try { ws.close(); } catch(e){} ws = null; }
+  const won = result === 'win';
+  if (won) bpAddPeas(3);
+  render(`
+    <div class="bt-gameover">
+      <div class="bt-go-icon">${won ? '🏆' : '😢'}</div>
+      <div class="bt-go-title ${won ? 'bt-go-win' : 'bt-go-lose'}">${won ? '勝利！' : '敗北…'}</div>
+      <div class="bt-go-score-row">
+        <div class="bt-go-player ${won ? 'bt-go-winner' : ''}">
+          <div class="bt-go-pname">${escH(myName)}</div>
+          <div class="bt-go-pts">${mySc}</div>
+        </div>
+        <div class="bt-go-dash">─</div>
+        <div class="bt-go-player ${!won ? 'bt-go-winner' : ''}">
+          <div class="bt-go-pname">${escH(opName)}</div>
+          <div class="bt-go-pts">${opSc}</div>
+        </div>
+      </div>
+      ${won ? '<div class="bt-go-pea-award">🌱 ×3 もらった！</div>' : ''}
+      <div class="bt-go-btns">
+        <button class="bt-btn bt-primary" onclick="showLobby()">もう一度</button>
+        <button class="bt-btn bt-ghost" onclick="location.href=\'index.html\'">ホームへ</button>
+      </div>
+    </div>
+  `);
+}
+
+// ---- エラートースト ----
+function showToast(msg) {
+  const old = document.querySelector('.bt-toast');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'bt-toast';
+  el.textContent = msg;
+  $$('bt-app').appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 3000);
+}
+
+// ============================================================
+// WebSocket
+// ============================================================
+function connectWS(onOpen) {
+  if (ws) { try { ws.close(); } catch(e){} ws = null; }
+  const host = window.location.host;
+  ws = new WebSocket(`ws://${host}/battle-ws`);
+  ws.onopen    = () => onOpen();
+  ws.onmessage = e  => handleServerMsg(JSON.parse(e.data));
+  ws.onerror   = () => showToast('サーバーに接続できません');
+  ws.onclose   = () => {
+    if (phase !== 'gameover' && phase !== 'lobby') showToast('接続が切れました');
+  };
+}
+
+function wsSendMsg(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+
+function handleServerMsg(d) {
+  switch (d.type) {
+
+    case 'created':
+      showWaiting(d.code);
+      break;
+
+    case 'opponent_joined':
+    case 'joined':
+      showCountdown(d.opName);
+      break;
+
+    case 'question':
+      showQuestion(d.question, d.qNum, d.myScore, d.opScore, d.timeLimit);
+      break;
+
+    case 'wrong': {
+      btLockInput();
+      const st = $$('bt-status');
+      if (st) {
+        st.textContent = '✗ 不正解… 相手の答えを待っています';
+        st.className   = 'bt-status bt-wrong-msg';
+      }
+      break;
+    }
+
+    case 'round_end':
+      showRoundOverlay(d.result, d.correct, d.myScore, d.opScore);
+      break;
+
+    case 'timeout':
+      showRoundOverlay('timeout', d.correct, d.myScore, d.opScore);
+      break;
+
+    case 'both_wrong':
+      showRoundOverlay('both', d.correct, d.myScore, d.opScore);
+      break;
+
+    case 'gameover':
+      showGameOver(d.result, d.myScore, d.opScore);
+      break;
+
+    case 'disconnect':
+      showToast('相手が切断しました');
+      setTimeout(() => showLobby(), 2200);
+      break;
+
+    case 'error':
+      showToast(d.message);
+      break;
+  }
+}
+
+// ============================================================
+// 起動
+// ============================================================
+loadMathData().then(() => showLobby());
+</script>
+</body>
+</html>

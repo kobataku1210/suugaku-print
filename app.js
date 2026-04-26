@@ -582,12 +582,24 @@ function renderHome() {
       <div class="sg-home-banner-arrow">›</div>
     </div>`;
 
+  // 対戦バナー：ローカルサーバー上でのみ表示
+  const battleBanner = (window.location.hostname !== 'kobataku1210.github.io') ? `
+    <div class="bt-home-banner" onclick="location.href='battle.html'">
+      <span class="bt-home-banner-icon">⚔️</span>
+      <div class="bt-home-banner-text">
+        <div class="bt-home-banner-title">対戦モード</div>
+        <div class="bt-home-banner-sub">友達と1対1で勝負しよう！勝ったら🌱×3</div>
+      </div>
+      <div class="bt-home-banner-arrow">›</div>
+    </div>` : '';
+
   return `
     <div class="section-title">
       <h2>章を選ぼう！</h2>
       <p>学習したい単元をタップしてね</p>
     </div>
     ${sgBanner}
+    ${battleBanner}
     <div class="chapters-grid">${cards}</div>`;
 }
 
