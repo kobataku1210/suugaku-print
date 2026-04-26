@@ -522,19 +522,23 @@ function openBattleMode() {
     location.href = 'battle.html';
     return;
   }
-  // GitHub Pages → IPアドレス入力モーダルを表示
+  // GitHub Pages → 保存済みIPがあれば即ジャンプ
   const saved = localStorage.getItem('battleServerIP') || '';
+  if (saved) {
+    location.href = `http://${saved}:3000/battle.html`;
+    return;
+  }
+  // 初回のみモーダル表示
   const overlay = document.createElement('div');
   overlay.id = 'bt-ip-overlay';
   overlay.innerHTML = `
     <div class="bt-ip-modal">
       <div class="bt-ip-title">⚔️ 学校で対戦</div>
-      <div class="bt-ip-desc">先生に聞いた<strong>IPアドレス</strong>を入力してね</div>
+      <div class="bt-ip-desc">先生に聞いた<strong>IPアドレス</strong>を入力してね<br><span style="font-size:0.8em;color:#667">（次回からは自動でジャンプします）</span></div>
       <input id="bt-ip-input" class="bt-ip-input" type="text"
              placeholder="例: 192.168.1.5"
-             value="${saved}"
+             value=""
              onkeydown="if(event.key==='Enter') btIpGo()">
-      <div class="bt-ip-hint">（一度入力すれば次回から自動入力）</div>
       <div class="bt-ip-btns">
         <button class="bt-ip-btn bt-ip-go" onclick="btIpGo()">対戦する！</button>
         <button class="bt-ip-btn bt-ip-cancel" onclick="btIpClose()">キャンセル</button>
@@ -562,20 +566,39 @@ function btIpClose() {
   if (el) el.remove();
 }
 
-// ローカルサーバー起動時：IPアドレスをバナーに表示
+// バナーのサブテキストを更新
 (function initBattleBanner() {
-  if (window.location.hostname === 'kobataku1210.github.io') return;
-  fetch('/api/server-ip')
-    .then(r => r.json())
-    .then(d => {
-      const sub = document.getElementById('bt-banner-sub');
-      if (sub && d.ip && d.ip !== 'localhost') {
-        sub.innerHTML = `友達と1対1で勝負！&nbsp;
-          <span class="bt-banner-ip">📡 http://${d.ip}:${d.port}</span>`;
-      }
-    })
-    .catch(() => {});
+  const sub = document.getElementById('bt-banner-sub');
+  if (!sub) return;
+  const isLocal = window.location.hostname !== 'kobataku1210.github.io';
+  if (isLocal) {
+    // ローカルサーバー：IPアドレスを表示
+    fetch('/api/server-ip')
+      .then(r => r.json())
+      .then(d => {
+        const sub2 = document.getElementById('bt-banner-sub');
+        if (sub2 && d.ip && d.ip !== 'localhost') {
+          sub2.innerHTML = `友達と1対1で勝負！&nbsp;
+            <span class="bt-banner-ip">📡 http://${d.ip}:${d.port}</span>`;
+        }
+      })
+      .catch(() => {});
+  } else {
+    // GitHub Pages：保存済みIPを表示
+    const saved = localStorage.getItem('battleServerIP') || '';
+    if (saved) {
+      sub.innerHTML = `保存済み：${saved}&nbsp;
+        <span class="bt-banner-change" onclick="event.stopPropagation();btIpChange()">変更</span>`;
+    }
+  }
 })();
+
+// IPアドレスを変更する（GitHub Pages用）
+function btIpChange() {
+  localStorage.removeItem('battleServerIP');
+  const sub = document.getElementById('bt-banner-sub');
+  if (sub) sub.innerHTML = '友達と1対1で勝負しよう！勝ったら🌱×3';
+}
 
 // ===== ナビゲーション =====
 function navigate(view, opts = {}) {

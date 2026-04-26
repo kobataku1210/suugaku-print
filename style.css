@@ -3125,7 +3125,19 @@ body {
   white-space: nowrap;
 }
 
-/* ---- IPアドレス表示バッジ（ローカルサーバー用） ---- */
+/* ---- IPアドレス表示バッジ・変更リンク ---- */
+.bt-banner-change {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  font-size: 0.78em;
+  color: #aaa;
+  cursor: pointer;
+  margin-left: 0.3em;
+}
+.bt-banner-change:hover { background: rgba(255,255,255,0.2); color: #fff; }
 .bt-banner-ip {
   display: inline-block;
   background: rgba(102,126,234,0.25);
