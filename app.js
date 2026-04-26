@@ -514,15 +514,26 @@ function showConfetti() {
   setTimeout(() => cel.remove(), 4000);
 }
 
+// ===== 起動時：URLパラメータ ?ip= を処理 =====
+(function checkUrlIp() {
+  const params = new URLSearchParams(window.location.search);
+  const ip = params.get('ip');
+  if (ip && ip.trim()) {
+    localStorage.setItem('battleServerIP', ip.trim());
+    // ?ip= 付きURLで開いたら即対戦画面へ
+    if (window.location.hostname !== 'kobataku1210.github.io') return;
+    location.replace(`http://${ip.trim()}:3000/battle.html`);
+  }
+})();
+
 // ===== 対戦モード起動 =====
 function openBattleMode() {
   const isLocal = window.location.hostname !== 'kobataku1210.github.io';
   if (isLocal) {
-    // ローカルサーバー → 直接対戦画面へ
     location.href = 'battle.html';
     return;
   }
-  // GitHub Pages → 保存済みIPがあれば即ジャンプ
+  // 保存済みIPがあれば即ジャンプ
   const saved = localStorage.getItem('battleServerIP') || '';
   if (saved) {
     location.href = `http://${saved}:3000/battle.html`;
@@ -534,11 +545,13 @@ function openBattleMode() {
   overlay.innerHTML = `
     <div class="bt-ip-modal">
       <div class="bt-ip-title">⚔️ 学校で対戦</div>
-      <div class="bt-ip-desc">先生に聞いた<strong>IPアドレス</strong>を入力してね<br><span style="font-size:0.8em;color:#667">（次回からは自動でジャンプします）</span></div>
+      <div class="bt-ip-desc">先生の画面に表示されている<br><strong>IPアドレス</strong>を入力してね</div>
+      <div class="bt-ip-hint-box" id="bt-url-ip-hint"></div>
       <input id="bt-ip-input" class="bt-ip-input" type="text"
              placeholder="例: 192.168.1.5"
              value=""
              onkeydown="if(event.key==='Enter') btIpGo()">
+      <div class="bt-ip-note">次回からは自動でジャンプします</div>
       <div class="bt-ip-btns">
         <button class="bt-ip-btn bt-ip-go" onclick="btIpGo()">対戦する！</button>
         <button class="bt-ip-btn bt-ip-cancel" onclick="btIpClose()">キャンセル</button>
@@ -547,7 +560,16 @@ function openBattleMode() {
   document.body.appendChild(overlay);
   setTimeout(() => {
     const inp = document.getElementById('bt-ip-input');
-    if (inp) { inp.focus(); inp.select(); }
+    if (inp) { inp.focus(); }
+    // ?ip= がURLにあれば入力欄にセットしてヒントも表示
+    const urlIp = new URLSearchParams(window.location.search).get('ip');
+    if (urlIp && urlIp.trim()) {
+      if (inp) inp.value = urlIp.trim();
+      const hint = document.getElementById('bt-url-ip-hint');
+      if (hint) {
+        hint.innerHTML = `💡 URLからIPを読み込みました：<strong>${urlIp.trim()}</strong>`;
+      }
+    }
   }, 80);
 }
 
@@ -579,6 +601,10 @@ function btIpClose() {
         const addr = document.getElementById('bt-ip-board-addr');
         if (addr && d.ip) {
           addr.textContent = `http://${d.ip}:${d.port}`;
+        }
+        const share = document.getElementById('bt-ip-board-share');
+        if (share && d.ip) {
+          share.textContent = `https://kobataku1210.github.io/suugaku-print/?ip=${d.ip}`;
         }
       })
       .catch(() => {});
@@ -681,6 +707,8 @@ function renderHome() {
     ${isLocal ? `<div class="bt-ip-board" id="bt-ip-board">
       <span class="bt-ip-board-label">📡 生徒はこのアドレスにアクセス</span>
       <span class="bt-ip-board-addr" id="bt-ip-board-addr">読み込み中…</span>
+      <span class="bt-ip-board-share-label">🔗 このURLを共有すると自動でジャンプ</span>
+      <span class="bt-ip-board-share" id="bt-ip-board-share">読み込み中…</span>
     </div>` : ''}`;
 
   return `

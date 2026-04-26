@@ -3236,3 +3236,41 @@ body {
 .bt-home-banner-title { font-size: 1rem; font-weight: 700; }
 .bt-home-banner-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
 .bt-home-banner-arrow { font-size: 1.4rem; color: #667eea; }
+
+/* ---- 共有URL行（ローカルサーバー・IPボード内） ---- */
+.bt-ip-board-share-label {
+  font-size: 0.75rem;
+  color: #667eea;
+  margin-top: 0.5rem;
+}
+.bt-ip-board-share {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  word-break: break-all;
+  background: rgba(102,126,234,0.15);
+  border: 1px solid rgba(102,126,234,0.3);
+  border-radius: 8px;
+  padding: 0.35em 0.7em;
+  letter-spacing: 0.01em;
+  cursor: text;
+  user-select: all;
+}
+
+/* ---- IPモーダル：ヒントボックス・注記 ---- */
+.bt-ip-hint-box {
+  background: rgba(102,126,234,0.18);
+  border: 1px solid rgba(102,126,234,0.4);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-size: 0.88rem;
+  color: #a5b4fc;
+  margin-bottom: 0.8rem;
+  text-align: left;
+}
+.bt-ip-hint-box:empty { display: none; }
+.bt-ip-note {
+  font-size: 0.75rem;
+  color: #556;
+  margin: 0.4rem 0 0.8rem;
+}
