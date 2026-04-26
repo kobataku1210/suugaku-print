@@ -38,15 +38,16 @@ function bpTotal() {
 }
 
 // ---- State ----
-let ws          = null;
-let phase       = 'lobby';
-let myName      = localStorage.getItem('battleName') || '';
-let opName      = '';
-let myScore     = 0, opScore = 0;
-let isCreator   = false;
-let timerVal    = 30;
-let timerIv     = null;
-let isLocked    = false;
+let ws               = null;
+let phase            = 'lobby';
+let myName           = localStorage.getItem('battleName') || '';
+let opName           = '';
+let myScore          = 0, opScore = 0;
+let isCreator        = false;
+let timerVal         = 30;
+let timerIv          = null;
+let isLocked         = false;
+let pendingRewardToken = '';   // 勝利報酬トークン（GitHub Pages へ渡す）
 let currentQ    = null;
 let mathData    = null;
 let selCh = 0, selSec = 0;
@@ -355,7 +356,10 @@ function showGameOver(result, mySc, opSc) {
   phase = 'gameover';
   if (ws) { try { ws.close(); } catch(e){} ws = null; }
   const won = result === 'win';
-  if (won) bpAddPeas(3);
+  // 勝利報酬トークンを生成（GitHub Pages でグリンピースを受け取るための一回限りのトークン）
+  pendingRewardToken = won
+    ? (Date.now().toString(36) + Math.random().toString(36).slice(2))
+    : '';
   render(`
     <div class="bt-gameover">
       <div class="bt-go-icon">${won ? '🏆' : '😢'}</div>
@@ -371,13 +375,23 @@ function showGameOver(result, mySc, opSc) {
           <div class="bt-go-pts">${opSc}</div>
         </div>
       </div>
-      ${won ? '<div class="bt-go-pea-award">🌱 ×3 もらった！</div>' : ''}
+      ${won ? '<div class="bt-go-pea-award">🌱 ×3 ホームに戻るともらえる！</div>' : ''}
       <div class="bt-go-btns">
         <button class="bt-btn bt-primary" onclick="showLobby()">もう一度</button>
-        <button class="bt-btn bt-ghost" onclick="location.href=\'index.html\'">ホームへ</button>
+        <button class="bt-btn bt-ghost" onclick="goHome()">ホームへ</button>
       </div>
     </div>
   `);
+}
+
+// ---- ホームへ戻る（勝利報酬をGitHub Pagesへ渡す） ----
+function goHome() {
+  const base = 'https://kobataku1210.github.io/suugaku-print/';
+  if (pendingRewardToken) {
+    location.href = `${base}?btreward=3&t=${pendingRewardToken}`;
+  } else {
+    location.href = base;
+  }
 }
 
 // ---- エラートースト ----

@@ -514,6 +514,50 @@ function showConfetti() {
   setTimeout(() => cel.remove(), 4000);
 }
 
+// ===== 対戦報酬の受け取り（battle.html → GitHub Pages） =====
+(function checkBattleReward() {
+  const params = new URLSearchParams(window.location.search);
+  const reward = parseInt(params.get('btreward') || '0');
+  const token  = params.get('t') || '';
+  if (!reward || reward < 1 || reward > 10 || !token) return;
+
+  // URLをすぐクリーン（リロードしても再実行されない）
+  const url = new URL(window.location.href);
+  url.searchParams.delete('btreward');
+  url.searchParams.delete('t');
+  history.replaceState({}, '', url.toString());
+
+  // トークン重複チェック（同じ報酬を2回受け取り防止）
+  const usedKey = 'btUsedTokens';
+  const used = JSON.parse(localStorage.getItem(usedKey) || '[]');
+  if (used.includes(token)) return;
+  used.push(token);
+  if (used.length > 100) used.splice(0, used.length - 100);
+  localStorage.setItem(usedKey, JSON.stringify(used));
+
+  // DOM描画後にグリンピースを追加
+  function applyReward() {
+    addPeas(reward);
+    setTimeout(() => showBattleRewardNotif(reward), 500);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyReward);
+  } else {
+    setTimeout(applyReward, 100);
+  }
+})();
+
+function showBattleRewardNotif(n) {
+  const el = document.createElement('div');
+  el.className = 'bt-reward-notif';
+  el.innerHTML = `🏆 対戦勝利！&nbsp;&nbsp;🌱 ×${n} もらった！`;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 600);
+  }, 3000);
+}
+
 // ===== 起動時：URLパラメータ ?ip= を処理 =====
 (function checkUrlIp() {
   const params = new URLSearchParams(window.location.search);
