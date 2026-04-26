@@ -572,14 +572,13 @@ function btIpClose() {
   if (!sub) return;
   const isLocal = window.location.hostname !== 'kobataku1210.github.io';
   if (isLocal) {
-    // ローカルサーバー：IPアドレスを表示
+    // ローカルサーバー：IPアドレスボードに表示
     fetch('/api/server-ip')
       .then(r => r.json())
       .then(d => {
-        const sub2 = document.getElementById('bt-banner-sub');
-        if (sub2 && d.ip && d.ip !== 'localhost') {
-          sub2.innerHTML = `友達と1対1で勝負！&nbsp;
-            <span class="bt-banner-ip">📡 http://${d.ip}:${d.port}</span>`;
+        const addr = document.getElementById('bt-ip-board-addr');
+        if (addr && d.ip) {
+          addr.textContent = `http://${d.ip}:${d.port}`;
         }
       })
       .catch(() => {});
@@ -669,6 +668,7 @@ function renderHome() {
     </div>`;
 
   // 対戦バナー：常に表示（GitHub Pages では IP 入力モーダルへ）
+  const isLocal = window.location.hostname !== 'kobataku1210.github.io';
   const battleBanner = `
     <div class="bt-home-banner" id="bt-home-banner" onclick="openBattleMode()">
       <span class="bt-home-banner-icon">⚔️</span>
@@ -677,7 +677,11 @@ function renderHome() {
         <div class="bt-home-banner-sub" id="bt-banner-sub">友達と1対1で勝負しよう！勝ったら🌱×3</div>
       </div>
       <div class="bt-home-banner-arrow">›</div>
-    </div>`;
+    </div>
+    ${isLocal ? `<div class="bt-ip-board" id="bt-ip-board">
+      <span class="bt-ip-board-label">📡 生徒はこのアドレスにアクセス</span>
+      <span class="bt-ip-board-addr" id="bt-ip-board-addr">読み込み中…</span>
+    </div>` : ''}`;
 
   return `
     <div class="section-title">
