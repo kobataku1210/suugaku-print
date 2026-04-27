@@ -344,12 +344,43 @@ function showTeacherPeaModal() {
         <button class="modal-btn-cancel" onclick="closeTeacherModal()">キャンセル</button>
         <button class="modal-btn-submit" onclick="submitTeacherPeas()">追加する！</button>
       </div>
+      <button class="modal-pw-list-btn" onclick="showMiniTestPasswords()">📋 小テストPW一覧</button>
     </div>
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) closeTeacherModal(); });
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('show'));
   document.getElementById('teacher-pw').focus();
+}
+
+function showMiniTestPasswords() {
+  const rows = [];
+  for (const ch of mathData.chapters) {
+    for (const sec of ch.sections) {
+      if (sec.miniTestPassword) {
+        rows.push(`<tr><td>${ch.title}</td><td>${sec.title}</td><td class="pw-cell">${sec.miniTestPassword}</td></tr>`);
+      }
+    }
+  }
+  const overlay = document.createElement('div');
+  overlay.id = 'pw-list-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-card" style="max-width:480px;max-height:80vh;overflow-y:auto;">
+      <div class="modal-lock">📋</div>
+      <div class="modal-level">小テスト パスワード一覧</div>
+      <table class="pw-list-table">
+        <thead><tr><th>章</th><th>節</th><th>PW</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+      <div class="modal-btns" style="margin-top:1rem;">
+        <button class="modal-btn-cancel" onclick="document.getElementById('pw-list-overlay').remove()">閉じる</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
 }
 
 function closeTeacherModal() {

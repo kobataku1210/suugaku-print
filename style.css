@@ -916,6 +916,50 @@ body {
   transition: filter 0.2s;
 }
 .modal-btn-submit:hover { filter: brightness(1.12); }
+
+/* ---- 小テストPW一覧ボタン・テーブル ---- */
+.modal-pw-list-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.7rem;
+  padding: 0.55rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #9ab;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.modal-pw-list-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.pw-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.8rem;
+}
+.pw-list-table th {
+  background: rgba(102,126,234,0.25);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  color: #a5b4fc;
+  font-weight: 700;
+}
+.pw-list-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  color: #ccd;
+  vertical-align: middle;
+}
+.pw-cell {
+  font-weight: 900;
+  color: #fff;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+.pw-list-table tr:last-child td { border-bottom: none; }
+
 @keyframes shake {
   0%,100% { transform: translateX(0); }
   20%     { transform: translateX(-9px); }
