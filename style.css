@@ -3577,6 +3577,19 @@ body {
   font-family: inherit; font-weight: 600; outline: none;
 }
 .cmg-setup-input:focus { border-color: #667eea; background: rgba(102,126,234,0.15); }
+.cmg-count-wrap {
+  display: flex; align-items: center; gap: 0.2rem; flex-shrink: 0;
+}
+.cmg-count-unit { font-size: 0.82rem; color: #9ab; }
+.cmg-count-num {
+  width: 44px; text-align: center;
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: 8px; color: #fff;
+  padding: 0.45rem 0.2rem; font-size: 0.95rem;
+  font-family: inherit; font-weight: 700; outline: none;
+}
+.cmg-count-num:focus { border-color: #667eea; background: rgba(102,126,234,0.15); }
 .cmg-start-btn { width: 100%; max-width: 340px; padding: 0.8rem; font-size: 1rem; }
 
 /* ===========================================================
@@ -3606,6 +3619,7 @@ body {
   box-shadow: 0 0 0 2px var(--pc,#fff)44;
 }
 .cmg-chip-name  { color: var(--pc, #fff); }
+.cmg-chip-count { font-size: 0.68rem; color: rgba(255,255,255,0.5); }
 .cmg-chip-score {
   background: var(--pc, #fff); color: #0d0d2b;
   border-radius: 10px; padding: 0.05rem 0.4rem;
@@ -3657,4 +3671,5 @@ body {
 }
 .cmg-rank-medal { font-size: 1.3rem; min-width: 2rem; }
 .cmg-rank-name  { flex: 1; font-size: 1rem; font-weight: 800; text-align: left; }
+.cmg-rank-count { font-size: 0.75rem; color: #9ab; white-space: nowrap; }
 .cmg-rank-score { font-size: 0.9rem; color: #9ab; white-space: nowrap; }

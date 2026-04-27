@@ -2127,9 +2127,11 @@ function cmGroupRenderScores() {
   if (!el) return;
   el.innerHTML = cmGroupPlayers.map((p, i) => {
     const col = CM_GROUP_COLORS[i % CM_GROUP_COLORS.length];
+    const countLabel = p.count ? `<span class="cmg-chip-count">${p.count}人</span>` : '';
     return `<div class="cmg-score-chip${i === cmGroupTurn ? ' cmg-score-active' : ''}"
                  style="--pc:${col}">
       <span class="cmg-chip-name">${escHtml(p.name)}</span>
+      ${countLabel}
       <span class="cmg-chip-score">${p.score}</span>
     </div>`;
   }).join('');
@@ -2178,6 +2180,7 @@ function cmGroupComplete() {
     <div class="cmg-rank-row">
       <span class="cmg-rank-medal">${medals[ri]}</span>
       <span class="cmg-rank-name" style="color:${p.color}">${escHtml(p.name)}</span>
+      ${p.count ? `<span class="cmg-rank-count">👤${p.count}人</span>` : ''}
       <span class="cmg-rank-score">${p.score}ペア</span>
     </div>`).join('');
   const overlay = document.getElementById('cm-overlay');
@@ -2197,7 +2200,7 @@ function cmGroupComplete() {
 
 // ---- グループリプレイ ----
 function cmGroupReplay() {
-  const savedPlayers = cmGroupPlayers.map(p => ({name: p.name, score: 0}));
+  const savedPlayers = cmGroupPlayers.map(p => ({name: p.name, score: 0, count: p.count || 4}));
   cmGroupPlayers = savedPlayers;
   cmGroupTurn    = 0;
   cmGroupFirst   = null;
@@ -2238,7 +2241,7 @@ function cmStartSolo() {
 // ---- グループセットアップ表示 ----
 function cmShowGroupSetup() {
   if (cmGroupPlayers.length < 2) {
-    cmGroupPlayers = [{name:'グループ1',score:0},{name:'グループ2',score:0}];
+    cmGroupPlayers = [{name:'グループ1',score:0,count:4},{name:'グループ2',score:0,count:4}];
   }
   cmMode = 'group_setup';
   navigate('cardmatch');
@@ -2246,7 +2249,7 @@ function cmShowGroupSetup() {
 
 // ---- グループ数変更 ----
 function cmSetGroupCount(n) {
-  while (cmGroupPlayers.length < n) cmGroupPlayers.push({name:`グループ${cmGroupPlayers.length+1}`,score:0});
+  while (cmGroupPlayers.length < n) cmGroupPlayers.push({name:`グループ${cmGroupPlayers.length+1}`,score:0,count:4});
   cmGroupPlayers = cmGroupPlayers.slice(0, n);
   cmMode = 'group_setup';
   navigate('cardmatch');
@@ -2255,8 +2258,10 @@ function cmSetGroupCount(n) {
 // ---- グループゲーム開始 ----
 function cmStartGroup() {
   cmGroupPlayers.forEach((p, i) => {
-    const el = document.getElementById(`cmg-name-${i}`);
-    if (el) p.name = el.value.trim() || `グループ${i+1}`;
+    const nameEl  = document.getElementById(`cmg-name-${i}`);
+    const countEl = document.getElementById(`cmg-count-${i}`);
+    if (nameEl)  p.name  = nameEl.value.trim()  || `グループ${i+1}`;
+    if (countEl) p.count = Math.max(1, Math.min(12, parseInt(countEl.value) || 4));
     p.score = 0;
   });
   cmGroupTurn   = 0;
@@ -2300,6 +2305,12 @@ function renderCmGroupSetup() {
       <span class="cmg-setup-dot" style="background:${CM_GROUP_COLORS[i % CM_GROUP_COLORS.length]}"></span>
       <input class="cmg-setup-input" id="cmg-name-${i}" type="text"
              value="${escHtml(p.name)}" maxlength="8" placeholder="グループ名">
+      <div class="cmg-count-wrap">
+        <span class="cmg-count-unit">👤</span>
+        <input class="cmg-count-num" id="cmg-count-${i}" type="number"
+               value="${p.count || 4}" min="1" max="12">
+        <span class="cmg-count-unit">人</span>
+      </div>
     </div>`).join('');
   return `
     <div class="cm-menu-screen">
