@@ -3502,3 +3502,159 @@ body {
 .cm-btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
 .cm-btn-ghost   { background: rgba(255,255,255,0.08); color:#aaa;
                   border: 1px solid rgba(255,255,255,0.15); }
+
+/* ===========================================================
+   カードマッチ メニュー画面
+   =========================================================== */
+.cm-menu-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
+  min-height: 100dvh; min-height: 100vh;
+  padding: 2rem 1.4rem;
+  background: #0d0d2b;
+  color: #fff;
+  text-align: center;
+}
+.cm-menu-logo  { font-size: 3.5rem; margin-bottom: 0.3rem; }
+.cm-menu-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 1.8rem; }
+
+.cm-menu-cards {
+  display: flex; gap: 1rem;
+  flex-wrap: wrap; justify-content: center;
+  width: 100%; max-width: 480px;
+}
+.cm-menu-card {
+  flex: 1; min-width: 140px; max-width: 200px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 1.4rem 1rem;
+  cursor: pointer; font-family: inherit;
+  transition: transform 0.18s, border-color 0.18s, background 0.18s;
+  display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+}
+.cm-menu-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.10); }
+.cm-solo-card  { border-color: rgba(96,165,250,0.4); }
+.cm-solo-card:hover  { border-color: #60a5fa; }
+.cm-group-card { border-color: rgba(52,211,153,0.4); }
+.cm-group-card:hover { border-color: #34d399; }
+.cm-mc-icon  { font-size: 2.2rem; }
+.cm-mc-label { font-size: 1.05rem; font-weight: 800; color: #fff; }
+.cm-mc-desc  { font-size: 0.72rem; color: #9ab; line-height: 1.4; }
+
+/* ===========================================================
+   グループ設定画面
+   =========================================================== */
+.cmg-count-row {
+  display: flex; align-items: center; gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+.cmg-count-label { font-size: 0.9rem; color: #9ab; white-space: nowrap; }
+.cmg-count-btns  { display: flex; gap: 0.4rem; }
+.cmg-count-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06); color: #ccc;
+  font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cmg-count-btn.cmg-cnt-active {
+  background: rgba(102,126,234,0.35);
+  border-color: #667eea; color: #fff;
+}
+.cmg-names { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 340px; }
+.cmg-setup-row {
+  display: flex; align-items: center; gap: 0.7rem;
+}
+.cmg-setup-dot {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+}
+.cmg-setup-input {
+  flex: 1; background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: 8px; color: #fff;
+  padding: 0.45rem 0.7rem; font-size: 0.95rem;
+  font-family: inherit; font-weight: 600; outline: none;
+}
+.cmg-setup-input:focus { border-color: #667eea; background: rgba(102,126,234,0.15); }
+.cmg-start-btn { width: 100%; max-width: 340px; padding: 0.8rem; font-size: 1rem; }
+
+/* ===========================================================
+   グループゲーム ヘッダー
+   =========================================================== */
+.cmg-game-header {
+  background: #0f4523;
+  border-bottom: 2px solid #14532d;
+  padding: 0.5rem 0.8rem;
+  display: flex; flex-direction: column; gap: 0.35rem; align-items: center;
+}
+.cmg-scores {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center;
+}
+.cmg-score-chip {
+  display: flex; align-items: center; gap: 0.3rem;
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem; font-weight: 700;
+  transition: background 0.2s, border-color 0.2s;
+}
+.cmg-score-chip.cmg-score-active {
+  background: rgba(255,255,255,0.16);
+  border-color: var(--pc, #fff);
+  box-shadow: 0 0 0 2px var(--pc,#fff)44;
+}
+.cmg-chip-name  { color: var(--pc, #fff); }
+.cmg-chip-score {
+  background: var(--pc, #fff); color: #0d0d2b;
+  border-radius: 10px; padding: 0.05rem 0.4rem;
+  font-size: 0.78rem;
+}
+.cmg-turn-disp {
+  font-size: 1rem; font-weight: 700; color: #ddd;
+}
+
+/* ===========================================================
+   グループゲーム カード
+   =========================================================== */
+/* 裏向きカード */
+.cmg-back {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f2044 100%);
+  border: 2px solid #2d5986;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 3px 4px 10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.cmg-back:hover {
+  transform: rotate(var(--rot,0deg)) translateY(-4px) scale(1.04) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+.cmg-back-suit {
+  font-size: 2rem; color: rgba(255,255,255,0.25);
+  user-select: none;
+}
+/* 表向きカード（めくり中） */
+.cmg-faceup {
+  box-shadow: 0 0 0 3px rgba(255,220,50,0.7), 0 6px 18px rgba(0,0,0,0.5) !important;
+}
+/* マッチ済みカード → 薄く残す */
+.cm-card.cm-matched {
+  opacity: 0.4;
+  pointer-events: none;
+}
+/* ランキング表示 */
+.cmg-ranking {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin: 0.8rem 0; width: 100%;
+}
+.cmg-rank-row {
+  display: flex; align-items: center; gap: 0.8rem;
+  background: rgba(255,255,255,0.06); border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+}
+.cmg-rank-medal { font-size: 1.3rem; min-width: 2rem; }
+.cmg-rank-name  { flex: 1; font-size: 1rem; font-weight: 800; text-align: left; }
+.cmg-rank-score { font-size: 0.9rem; color: #9ab; white-space: nowrap; }

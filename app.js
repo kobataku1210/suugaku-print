@@ -702,6 +702,8 @@ function btIpChange() {
 
 // ===== ナビゲーション =====
 function navigate(view, opts = {}) {
+  // cardmatch へ外部から遷移する場合はメニュー表示に戻す
+  if (view === 'cardmatch' && state.view !== 'cardmatch') cmMode = 'menu';
   state.view = view;
   if (opts.chapterIdx   !== undefined) state.chapterIdx   = opts.chapterIdx;
   if (opts.sectionIdx   !== undefined) state.sectionIdx   = opts.sectionIdx;
@@ -2029,8 +2031,8 @@ function cmComplete() {
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
       ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
-        <button class="cm-btn cm-btn-primary" onclick="navigate('cardmatch')">もう一度</button>
-        <button class="cm-btn cm-btn-ghost"   onclick="navigate('home')">ホームへ</button>
+        <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
+        <button class="cm-btn cm-btn-ghost"   onclick="cmBackToMenu()">メニューへ</button>
       </div>
     </div>`;
   overlay.classList.add('active');
@@ -2048,21 +2050,297 @@ function cmGameOver() {
       <div class="cm-result-title">ゲームオーバー</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       <div class="cm-result-btns">
-        <button class="cm-btn cm-btn-primary" onclick="navigate('cardmatch')">もう一度</button>
-        <button class="cm-btn cm-btn-ghost"   onclick="navigate('home')">ホームへ</button>
+        <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
+        <button class="cm-btn cm-btn-ghost"   onclick="cmBackToMenu()">メニューへ</button>
       </div>
     </div>`;
   overlay.classList.add('active');
 }
 
-function renderCardMatch() {
+// ============================================================
+// ===== カードマッチ グループモード =====
+// ============================================================
+let cmMode         = 'menu';   // 'menu' | 'solo' | 'group_setup' | 'group_play'
+let cmGroupPlayers = [];       // [{name, score}]
+let cmGroupTurn    = 0;
+let cmGroupFirst   = null;     // 1枚目にめくったカードのidx
+let cmGroupLocked  = false;
+
+const CM_GROUP_COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899'];
+
+// ---- グループ：カードフリップ ----
+function cmGroupFlip(idx) {
+  if (cmGroupLocked || cmPhase !== 'playing') return;
+  const c = cmCards[idx];
+  if (c.matched || c.faceUp) return;
+
+  c.faceUp = true;
+  cmGroupRenderGrid();
+  cmGroupRenderTurn();
+
+  if (cmGroupFirst === null) {
+    // 1枚目
+    cmGroupFirst = idx;
+  } else {
+    // 2枚目：判定
+    cmGroupLocked = true;
+    const i1 = cmGroupFirst, i2 = idx;
+    cmGroupFirst = null;
+    setTimeout(() => {
+      const c1 = cmCards[i1], c2 = cmCards[i2];
+      if (c1.pairId === c2.pairId) {
+        // ✅ マッチ！
+        c1.matched = c2.matched = true;
+        c1.faceUp  = c2.faceUp  = true;
+        c1.matchedBy = c2.matchedBy = cmGroupTurn;
+        cmGroupPlayers[cmGroupTurn].score++;
+        cmGroupLocked = false;
+        cmGroupRenderGrid();
+        cmGroupRenderTurn();
+        cmGroupRenderScores();
+        if (cmCards.every(c => c.matched)) cmGroupComplete();
+        // 同じプレイヤーが続けてめくれる（ターン変わらず）
+      } else {
+        // ❌ ミス → 裏返してターン交代
+        c1.faceUp = c2.faceUp = false;
+        cmGroupTurn = (cmGroupTurn + 1) % cmGroupPlayers.length;
+        cmGroupLocked = false;
+        cmGroupRenderGrid();
+        cmGroupRenderTurn();
+      }
+    }, 950);
+  }
+}
+
+// ---- ターン表示更新 ----
+function cmGroupRenderTurn() {
+  const el = document.getElementById('cmg-turn');
+  if (!el) return;
+  const p = cmGroupPlayers[cmGroupTurn];
+  const col = CM_GROUP_COLORS[cmGroupTurn % CM_GROUP_COLORS.length];
+  el.innerHTML = `<span style="color:${col};font-weight:900">${escHtml(p.name)}</span> の番`;
+}
+
+// ---- スコア表示更新 ----
+function cmGroupRenderScores() {
+  const el = document.getElementById('cmg-scores');
+  if (!el) return;
+  el.innerHTML = cmGroupPlayers.map((p, i) => {
+    const col = CM_GROUP_COLORS[i % CM_GROUP_COLORS.length];
+    return `<div class="cmg-score-chip${i === cmGroupTurn ? ' cmg-score-active' : ''}"
+                 style="--pc:${col}">
+      <span class="cmg-chip-name">${escHtml(p.name)}</span>
+      <span class="cmg-chip-score">${p.score}</span>
+    </div>`;
+  }).join('');
+}
+
+// ---- グループグリッド描画 ----
+function cmGroupRenderGrid() {
+  const el = document.getElementById('cm-grid');
+  if (!el) return;
+  el.innerHTML = cmCards.map(c => {
+    const rot = c.rot || '0deg';
+    const z   = c.faceUp ? 10 : 1;
+    const tf  = `rotate(${rot})`;
+    const col = CM_GROUP_COLORS[(c.matchedBy ?? cmGroupTurn) % CM_GROUP_COLORS.length];
+
+    if (c.matched) {
+      return `<div class="cm-card cm-matched"
+           style="left:${c.left};top:${c.top};width:${c.cardW}px;height:${c.cardH}px;transform:${tf};z-index:${z};border-color:${col}40;background:${col}18">
+        <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content,c.cardW)};opacity:0.55">${cmFmt(c.content)}</div>
+      </div>`;
+    }
+    if (c.faceUp) {
+      return `<div class="cm-card cmg-faceup"
+           style="left:${c.left};top:${c.top};width:${c.cardW}px;height:${c.cardH}px;transform:${tf} scale(1.08);z-index:${z};--rot:${rot}"
+           onclick="cmGroupFlip(${c.idx})">
+        <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content,c.cardW)}">${cmFmt(c.content)}</div>
+      </div>`;
+    }
+    // 裏向き
+    return `<div class="cm-card cmg-back"
+         style="left:${c.left};top:${c.top};width:${c.cardW}px;height:${c.cardH}px;transform:${tf};z-index:${z};--rot:${rot}"
+         onclick="cmGroupFlip(${c.idx})">
+      <div class="cmg-back-suit">♠</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- グループゲーム完了 ----
+function cmGroupComplete() {
+  cmPhase = 'complete';
+  const ranked = cmGroupPlayers
+    .map((p, i) => ({...p, color: CM_GROUP_COLORS[i % CM_GROUP_COLORS.length]}))
+    .sort((a, b) => b.score - a.score);
+  const medals = ['🥇','🥈','🥉','4位','5位','6位'];
+  const rows = ranked.map((p, ri) => `
+    <div class="cmg-rank-row">
+      <span class="cmg-rank-medal">${medals[ri]}</span>
+      <span class="cmg-rank-name" style="color:${p.color}">${escHtml(p.name)}</span>
+      <span class="cmg-rank-score">${p.score}ペア</span>
+    </div>`).join('');
+  const overlay = document.getElementById('cm-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = `
+    <div class="cm-result">
+      <div class="cm-result-icon">🏆</div>
+      <div class="cm-result-title">ゲーム終了！</div>
+      <div class="cmg-ranking">${rows}</div>
+      <div class="cm-result-btns">
+        <button class="cm-btn cm-btn-primary" onclick="cmGroupReplay()">もう一度</button>
+        <button class="cm-btn cm-btn-ghost"   onclick="cmBackToMenu()">メニューへ</button>
+      </div>
+    </div>`;
+  overlay.classList.add('active');
+}
+
+// ---- グループリプレイ ----
+function cmGroupReplay() {
+  const savedPlayers = cmGroupPlayers.map(p => ({name: p.name, score: 0}));
+  cmGroupPlayers = savedPlayers;
+  cmGroupTurn    = 0;
+  cmGroupFirst   = null;
+  cmGroupLocked  = false;
+  cmPhase        = 'playing';
+  cmInit();
+  cmCards.forEach(c => { c.faceUp = false; });
+  const overlay = document.getElementById('cm-overlay');
+  if (overlay) overlay.classList.remove('active');
+  requestAnimationFrame(() => {
+    const grid = document.getElementById('cm-grid');
+    if (!grid) return;
+    const w = grid.clientWidth, h = grid.clientHeight;
+    if (w === 0 || h === 0) { requestAnimationFrame(arguments.callee); return; }
+    const positions = cmGenPositions(w, h);
+    cmCards.forEach((c, i) => {
+      const p = positions[i % positions.length];
+      c.left = p.left; c.top = p.top; c.rot = p.rot; c.cardW = p.cardW; c.cardH = p.cardH;
+    });
+    cmGroupRenderGrid();
+    cmGroupRenderTurn();
+    cmGroupRenderScores();
+  });
+}
+
+// ---- メニューへ戻る ----
+function cmBackToMenu() {
+  cmMode = 'menu';
+  navigate('cardmatch');
+}
+
+// ---- ソロスタート ----
+function cmStartSolo() {
+  cmMode = 'solo';
+  navigate('cardmatch');
+}
+
+// ---- グループセットアップ表示 ----
+function cmShowGroupSetup() {
+  if (cmGroupPlayers.length < 2) {
+    cmGroupPlayers = [{name:'グループ1',score:0},{name:'グループ2',score:0}];
+  }
+  cmMode = 'group_setup';
+  navigate('cardmatch');
+}
+
+// ---- グループ数変更 ----
+function cmSetGroupCount(n) {
+  while (cmGroupPlayers.length < n) cmGroupPlayers.push({name:`グループ${cmGroupPlayers.length+1}`,score:0});
+  cmGroupPlayers = cmGroupPlayers.slice(0, n);
+  cmMode = 'group_setup';
+  navigate('cardmatch');
+}
+
+// ---- グループゲーム開始 ----
+function cmStartGroup() {
+  cmGroupPlayers.forEach((p, i) => {
+    const el = document.getElementById(`cmg-name-${i}`);
+    if (el) p.name = el.value.trim() || `グループ${i+1}`;
+    p.score = 0;
+  });
+  cmGroupTurn   = 0;
+  cmGroupFirst  = null;
+  cmGroupLocked = false;
+  cmPhase       = 'playing';
+  cmMode        = 'group_play';
+  cmInit();
+  cmCards.forEach(c => { c.faceUp = false; });
+  navigate('cardmatch');
+}
+
+// ---- 画面描画：メニュー ----
+function renderCmMenu() {
+  const d = cmLoad();
+  const bestStr = d.best != null ? `自己ベスト ${cmFmtTime(d.best)}` : '展開・因数分解マッチング';
+  return `
+    <div class="cm-menu-screen">
+      <div class="cm-menu-logo">🃏</div>
+      <div class="cm-menu-title">カードマッチ</div>
+      <div class="cm-menu-cards">
+        <button class="cm-menu-card cm-solo-card" onclick="cmStartSolo()">
+          <div class="cm-mc-icon">⚡</div>
+          <div class="cm-mc-label">ひとりでプレイ</div>
+          <div class="cm-mc-desc">タイムアタック<br>${bestStr}</div>
+        </button>
+        <button class="cm-menu-card cm-group-card" onclick="cmShowGroupSetup()">
+          <div class="cm-mc-icon">👥</div>
+          <div class="cm-mc-label">グループで遊ぶ</div>
+          <div class="cm-mc-desc">神経衰弱スタイル<br>チーム対抗戦</div>
+        </button>
+      </div>
+      <button class="cm-back-btn" style="margin-top:2.5rem" onclick="navigate('home')">← ホームへ戻る</button>
+    </div>`;
+}
+
+// ---- 画面描画：グループ設定 ----
+function renderCmGroupSetup() {
+  const nameFields = cmGroupPlayers.map((p, i) => `
+    <div class="cmg-setup-row">
+      <span class="cmg-setup-dot" style="background:${CM_GROUP_COLORS[i % CM_GROUP_COLORS.length]}"></span>
+      <input class="cmg-setup-input" id="cmg-name-${i}" type="text"
+             value="${escHtml(p.name)}" maxlength="8" placeholder="グループ名">
+    </div>`).join('');
+  return `
+    <div class="cm-menu-screen">
+      <div class="cm-menu-title" style="margin-bottom:1.5rem">👥 グループ設定</div>
+      <div class="cmg-count-row">
+        <span class="cmg-count-label">グループ数</span>
+        <div class="cmg-count-btns">
+          ${[2,3,4,5,6].map(n => `<button class="cmg-count-btn${cmGroupPlayers.length===n?' cmg-cnt-active':''}"
+            onclick="cmSetGroupCount(${n})">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="cmg-names">${nameFields}</div>
+      <button class="cm-btn cm-btn-primary cmg-start-btn" onclick="cmStartGroup()">
+        ゲームスタート 🎮
+      </button>
+      <button class="cm-back-btn" style="margin-top:0.8rem" onclick="cmBackToMenu()">← 戻る</button>
+    </div>`;
+}
+
+// ---- 画面描画：グループゲーム ----
+function renderCmGroupPlay() {
+  return `
+    <div class="cm-screen">
+      <div class="cmg-game-header">
+        <div id="cmg-scores" class="cmg-scores"></div>
+        <div id="cmg-turn"   class="cmg-turn-disp"></div>
+      </div>
+      <div id="cm-grid" class="cm-grid"></div>
+      <div id="cm-overlay" class="cm-overlay"></div>
+    </div>`;
+}
+
+// ---- 画面描画：ソロ（旧renderCardMatch） ----
+function renderCmSolo() {
   cmInit();
   const d       = cmLoad();
   const bestStr = d.best != null ? cmFmtTime(d.best) : '--:--';
   return `
     <div class="cm-screen">
       <div class="cm-header">
-        <button class="cm-back-btn" onclick="navigate('home')">← 戻る</button>
+        <button class="cm-back-btn" onclick="cmBackToMenu()">← 戻る</button>
         <div class="cm-header-mid">
           <div class="cm-timer-display">⏱ <span id="cm-timer">0:00</span></div>
           <div class="cm-best-display">自己ベスト&nbsp;${bestStr}</div>
@@ -2074,6 +2352,14 @@ function renderCardMatch() {
       <div id="cm-grid" class="cm-grid"></div>
       <div id="cm-overlay" class="cm-overlay"></div>
     </div>`;
+}
+
+// ---- ディスパッチャー ----
+function renderCardMatch() {
+  if (cmMode === 'solo')        return renderCmSolo();
+  if (cmMode === 'group_setup') return renderCmGroupSetup();
+  if (cmMode === 'group_play')  return renderCmGroupPlay();
+  return renderCmMenu();
 }
 
 // ===== メインレンダリング =====
@@ -2105,8 +2391,26 @@ function render() {
   if (state.view === 'home')      initBattleBanner();
   if (state.view === 'cardmatch') {
     document.body.classList.add('cm-mode');
-    requestAnimationFrame(cmLayoutCards);  // DOM確定後に実サイズでカード配置
-    cmStartTimer();
+    if (cmMode === 'solo') {
+      requestAnimationFrame(cmLayoutCards);
+      cmStartTimer();
+    } else if (cmMode === 'group_play') {
+      requestAnimationFrame(() => {
+        const grid = document.getElementById('cm-grid');
+        if (!grid) return;
+        const w = grid.clientWidth, h = grid.clientHeight;
+        if (w === 0 || h === 0) return;
+        const positions = cmGenPositions(w, h);
+        cmCards.forEach((c, i) => {
+          const p = positions[i % positions.length];
+          c.left = p.left; c.top = p.top; c.rot = p.rot; c.cardW = p.cardW; c.cardH = p.cardH;
+        });
+        cmGroupRenderGrid();
+        cmGroupRenderTurn();
+        cmGroupRenderScores();
+      });
+    }
+    // menu / group_setup は cm-mode だが cm-grid なし
   } else {
     document.body.classList.remove('cm-mode');
   }
