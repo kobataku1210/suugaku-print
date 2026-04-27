@@ -2009,7 +2009,13 @@ function render() {
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
   if (state.view === 'home')      initBattleBanner();
-  if (state.view === 'cardmatch') { cmRenderGrid(); cmStartTimer(); }
+  if (state.view === 'cardmatch') {
+    document.body.classList.add('cm-mode');
+    cmRenderGrid();
+    cmStartTimer();
+  } else {
+    document.body.classList.remove('cm-mode');
+  }
 
   // クイズ画面のキーボードイベント設定
   if (state.view === 'quiz') {

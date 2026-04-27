@@ -2731,9 +2731,11 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* ① すごろく画面ではお椀・完成パネルを非表示 */
+/* ① すごろく・カードマッチ画面ではお椀・完成パネルを非表示 */
 .sg-mode #bowl-widget,
-.sg-mode #completed-bowls-panel {
+.sg-mode #completed-bowls-panel,
+.cm-mode #bowl-widget,
+.cm-mode #completed-bowls-panel {
   display: none !important;
 }
 
