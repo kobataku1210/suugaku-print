@@ -1812,7 +1812,10 @@ function cmPickProblems() {
   for (const sec of ch.sections) {
     if (!USE_SECTIONS.includes(sec.title)) continue;
     for (const q of (sec.basic || [])) {
-      if (q.q && q.a) pool.push({ q: q.q, a: q.a });
+      // 「係数」を問う問題・答えが数字のみの問題を除外
+      if (q.q && q.a && !q.q.includes('係数') && /[a-zA-Zａ-ｚ]/.test(q.a)) {
+        pool.push({ q: q.q, a: q.a });
+      }
     }
   }
   pool.sort(() => Math.random() - 0.5);
