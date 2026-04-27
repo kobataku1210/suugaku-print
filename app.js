@@ -1805,13 +1805,12 @@ function cmFmtTime(s) {
 
 function cmPickProblems() {
   const ch = mathData.chapters[0]; // 式の展開と因数分解
+  const USE_SECTIONS = ['乗法の公式', '式の乗法', '式の展開'];
   let pool = [];
   for (const sec of ch.sections) {
+    if (!USE_SECTIONS.includes(sec.title)) continue;
     for (const q of (sec.basic || [])) {
-      // 長すぎる問題・「=」を含む答え（式の計算の利用など）を除外
-      if (q.q && q.a && !q.a.includes('=') && q.q.length <= 22 && q.a.length <= 22) {
-        pool.push({ q: q.q, a: q.a });
-      }
+      if (q.q && q.a) pool.push({ q: q.q, a: q.a });
     }
   }
   pool.sort(() => Math.random() - 0.5);
