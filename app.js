@@ -1822,6 +1822,29 @@ function cmPickProblems() {
   return pool.slice(0, CM_PAIRS);
 }
 
+function cmGenPositions(n) {
+  // 画面を cols×rows のゾーンに分割し、各ゾーン内でランダム配置
+  const cols = 5, rows = 4;
+  const positions = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const zW = 76 / cols, zH = 78 / rows;
+      const baseL = 2 + c * zW + zW / 2 - 11; // 11 = カード幅の半分 (22vw/2)
+      const baseT = 2 + r * zH + zH / 2 -  8;
+      const offL  = (Math.random() - 0.5) * zW * 0.8;
+      const offT  = (Math.random() - 0.5) * zH * 0.8;
+      const rot   = (Math.random() - 0.5) * 30;
+      positions.push({
+        left: Math.max(1, Math.min(75, baseL + offL)).toFixed(1) + '%',
+        top:  Math.max(1, Math.min(70, baseT + offT)).toFixed(1) + '%',
+        rot:  rot.toFixed(1) + 'deg'
+      });
+    }
+  }
+  positions.sort(() => Math.random() - 0.5);
+  return positions.slice(0, n);
+}
+
 function cmInit() {
   const probs = cmPickProblems();
   cmCards = [];
@@ -1830,7 +1853,13 @@ function cmInit() {
     cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false });
   });
   cmCards.sort(() => Math.random() - 0.5);
-  cmCards.forEach((c, i) => { c.idx = i; });
+  const positions = cmGenPositions(cmCards.length);
+  cmCards.forEach((c, i) => {
+    c.idx  = i;
+    c.left = positions[i].left;
+    c.top  = positions[i].top;
+    c.rot  = positions[i].rot;
+  });
   cmSelected = [];
   cmMistakes = 0;
   cmSeconds  = 0;
@@ -1916,12 +1945,18 @@ function cmCardFontSize(raw) {
 function cmRenderGrid() {
   const el = document.getElementById('cm-grid');
   if (!el) return;
-  el.innerHTML = cmCards.map(c => `
-    <div class="cm-card${c.matched ? ' cm-matched' : ''}${c.selected ? ' cm-selected' : ''}${c.wrong ? ' cm-wrong' : ''}"
-         onclick="cmFlipCard(${c.idx})">
-      <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content)}">${cmFmt(c.content)}</div>
-    </div>
-  `).join('');
+  el.innerHTML = cmCards.map(c => {
+    const z = c.selected ? 20 : c.wrong ? 15 : 1;
+    const tf = c.selected
+      ? `rotate(${c.rot}) scale(1.1) translateY(-6px)`
+      : `rotate(${c.rot})`;
+    return `
+      <div class="cm-card${c.matched ? ' cm-matched' : ''}${c.selected ? ' cm-selected' : ''}${c.wrong ? ' cm-wrong' : ''}"
+           style="left:${c.left};top:${c.top};transform:${tf};z-index:${z};--rot:${c.rot}"
+           onclick="cmFlipCard(${c.idx})">
+        <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content)}">${cmFmt(c.content)}</div>
+      </div>`;
+  }).join('');
 }
 
 function cmTimePeas(sec) {

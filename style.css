@@ -3366,7 +3366,9 @@ body {
 /* ---- ゲーム画面 ---- */
 .cm-screen {
   display: flex; flex-direction: column;
-  min-height: calc(100vh - 60px);
+  height: 100dvh;
+  height: 100vh;
+  overflow: hidden;
 }
 .cm-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -3387,27 +3389,30 @@ body {
 .cm-heart      { font-size: 1.3rem; color: #f87171; }
 .cm-heart-lost { font-size: 1.3rem; color: #333; }
 
-/* ---- カードグリッド ---- */
+/* ---- カード散布エリア ---- */
 .cm-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.55rem;
-  padding: 0.75rem;
+  position: relative;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
   background: radial-gradient(ellipse at center, #166534 0%, #0f4523 100%);
 }
 .cm-card {
+  position: absolute;
+  width: 22vw;
+  max-width: 110px;
+  min-height: 68px;
   background: #fdf8f0;
   border: 2px solid #d4c5a9;
   border-radius: 10px;
-  min-height: 76px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  position: relative;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);
-  padding: 0.5rem 0.3rem;
+  box-shadow: 3px 4px 10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.8);
+  padding: 0.4rem 0.25rem;
   text-align: center;
-  transition: transform 0.12s, box-shadow 0.15s, opacity 0.35s;
+  transition: box-shadow 0.15s, opacity 0.35s;
+  transform-origin: center center;
+  will-change: transform;
 }
 .cm-card::before,
 .cm-card::after {
@@ -3455,9 +3460,9 @@ body {
   transform: scale(0.75) rotateY(90deg);
 }
 @keyframes cmShake {
-  0%,100% { transform: translateX(0) translateY(-2px); }
-  25%     { transform: translateX(-7px) translateY(-2px); }
-  75%     { transform: translateX(7px) translateY(-2px); }
+  0%,100% { transform: rotate(var(--rot,0deg)) translateX(0); }
+  25%     { transform: rotate(var(--rot,0deg)) translateX(-8px); }
+  75%     { transform: rotate(var(--rot,0deg)) translateX(8px); }
 }
 
 /* ---- 結果オーバーレイ ---- */
