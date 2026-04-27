@@ -2240,8 +2240,8 @@ function cmStartSolo() {
 
 // ---- グループセットアップ表示 ----
 function cmShowGroupSetup() {
-  if (cmGroupPlayers.length < 2) {
-    cmGroupPlayers = [{name:'グループ1',score:0,count:4},{name:'グループ2',score:0,count:4}];
+  if (cmGroupPlayers.length === 0) {
+    cmGroupPlayers = [{name:'グループ1', score:0, count:4}];
   }
   cmMode = 'group_setup';
   navigate('cardmatch');
@@ -2291,61 +2291,31 @@ function renderCmMenu() {
     </div>`;
 }
 
-// ---- グループ追加 ----
-function cmAddGroup() {
-  cmGroupPlayers.push({name:`グループ${cmGroupPlayers.length+1}`, score:0, count:4});
-  cmMode = 'group_setup';
-  navigate('cardmatch');
-}
-
-// ---- グループ削除 ----
-function cmRemoveGroup(i) {
-  if (cmGroupPlayers.length <= 2) return; // 最低2グループ
-  cmGroupPlayers.splice(i, 1);
-  cmMode = 'group_setup';
-  navigate('cardmatch');
-}
-
 // ---- 画面描画：グループ設定 ----
 function renderCmGroupSetup() {
-  const rows = cmGroupPlayers.map((p, i) => `
-    <div class="cmg-setup-row">
-      <span class="cmg-setup-dot" style="background:${CM_GROUP_COLORS[i % CM_GROUP_COLORS.length]}"></span>
-      <input class="cmg-setup-input" id="cmg-name-${i}" type="text"
-             value="${escHtml(p.name)}" maxlength="10" placeholder="グループ名">
-      <div class="cmg-count-wrap">
-        <span class="cmg-count-unit">👤</span>
-        <input class="cmg-count-num" id="cmg-count-${i}" type="number"
-               value="${p.count || 4}" min="1" max="12">
-        <span class="cmg-count-unit">人</span>
-      </div>
-      ${cmGroupPlayers.length > 2
-        ? `<button class="cmg-remove-btn" onclick="cmSaveAndRemove(${i})">✕</button>`
-        : '<span class="cmg-remove-placeholder"></span>'}
-    </div>`).join('');
+  const p = cmGroupPlayers[0] || {name:'グループ1', score:0, count:4};
   return `
     <div class="cm-menu-screen">
-      <div class="cm-menu-title" style="margin-bottom:1.5rem">👥 グループ設定</div>
-      <div class="cmg-names" id="cmg-names">${rows}</div>
-      <button class="cmg-add-btn" onclick="cmSaveAndAdd()">＋ グループを追加</button>
+      <div class="cm-menu-title" style="margin-bottom:1.8rem">👥 グループ設定</div>
+      <div class="cmg-names">
+        <div class="cmg-setup-row">
+          <span class="cmg-setup-dot" style="background:${CM_GROUP_COLORS[0]}"></span>
+          <input class="cmg-setup-input" id="cmg-name-0" type="text"
+                 value="${escHtml(p.name)}" maxlength="10" placeholder="グループ名">
+          <div class="cmg-count-wrap">
+            <span class="cmg-count-unit">👤</span>
+            <input class="cmg-count-num" id="cmg-count-0" type="number"
+                   value="${p.count || 4}" min="1" max="40">
+            <span class="cmg-count-unit">人</span>
+          </div>
+        </div>
+      </div>
       <button class="cm-btn cm-btn-primary cmg-start-btn" onclick="cmStartGroup()">
         ゲームスタート 🎮
       </button>
       <button class="cm-back-btn" style="margin-top:0.8rem" onclick="cmBackToMenu()">← 戻る</button>
     </div>`;
 }
-
-// 現在の入力を保存してからグループ追加/削除
-function cmSaveInputs() {
-  cmGroupPlayers.forEach((p, i) => {
-    const nameEl  = document.getElementById(`cmg-name-${i}`);
-    const countEl = document.getElementById(`cmg-count-${i}`);
-    if (nameEl)  p.name  = nameEl.value.trim()  || `グループ${i+1}`;
-    if (countEl) p.count = Math.max(1, Math.min(12, parseInt(countEl.value) || 4));
-  });
-}
-function cmSaveAndAdd()      { cmSaveInputs(); cmAddGroup(); }
-function cmSaveAndRemove(i)  { cmSaveInputs(); cmRemoveGroup(i); }
 
 // ---- 画面描画：グループゲーム ----
 function renderCmGroupPlay() {
