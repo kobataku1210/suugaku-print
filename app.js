@@ -1824,7 +1824,7 @@ function cmPickProblems() {
 
 function cmGenPositions(gridW, gridH) {
   // 実際のグリッドピクセルサイズを使って均等散布
-  const CARD_W = Math.min(110, gridW * 0.22);
+  const CARD_W = Math.min(160, Math.max(110, gridW * 0.28));
   const CARD_H = 85;
   const cols = 5, rows = 4;
   const padX = 6, padY = 6;
@@ -1953,11 +1953,11 @@ function cmRenderHearts() {
 
 function cmCardFontSize(raw) {
   const len = raw.length;
-  if (len <= 5)  return '1.9rem';
-  if (len <= 8)  return '1.65rem';
-  if (len <= 11) return '1.4rem';
-  if (len <= 14) return '1.2rem';
-  return '1.05rem';
+  if (len <= 5)  return '1.6rem';
+  if (len <= 8)  return '1.35rem';
+  if (len <= 11) return '1.15rem';
+  if (len <= 14) return '1.0rem';
+  return '0.88rem';
 }
 
 function cmRenderGrid() {

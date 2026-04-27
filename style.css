@@ -3410,9 +3410,10 @@ body {
 }
 .cm-card {
   position: absolute;
-  width: 22vw;
-  max-width: 110px;
-  min-height: 68px;
+  width: 28vw;
+  max-width: 160px;
+  min-width: 110px;
+  min-height: 72px;
   background: #fdf8f0;
   border: 2px solid #d4c5a9;
   border-radius: 10px;
