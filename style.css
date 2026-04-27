@@ -3337,3 +3337,121 @@ body {
   color: #556;
   margin: 0.4rem 0 0.8rem;
 }
+
+/* ============================================================
+   カードマッチ
+   ============================================================ */
+
+/* ---- ホームバナー ---- */
+.cm-home-banner {
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(5,150,105,0.18));
+  border: 1.5px solid rgba(16,185,129,0.4);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  gap: 0.9rem;
+}
+.cm-home-banner:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16,185,129,0.3); }
+.cm-home-icon  { font-size: 2rem; flex-shrink: 0; }
+.cm-home-text  { flex: 1; }
+.cm-home-title { font-size: 1rem; font-weight: 700; }
+.cm-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
+.cm-home-arrow { font-size: 1.4rem; color: #10b981; }
+
+/* ---- ゲーム画面 ---- */
+.cm-screen {
+  display: flex; flex-direction: column;
+  min-height: calc(100vh - 60px);
+}
+.cm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.7rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  gap: 0.5rem;
+}
+.cm-back-btn {
+  background: none; border: none; color: #9ab;
+  font-size: 0.85rem; cursor: pointer; font-family: inherit;
+  white-space: nowrap; padding: 0;
+}
+.cm-header-mid { flex: 1; text-align: center; }
+.cm-timer-display { font-size: 1.25rem; font-weight: 900; color: #fff; }
+.cm-best-display  { font-size: 0.68rem; color: #556; margin-top: 0.1rem; }
+.cm-hearts { display: flex; gap: 0.15rem; }
+.cm-heart      { font-size: 1.3rem; color: #f87171; }
+.cm-heart-lost { font-size: 1.3rem; color: #333; }
+
+/* ---- カードグリッド ---- */
+.cm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  padding: 0.7rem;
+  flex: 1;
+}
+.cm-card {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.11);
+  border-radius: 10px;
+  min-height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.15s, border-color 0.15s, opacity 0.3s;
+  padding: 0.35rem;
+  text-align: center;
+}
+.cm-card:hover { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); }
+.cm-card-inner {
+  font-size: 0.8rem; font-weight: 700; color: #e0e7ff; line-height: 1.35;
+}
+.cm-card sup { font-size: 0.65em; vertical-align: super; }
+.cm-frac { display: inline-flex; flex-direction: column; align-items: center;
+           font-size: 0.75em; vertical-align: middle; margin: 0 0.1em; }
+.cm-frac span:first-child { border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+.cm-card.cm-selected {
+  background: rgba(102,126,234,0.35); border-color: #667eea;
+  transform: scale(1.05);
+}
+.cm-card.cm-wrong {
+  background: rgba(239,68,68,0.28); border-color: #ef4444;
+  animation: cmShake 0.35s ease;
+}
+.cm-card.cm-matched {
+  opacity: 0; pointer-events: none; transform: scale(0.8);
+}
+@keyframes cmShake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-6px); }
+  75%     { transform: translateX(6px); }
+}
+
+/* ---- 結果オーバーレイ ---- */
+.cm-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 9999; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.cm-overlay.active { display: flex; animation: btFadeIn 0.25s ease; }
+.cm-result {
+  background: #1a1a3e;
+  border: 1.5px solid rgba(102,126,234,0.4);
+  border-radius: 22px;
+  padding: 2rem 2rem; text-align: center; min-width: 270px;
+  animation: btPopUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.cm-result-icon  { font-size: 2.5rem; margin-bottom: 0.4rem; }
+.cm-result-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.2rem; }
+.cm-result-time  { font-size: 2.2rem; font-weight: 900; color: #a5b4fc; margin-bottom: 0.5rem; }
+.cm-result-badge { color: #fbbf24; font-weight: 700; margin-bottom: 0.3rem; }
+.cm-result-pea   { color: #86efac; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+.cm-result-btns  { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1rem; }
+.cm-btn { padding: 0.65rem 1.2rem; border-radius: 12px; font-size: 0.9rem;
+          font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
+.cm-btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+.cm-btn-ghost   { background: rgba(255,255,255,0.08); color:#aaa;
+                  border: 1px solid rgba(255,255,255,0.15); }

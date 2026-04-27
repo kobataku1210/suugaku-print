@@ -786,6 +786,19 @@ function renderHome() {
       <span class="bt-ip-board-share" id="bt-ip-board-share">読み込み中…</span>
     </div>` : ''}`;
 
+  // カードマッチバナー
+  const cmData    = cmLoad();
+  const cmBestStr = cmData.best != null ? cmFmtTime(cmData.best) : null;
+  const cardMatchBanner = `
+    <div class="cm-home-banner" onclick="navigate('cardmatch')">
+      <span class="cm-home-icon">🃏</span>
+      <div class="cm-home-text">
+        <div class="cm-home-title">カードマッチ</div>
+        <div class="cm-home-sub">${cmBestStr ? `自己ベスト：${cmBestStr}` : '展開・因数分解マッチング'}</div>
+      </div>
+      <div class="cm-home-arrow">›</div>
+    </div>`;
+
   return `
     <div class="section-title">
       <h2>章を選ぼう！</h2>
@@ -793,6 +806,7 @@ function renderHome() {
     </div>
     ${sgBanner}
     ${battleBanner}
+    ${cardMatchBanner}
     <div class="chapters-grid">${cards}</div>`;
 }
 
@@ -1757,11 +1771,224 @@ function submitTimeAttackAnswers() {
 }
 
 // ============================================================
+// ============================================================
+// ===== カードマッチ =====
+// ============================================================
+const CM_PAIRS    = 10;
+const CM_MAX_MISS = 3;
+const CM_KEY      = 'cardMatch_v1';
+
+let cmCards    = [];
+let cmSelected = [];
+let cmMistakes = 0;
+let cmSeconds  = 0;
+let cmTimerIv  = null;
+let cmLocked   = false;
+let cmPhase    = 'idle';
+
+function cmLoad() { return JSON.parse(localStorage.getItem(CM_KEY) || '{}'); }
+function cmSave(d) { localStorage.setItem(CM_KEY, JSON.stringify(d)); }
+
+function cmFmt(s) {
+  return String(s)
+    .replace(/\{([^/}]+)\/([^}]+)\}/g,
+      '<span class="cm-frac"><span>$1</span><span>$2</span></span>')
+    .replace(/²/g, '<sup>2</sup>')
+    .replace(/³/g, '<sup>3</sup>');
+}
+
+function cmFmtTime(s) {
+  const m   = Math.floor(s / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+function cmPickProblems() {
+  const ch = mathData.chapters[0]; // 式の展開と因数分解
+  let pool = [];
+  for (const sec of ch.sections) {
+    for (const q of (sec.basic || [])) {
+      // 長すぎる問題・「=」を含む答え（式の計算の利用など）を除外
+      if (q.q && q.a && !q.a.includes('=') && q.q.length <= 22 && q.a.length <= 22) {
+        pool.push({ q: q.q, a: q.a });
+      }
+    }
+  }
+  pool.sort(() => Math.random() - 0.5);
+  return pool.slice(0, CM_PAIRS);
+}
+
+function cmInit() {
+  const probs = cmPickProblems();
+  cmCards = [];
+  probs.forEach((p, i) => {
+    cmCards.push({ idx: 0, content: p.q, pairId: i, matched: false, selected: false, wrong: false });
+    cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false });
+  });
+  cmCards.sort(() => Math.random() - 0.5);
+  cmCards.forEach((c, i) => { c.idx = i; });
+  cmSelected = [];
+  cmMistakes = 0;
+  cmSeconds  = 0;
+  cmLocked   = false;
+  cmPhase    = 'playing';
+}
+
+function cmStartTimer() {
+  cmStopTimer();
+  cmTimerIv = setInterval(() => {
+    cmSeconds++;
+    const el = document.getElementById('cm-timer');
+    if (el) el.textContent = cmFmtTime(cmSeconds);
+  }, 1000);
+}
+
+function cmStopTimer() {
+  if (cmTimerIv) { clearInterval(cmTimerIv); cmTimerIv = null; }
+}
+
+function cmFlipCard(idx) {
+  if (cmLocked || cmPhase !== 'playing') return;
+  const c = cmCards[idx];
+  if (c.matched || c.selected) return;
+  c.selected = true;
+  cmSelected.push(idx);
+  cmRenderGrid();
+  if (cmSelected.length === 2) {
+    cmLocked = true;
+    setTimeout(cmCheckMatch, 500);
+  }
+}
+
+function cmCheckMatch() {
+  const [i1, i2] = cmSelected;
+  const c1 = cmCards[i1], c2 = cmCards[i2];
+  if (c1.pairId === c2.pairId) {
+    // 正解
+    c1.matched = c2.matched = true;
+    c1.selected = c2.selected = false;
+    cmSelected = [];
+    cmLocked   = false;
+    cmRenderGrid();
+    if (cmCards.every(c => c.matched)) cmComplete();
+  } else {
+    // 不正解
+    c1.wrong = c2.wrong = true;
+    cmMistakes++;
+    cmRenderGrid();
+    cmRenderHearts();
+    setTimeout(() => {
+      c1.selected = c2.selected = false;
+      c1.wrong    = c2.wrong    = false;
+      cmSelected  = [];
+      cmLocked    = false;
+      if (cmMistakes >= CM_MAX_MISS) {
+        cmGameOver();
+      } else {
+        cmRenderGrid();
+      }
+    }, 700);
+  }
+}
+
+function cmRenderHearts() {
+  const el = document.getElementById('cm-hearts');
+  if (!el) return;
+  const left = CM_MAX_MISS - cmMistakes;
+  el.innerHTML = Array.from({ length: CM_MAX_MISS }, (_, i) =>
+    `<span class="cm-heart${i >= left ? ' cm-heart-lost' : ''}">♥</span>`
+  ).join('');
+}
+
+function cmRenderGrid() {
+  const el = document.getElementById('cm-grid');
+  if (!el) return;
+  el.innerHTML = cmCards.map(c => `
+    <div class="cm-card${c.matched ? ' cm-matched' : ''}${c.selected ? ' cm-selected' : ''}${c.wrong ? ' cm-wrong' : ''}"
+         onclick="cmFlipCard(${c.idx})">
+      <div class="cm-card-inner">${cmFmt(c.content)}</div>
+    </div>
+  `).join('');
+}
+
+function cmComplete() {
+  cmStopTimer();
+  cmPhase = 'complete';
+  const d        = cmLoad();
+  const isFirst  = !d.cleared;
+  const prevBest = d.best != null ? d.best : Infinity;
+  const isNewBest = cmSeconds < prevBest;
+  if (isFirst)   d.cleared = true;
+  if (isNewBest) d.best    = cmSeconds;
+  cmSave(d);
+
+  let peas = 0;
+  if (isFirst) { addPeas(1); peas++; }
+  // TODO: タイム報酬（後日設定）
+
+  const overlay = document.getElementById('cm-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = `
+    <div class="cm-result">
+      <div class="cm-result-icon">🎉</div>
+      <div class="cm-result-title">クリア！</div>
+      <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
+      ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
+      ${peas > 0  ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : ''}
+      <div class="cm-result-btns">
+        <button class="cm-btn cm-btn-primary" onclick="navigate('cardmatch')">もう一度</button>
+        <button class="cm-btn cm-btn-ghost"   onclick="navigate('home')">ホームへ</button>
+      </div>
+    </div>`;
+  overlay.classList.add('active');
+  if (peas > 0) showConfetti();
+}
+
+function cmGameOver() {
+  cmStopTimer();
+  cmPhase = 'gameover';
+  const overlay = document.getElementById('cm-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = `
+    <div class="cm-result">
+      <div class="cm-result-icon">💔</div>
+      <div class="cm-result-title">ゲームオーバー</div>
+      <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
+      <div class="cm-result-btns">
+        <button class="cm-btn cm-btn-primary" onclick="navigate('cardmatch')">もう一度</button>
+        <button class="cm-btn cm-btn-ghost"   onclick="navigate('home')">ホームへ</button>
+      </div>
+    </div>`;
+  overlay.classList.add('active');
+}
+
+function renderCardMatch() {
+  cmInit();
+  const d       = cmLoad();
+  const bestStr = d.best != null ? cmFmtTime(d.best) : '--:--';
+  return `
+    <div class="cm-screen">
+      <div class="cm-header">
+        <button class="cm-back-btn" onclick="navigate('home')">← 戻る</button>
+        <div class="cm-header-mid">
+          <div class="cm-timer-display">⏱ <span id="cm-timer">0:00</span></div>
+          <div class="cm-best-display">自己ベスト&nbsp;${bestStr}</div>
+        </div>
+        <div id="cm-hearts" class="cm-hearts">
+          ${'<span class="cm-heart">♥</span>'.repeat(CM_MAX_MISS)}
+        </div>
+      </div>
+      <div id="cm-grid" class="cm-grid"></div>
+      <div id="cm-overlay" class="cm-overlay"></div>
+    </div>`;
+}
+
 // ===== メインレンダリング =====
 // ============================================================
 function render() {
   quizLocked = false;   // 画面が切り替わるたびにロック解除
   clearInterval(taTimerInterval);  // タイムアタックタイマーをクリア
+  cmStopTimer();        // カードマッチタイマーをクリア
 
   let content = '';
   if      (state.view === 'home')       content = renderHome();
@@ -1771,6 +1998,7 @@ function render() {
   else if (state.view === 'minitest')   content = renderMiniTest();
   else if (state.view === 'practice')   content = renderPractice();
   else if (state.view === 'timeattack') content = renderTimeAttack();
+  else if (state.view === 'cardmatch')  content = renderCardMatch();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
 
   if (state.view === 'sugoroku') {
@@ -1781,7 +2009,8 @@ function render() {
   document.body.classList.remove('sg-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
-  if (state.view === 'home') initBattleBanner();
+  if (state.view === 'home')      initBattleBanner();
+  if (state.view === 'cardmatch') { cmRenderGrid(); cmStartTimer(); }
 
   // クイズ画面のキーボードイベント設定
   if (state.view === 'quiz') {
