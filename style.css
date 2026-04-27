@@ -3371,8 +3371,8 @@ body {
 .cm-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.7rem 1rem;
-  background: rgba(255,255,255,0.04);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: #0f4523;
+  border-bottom: 2px solid #14532d;
   gap: 0.5rem;
 }
 .cm-back-btn {
@@ -3391,44 +3391,67 @@ body {
 .cm-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
-  padding: 0.7rem;
+  gap: 0.55rem;
+  padding: 0.75rem;
   flex: 1;
+  background: radial-gradient(ellipse at center, #166534 0%, #0f4523 100%);
 }
 .cm-card {
-  background: rgba(255,255,255,0.07);
-  border: 1.5px solid rgba(255,255,255,0.11);
+  background: #fdf8f0;
+  border: 2px solid #d4c5a9;
   border-radius: 10px;
-  min-height: 64px;
+  min-height: 76px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: transform 0.12s, background 0.15s, border-color 0.15s, opacity 0.3s;
-  padding: 0.35rem;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);
+  padding: 0.5rem 0.3rem;
   text-align: center;
+  transition: transform 0.12s, box-shadow 0.15s, opacity 0.35s;
 }
-.cm-card:hover { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); }
+.cm-card::before,
+.cm-card::after {
+  content: '♠';
+  position: absolute;
+  font-size: 0.55rem;
+  color: #6d28d9;
+  opacity: 0.45;
+  line-height: 1;
+}
+.cm-card::before { top: 4px; left: 5px; }
+.cm-card::after  { bottom: 4px; right: 5px; transform: rotate(180deg); }
+.cm-card:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.8);
+}
 .cm-card-inner {
-  font-size: 1.25rem; font-weight: 700; color: #e0e7ff; line-height: 1.35;
+  font-size: 1.25rem; font-weight: 800; color: #1a0a3e; line-height: 1.35;
 }
 .cm-card sup { font-size: 0.65em; vertical-align: super; }
 .cm-frac { display: inline-flex; flex-direction: column; align-items: center;
            font-size: 0.75em; vertical-align: middle; margin: 0 0.1em; }
 .cm-frac span:first-child { border-bottom: 1px solid currentColor; padding-bottom: 1px; }
 .cm-card.cm-selected {
-  background: rgba(102,126,234,0.35); border-color: #667eea;
-  transform: scale(1.05);
+  background: #ede9fe;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.4), 0 8px 20px rgba(0,0,0,0.5);
+  transform: translateY(-5px) scale(1.05);
 }
 .cm-card.cm-wrong {
-  background: rgba(239,68,68,0.28); border-color: #ef4444;
-  animation: cmShake 0.35s ease;
+  background: #fee2e2;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.35), 0 4px 12px rgba(0,0,0,0.4);
+  animation: cmShake 0.4s ease;
 }
 .cm-card.cm-matched {
-  opacity: 0; pointer-events: none; transform: scale(0.8);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.75) rotateY(90deg);
 }
 @keyframes cmShake {
-  0%,100% { transform: translateX(0); }
-  25%     { transform: translateX(-6px); }
-  75%     { transform: translateX(6px); }
+  0%,100% { transform: translateX(0) translateY(-2px); }
+  25%     { transform: translateX(-7px) translateY(-2px); }
+  75%     { transform: translateX(7px) translateY(-2px); }
 }
 
 /* ---- 結果オーバーレイ ---- */
