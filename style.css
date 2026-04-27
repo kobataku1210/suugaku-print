@@ -3474,6 +3474,7 @@ body {
 .cm-result-time  { font-size: 2.2rem; font-weight: 900; color: #a5b4fc; margin-bottom: 0.5rem; }
 .cm-result-badge { color: #fbbf24; font-weight: 700; margin-bottom: 0.3rem; }
 .cm-result-pea   { color: #86efac; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+.cm-result-nopea { color: #556; font-size: 0.85rem; margin-bottom: 0.5rem; }
 .cm-result-btns  { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1rem; }
 .cm-btn { padding: 0.65rem 1.2rem; border-radius: 12px; font-size: 0.9rem;
           font-weight: 700; border: none; cursor: pointer; font-family: inherit; }

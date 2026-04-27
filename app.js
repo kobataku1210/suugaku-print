@@ -1915,20 +1915,26 @@ function cmRenderGrid() {
   `).join('');
 }
 
+function cmTimePeas(sec) {
+  if (sec <= 20) return 5;
+  if (sec <= 30) return 4;
+  if (sec <= 40) return 3;
+  if (sec <= 50) return 2;
+  if (sec <= 60) return 1;
+  return 0;
+}
+
 function cmComplete() {
   cmStopTimer();
   cmPhase = 'complete';
-  const d        = cmLoad();
-  const isFirst  = !d.cleared;
-  const prevBest = d.best != null ? d.best : Infinity;
+  const d         = cmLoad();
+  const prevBest  = d.best != null ? d.best : Infinity;
   const isNewBest = cmSeconds < prevBest;
-  if (isFirst)   d.cleared = true;
-  if (isNewBest) d.best    = cmSeconds;
+  if (isNewBest) d.best = cmSeconds;
   cmSave(d);
 
-  let peas = 0;
-  if (isFirst) { addPeas(1); peas++; }
-  // TODO: タイム報酬（後日設定）
+  const peas = cmTimePeas(cmSeconds);
+  if (peas > 0) addPeas(peas);
 
   const overlay = document.getElementById('cm-overlay');
   if (!overlay) return;
@@ -1938,7 +1944,7 @@ function cmComplete() {
       <div class="cm-result-title">クリア！</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
-      ${peas > 0  ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : ''}
+      ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="navigate('cardmatch')">もう一度</button>
         <button class="cm-btn cm-btn-ghost"   onclick="navigate('home')">ホームへ</button>
