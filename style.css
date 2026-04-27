@@ -3389,6 +3389,17 @@ body {
 .cm-heart      { font-size: 1.3rem; color: #f87171; }
 .cm-heart-lost { font-size: 1.3rem; color: #333; }
 
+/* cm-mode 時は .main のパディングを除去して cm-screen が画面全体を使えるようにする */
+.cm-mode .main {
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+.cm-mode #main-content {
+  height: 100dvh;
+  height: 100vh;
+  overflow: hidden;
+}
+
 /* ---- カード散布エリア ---- */
 .cm-grid {
   position: relative;

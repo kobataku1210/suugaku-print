@@ -1822,49 +1822,67 @@ function cmPickProblems() {
   return pool.slice(0, CM_PAIRS);
 }
 
-function cmGenPositions(n) {
-  // 画面を cols×rows のゾーンに分割し、各ゾーン内でランダム配置
+function cmGenPositions(gridW, gridH) {
+  // 実際のグリッドピクセルサイズを使って均等散布
+  const CARD_W = Math.min(110, gridW * 0.22);
+  const CARD_H = 85;
   const cols = 5, rows = 4;
+  const padX = 6, padY = 6;
+  const zW = (gridW - padX * 2) / cols;
+  const zH = (gridH - padY * 2) / rows;
   const positions = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const zW = 76 / cols, zH = 78 / rows;
-      const baseL = 2 + c * zW + zW / 2 - 11; // 11 = カード幅の半分 (22vw/2)
-      const baseT = 2 + r * zH + zH / 2 -  8;
-      const offL  = (Math.random() - 0.5) * zW * 0.8;
-      const offT  = (Math.random() - 0.5) * zH * 0.8;
-      const rot   = (Math.random() - 0.5) * 30;
+      const baseX = padX + c * zW + zW / 2 - CARD_W / 2;
+      const baseY = padY + r * zH + zH / 2 - CARD_H / 2;
+      const offX  = (Math.random() - 0.5) * zW * 0.75;
+      const offY  = (Math.random() - 0.5) * zH * 0.75;
+      const rot   = (Math.random() - 0.5) * 28;
       positions.push({
-        left: Math.max(1, Math.min(75, baseL + offL)).toFixed(1) + '%',
-        top:  Math.max(1, Math.min(70, baseT + offT)).toFixed(1) + '%',
+        left: Math.max(padX, Math.min(gridW - CARD_W - padX, baseX + offX)).toFixed(0) + 'px',
+        top:  Math.max(padY, Math.min(gridH - CARD_H - padY, baseY + offY)).toFixed(0) + 'px',
         rot:  rot.toFixed(1) + 'deg'
       });
     }
   }
   positions.sort(() => Math.random() - 0.5);
-  return positions.slice(0, n);
+  return positions;
 }
 
 function cmInit() {
   const probs = cmPickProblems();
   cmCards = [];
   probs.forEach((p, i) => {
-    cmCards.push({ idx: 0, content: p.q, pairId: i, matched: false, selected: false, wrong: false });
-    cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false });
+    cmCards.push({ idx: 0, content: p.q, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg' });
+    cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg' });
   });
   cmCards.sort(() => Math.random() - 0.5);
-  const positions = cmGenPositions(cmCards.length);
-  cmCards.forEach((c, i) => {
-    c.idx  = i;
-    c.left = positions[i].left;
-    c.top  = positions[i].top;
-    c.rot  = positions[i].rot;
-  });
+  cmCards.forEach((c, i) => { c.idx = i; });
   cmSelected = [];
   cmMistakes = 0;
   cmSeconds  = 0;
   cmLocked   = false;
   cmPhase    = 'playing';
+}
+
+// DOM描画後に実ピクセルでカード位置を計算して配置
+function cmLayoutCards() {
+  const grid = document.getElementById('cm-grid');
+  if (!grid) return;
+  const w = grid.clientWidth;
+  const h = grid.clientHeight;
+  if (w === 0 || h === 0) {
+    // まだレイアウト未確定 → 次フレームで再試行
+    requestAnimationFrame(cmLayoutCards);
+    return;
+  }
+  const positions = cmGenPositions(w, h);
+  cmCards.forEach((c, i) => {
+    c.left = positions[i % positions.length].left;
+    c.top  = positions[i % positions.length].top;
+    c.rot  = positions[i % positions.length].rot;
+  });
+  cmRenderGrid();
 }
 
 function cmStartTimer() {
@@ -2066,7 +2084,7 @@ function render() {
   if (state.view === 'home')      initBattleBanner();
   if (state.view === 'cardmatch') {
     document.body.classList.add('cm-mode');
-    cmRenderGrid();
+    requestAnimationFrame(cmLayoutCards);  // DOM確定後に実サイズでカード配置
     cmStartTimer();
   } else {
     document.body.classList.remove('cm-mode');
