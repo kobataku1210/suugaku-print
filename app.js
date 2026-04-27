@@ -1823,8 +1823,9 @@ function cmPickProblems() {
 }
 
 function cmGenPositions(gridW, gridH) {
-  // 5列×4行のゾーンに1枚ずつ収める（重ならないことを保証）
-  const cols = 5, rows = 4;
+  // 画面幅に応じて列数を決定（狭い端末は4列×5行）
+  const cols = gridW < 420 ? 4 : 5;
+  const rows = 20 / cols;  // 4cols→5rows, 5cols→4rows
   const GAP  = 6;   // ゾーン間のすき間(px)
   const zW   = gridW / cols;
   const zH   = gridH / rows;
@@ -1965,12 +1966,18 @@ function cmRenderHearts() {
 }
 
 function cmCardFontSize(raw, cardWpx) {
-  // カード幅とテキスト長から最適フォントサイズを計算（1行に収まる最大値）
-  const len     = String(raw).length || 1;
-  const availW  = (cardWpx || 110) - 12;          // パディング12px分を引く
-  const pxPerCh = availW / len;
-  // 太字フォントの文字幅比率 ≈ 0.60
-  const px      = Math.min(pxPerCh / 0.60, 26);   // 26px(1.625rem)上限
+  // 文字種ごとの幅比率（cmFmt後の全角変換を考慮）
+  let units = 0;
+  for (const ch of String(raw || '')) {
+    if (ch === '+' || ch === '-') units += 1.05; // → 全角 ＋ ／ － (1em相当)
+    else if (ch === '²' || ch === '³')  units += 0.42; // → <sup> で小さい
+    else if (ch === '(' || ch === ')')  units += 0.52;
+    else if (ch === '×' || ch === '÷') units += 0.90;
+    else                                units += 0.60;
+  }
+  units = Math.max(units, 0.5);
+  const availW = (cardWpx || 100) - 14; // パディング分
+  const px = Math.min(availW / units, 26) * 0.90; // 0.90 安全マージン
   return Math.max(10, Math.floor(px)) + 'px';
 }
 
