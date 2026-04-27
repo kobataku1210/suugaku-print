@@ -1791,6 +1791,8 @@ function cmSave(d) { localStorage.setItem(CM_KEY, JSON.stringify(d)); }
 
 function cmFmt(s) {
   return String(s)
+    .replace(/\+/g, '＋')
+    .replace(/-/g, '－')
     .replace(/\{([^/}]+)\/([^}]+)\}/g,
       '<span class="cm-frac"><span>$1</span><span>$2</span></span>')
     .replace(/²/g, '<sup>2</sup>')
