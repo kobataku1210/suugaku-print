@@ -1904,13 +1904,22 @@ function cmRenderHearts() {
   ).join('');
 }
 
+function cmCardFontSize(raw) {
+  const len = raw.length;
+  if (len <= 5)  return '1.9rem';
+  if (len <= 8)  return '1.65rem';
+  if (len <= 11) return '1.4rem';
+  if (len <= 14) return '1.2rem';
+  return '1.05rem';
+}
+
 function cmRenderGrid() {
   const el = document.getElementById('cm-grid');
   if (!el) return;
   el.innerHTML = cmCards.map(c => `
     <div class="cm-card${c.matched ? ' cm-matched' : ''}${c.selected ? ' cm-selected' : ''}${c.wrong ? ' cm-wrong' : ''}"
          onclick="cmFlipCard(${c.idx})">
-      <div class="cm-card-inner">${cmFmt(c.content)}</div>
+      <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content)}">${cmFmt(c.content)}</div>
     </div>
   `).join('');
 }

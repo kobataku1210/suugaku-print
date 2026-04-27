@@ -3425,7 +3425,13 @@ body {
   box-shadow: 0 10px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 .cm-card-inner {
-  font-size: 1.25rem; font-weight: 800; color: #1a0a3e; line-height: 1.35;
+  font-weight: 800;
+  color: #1a0a3e;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+  text-align: center;
 }
 .cm-card sup { font-size: 0.65em; vertical-align: super; }
 .cm-frac { display: inline-flex; flex-direction: column; align-items: center;
