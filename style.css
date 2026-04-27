@@ -3408,7 +3408,7 @@ body {
 }
 .cm-card:hover { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); }
 .cm-card-inner {
-  font-size: 1.05rem; font-weight: 700; color: #e0e7ff; line-height: 1.35;
+  font-size: 1.25rem; font-weight: 700; color: #e0e7ff; line-height: 1.35;
 }
 .cm-card sup { font-size: 0.65em; vertical-align: super; }
 .cm-frac { display: inline-flex; flex-direction: column; align-items: center;
