@@ -3585,6 +3585,7 @@ body {
   display: flex; align-items: center; gap: 0.2rem; flex-shrink: 0;
 }
 .cmg-count-unit { font-size: 0.82rem; color: #9ab; }
+.cmg-count-label-txt { font-size: 0.9rem; color: #9ab; white-space: nowrap; }
 .cmg-count-num {
   width: 44px; text-align: center;
   background: rgba(255,255,255,0.07);

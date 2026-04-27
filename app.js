@@ -2251,10 +2251,8 @@ function cmShowGroupSetup() {
 // ---- グループゲーム開始 ----
 function cmStartGroup() {
   cmGroupPlayers.forEach((p, i) => {
-    const nameEl  = document.getElementById(`cmg-name-${i}`);
     const countEl = document.getElementById(`cmg-count-${i}`);
-    if (nameEl)  p.name  = nameEl.value.trim()  || `グループ${i+1}`;
-    if (countEl) p.count = Math.max(1, Math.min(12, parseInt(countEl.value) || 4));
+    if (countEl) p.count = Math.max(1, Math.min(40, parseInt(countEl.value) || 4));
     p.score = 0;
   });
   cmGroupTurn   = 0;
@@ -2299,9 +2297,7 @@ function renderCmGroupSetup() {
       <div class="cm-menu-title" style="margin-bottom:1.8rem">👥 グループ設定</div>
       <div class="cmg-names">
         <div class="cmg-setup-row">
-          <span class="cmg-setup-dot" style="background:${CM_GROUP_COLORS[0]}"></span>
-          <input class="cmg-setup-input" id="cmg-name-0" type="text"
-                 value="${escHtml(p.name)}" maxlength="10" placeholder="グループ名">
+          <label class="cmg-count-label-txt">グループの人数</label>
           <div class="cmg-count-wrap">
             <span class="cmg-count-unit">👤</span>
             <input class="cmg-count-num" id="cmg-count-0" type="number"
