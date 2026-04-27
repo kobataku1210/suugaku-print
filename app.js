@@ -1823,25 +1823,35 @@ function cmPickProblems() {
 }
 
 function cmGenPositions(gridW, gridH) {
-  // 実際のグリッドピクセルサイズを使って均等散布
-  const CARD_W = Math.min(160, Math.max(110, gridW * 0.28));
-  const CARD_H = 85;
+  // 5列×4行のゾーンに1枚ずつ収める（重ならないことを保証）
   const cols = 5, rows = 4;
-  const padX = 6, padY = 6;
-  const zW = (gridW - padX * 2) / cols;
-  const zH = (gridH - padY * 2) / rows;
+  const GAP  = 6;   // ゾーン間のすき間(px)
+  const zW   = gridW / cols;
+  const zH   = gridH / rows;
+
+  // カードサイズ = ゾーンからGAPを引いたサイズ（回転余白を考慮）
+  const CARD_W = Math.max(60, Math.floor(zW - GAP));
+  const CARD_H = Math.max(52, Math.min(90, Math.floor(zH - GAP)));
+
+  // 回転しても隣のゾーンにはみ出さない最大角度(°)を計算
+  // 条件: CARD_W*cos(a) + CARD_H*sin(a) <= zW
+  // 近似: sin(a) ≈ (zW - CARD_W) / CARD_H
+  const sinMax  = Math.max(0, (zW - CARD_W - 2) / Math.max(1, CARD_H));
+  const MAX_ROT = Math.min(12, Math.floor(Math.asin(Math.min(sinMax, 1)) * 180 / Math.PI));
+
   const positions = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const baseX = padX + c * zW + zW / 2 - CARD_W / 2;
-      const baseY = padY + r * zH + zH / 2 - CARD_H / 2;
-      const offX  = (Math.random() - 0.5) * zW * 0.75;
-      const offY  = (Math.random() - 0.5) * zH * 0.75;
-      const rot   = (Math.random() - 0.5) * 28;
+      // ゾーン中央に配置（位置オフセットなし）
+      const left = c * zW + (zW - CARD_W) / 2;
+      const top  = r * zH + (zH - CARD_H) / 2;
+      const rot  = (Math.random() - 0.5) * 2 * MAX_ROT;
       positions.push({
-        left: Math.max(padX, Math.min(gridW - CARD_W - padX, baseX + offX)).toFixed(0) + 'px',
-        top:  Math.max(padY, Math.min(gridH - CARD_H - padY, baseY + offY)).toFixed(0) + 'px',
-        rot:  rot.toFixed(1) + 'deg'
+        left:  left.toFixed(0) + 'px',
+        top:   top.toFixed(0)  + 'px',
+        rot:   rot.toFixed(1)  + 'deg',
+        cardW: CARD_W,
+        cardH: CARD_H,
       });
     }
   }
@@ -1853,8 +1863,8 @@ function cmInit() {
   const probs = cmPickProblems();
   cmCards = [];
   probs.forEach((p, i) => {
-    cmCards.push({ idx: 0, content: p.q, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg' });
-    cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg' });
+    cmCards.push({ idx: 0, content: p.q, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg', cardW: 110, cardH: 72 });
+    cmCards.push({ idx: 0, content: p.a, pairId: i, matched: false, selected: false, wrong: false, left: '0px', top: '0px', rot: '0deg', cardW: 110, cardH: 72 });
   });
   cmCards.sort(() => Math.random() - 0.5);
   cmCards.forEach((c, i) => { c.idx = i; });
@@ -1878,9 +1888,12 @@ function cmLayoutCards() {
   }
   const positions = cmGenPositions(w, h);
   cmCards.forEach((c, i) => {
-    c.left = positions[i % positions.length].left;
-    c.top  = positions[i % positions.length].top;
-    c.rot  = positions[i % positions.length].rot;
+    const p = positions[i % positions.length];
+    c.left  = p.left;
+    c.top   = p.top;
+    c.rot   = p.rot;
+    c.cardW = p.cardW;
+    c.cardH = p.cardH;
   });
   cmRenderGrid();
 }
@@ -1951,13 +1964,14 @@ function cmRenderHearts() {
   ).join('');
 }
 
-function cmCardFontSize(raw) {
-  const len = raw.length;
-  if (len <= 5)  return '1.6rem';
-  if (len <= 8)  return '1.35rem';
-  if (len <= 11) return '1.15rem';
-  if (len <= 14) return '1.0rem';
-  return '0.88rem';
+function cmCardFontSize(raw, cardWpx) {
+  // カード幅とテキスト長から最適フォントサイズを計算（1行に収まる最大値）
+  const len     = String(raw).length || 1;
+  const availW  = (cardWpx || 110) - 12;          // パディング12px分を引く
+  const pxPerCh = availW / len;
+  // 太字フォントの文字幅比率 ≈ 0.60
+  const px      = Math.min(pxPerCh / 0.60, 26);   // 26px(1.625rem)上限
+  return Math.max(10, Math.floor(px)) + 'px';
 }
 
 function cmRenderGrid() {
@@ -1970,9 +1984,9 @@ function cmRenderGrid() {
       : `rotate(${c.rot})`;
     return `
       <div class="cm-card${c.matched ? ' cm-matched' : ''}${c.selected ? ' cm-selected' : ''}${c.wrong ? ' cm-wrong' : ''}"
-           style="left:${c.left};top:${c.top};transform:${tf};z-index:${z};--rot:${c.rot}"
+           style="left:${c.left};top:${c.top};width:${c.cardW}px;height:${c.cardH}px;transform:${tf};z-index:${z};--rot:${c.rot}"
            onclick="cmFlipCard(${c.idx})">
-        <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content)}">${cmFmt(c.content)}</div>
+        <div class="cm-card-inner" style="font-size:${cmCardFontSize(c.content, c.cardW)}">${cmFmt(c.content)}</div>
       </div>`;
   }).join('');
 }
