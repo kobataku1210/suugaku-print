@@ -1878,14 +1878,31 @@ function cmInit() {
   cmPhase    = 'playing';
 }
 
-// DOM描画後に実ピクセルでカード位置を計算して配置
+// DOM描画後に実ピクセルでカード位置を計算して配置（共通ヘルパー）
+function cmApplyPositions(renderFn) {
+  const grid = document.getElementById('cm-grid');
+  if (!grid) return;
+  const w = grid.clientWidth;
+  const h = grid.clientHeight;
+  if (w === 0 || h === 0) {
+    requestAnimationFrame(() => cmApplyPositions(renderFn));
+    return;
+  }
+  const positions = cmGenPositions(w, h);
+  cmCards.forEach((c, i) => {
+    const p = positions[i % positions.length];
+    c.left = p.left; c.top = p.top; c.rot = p.rot; c.cardW = p.cardW; c.cardH = p.cardH;
+  });
+  renderFn();
+}
+
+// ソロ用
 function cmLayoutCards() {
   const grid = document.getElementById('cm-grid');
   if (!grid) return;
   const w = grid.clientWidth;
   const h = grid.clientHeight;
   if (w === 0 || h === 0) {
-    // まだレイアウト未確定 → 次フレームで再試行
     requestAnimationFrame(cmLayoutCards);
     return;
   }
@@ -2210,16 +2227,7 @@ function cmGroupReplay() {
   cmCards.forEach(c => { c.faceUp = false; });
   const overlay = document.getElementById('cm-overlay');
   if (overlay) overlay.classList.remove('active');
-  requestAnimationFrame(() => {
-    const grid = document.getElementById('cm-grid');
-    if (!grid) return;
-    const w = grid.clientWidth, h = grid.clientHeight;
-    if (w === 0 || h === 0) { requestAnimationFrame(arguments.callee); return; }
-    const positions = cmGenPositions(w, h);
-    cmCards.forEach((c, i) => {
-      const p = positions[i % positions.length];
-      c.left = p.left; c.top = p.top; c.rot = p.rot; c.cardW = p.cardW; c.cardH = p.cardH;
-    });
+  cmApplyPositions(() => {
     cmGroupRenderGrid();
     cmGroupRenderTurn();
     cmGroupRenderScores();
@@ -2389,20 +2397,11 @@ function render() {
       requestAnimationFrame(cmLayoutCards);
       cmStartTimer();
     } else if (cmMode === 'group_play') {
-      requestAnimationFrame(() => {
-        const grid = document.getElementById('cm-grid');
-        if (!grid) return;
-        const w = grid.clientWidth, h = grid.clientHeight;
-        if (w === 0 || h === 0) return;
-        const positions = cmGenPositions(w, h);
-        cmCards.forEach((c, i) => {
-          const p = positions[i % positions.length];
-          c.left = p.left; c.top = p.top; c.rot = p.rot; c.cardW = p.cardW; c.cardH = p.cardH;
-        });
+      requestAnimationFrame(() => cmApplyPositions(() => {
         cmGroupRenderGrid();
         cmGroupRenderTurn();
         cmGroupRenderScores();
-      });
+      }));
     }
     // menu / group_setup は cm-mode だが cm-grid なし
   } else {
