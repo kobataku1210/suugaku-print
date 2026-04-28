@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
 (function() {
-  const H = '7b8db1960382568dc55c35fe268f1800b0d9716be46963a633e9db5981ab657e';
+  const H = '9b380d3722160f266902894934bfb2e27c853736602a93e669ef9f28acc63f98';
   const S = 'mathprint_';
   async function _h(p) {
     const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(S + p));
