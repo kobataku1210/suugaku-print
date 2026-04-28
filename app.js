@@ -2279,10 +2279,32 @@ function cmStartGroup() {
   navigate('cardmatch');
 }
 
+// ---- 報酬一覧HTML生成 ----
+function cmRewardTableHtml() {
+  const tiers = [
+    { sec: 20, peas: 5 },
+    { sec: 30, peas: 4 },
+    { sec: 40, peas: 3 },
+    { sec: 50, peas: 2 },
+    { sec: 60, peas: 1 },
+  ];
+  const rows = tiers.map(t => `
+    <div class="cmr-row">
+      <span class="cmr-time">${cmFmtTime(t.sec)}以内</span>
+      <span class="cmr-peas">🌱×${t.peas}</span>
+    </div>`).join('');
+  const teacherRow = cmTeacherTime != null ? `
+    <div class="cmr-row cmr-teacher">
+      <span class="cmr-time">👑小林T(${cmFmtTime(cmTeacherTime)})超え</span>
+      <span class="cmr-peas">🌱×10</span>
+    </div>` : '';
+  return `<div class="cmr-table">${rows}${teacherRow}</div>`;
+}
+
 // ---- 画面描画：メニュー ----
 function renderCmMenu() {
   const d = cmLoad();
-  const bestStr = d.best != null ? `自己ベスト ${cmFmtTime(d.best)}` : '展開・因数分解マッチング';
+  const bestStr = d.best != null ? `自己ベスト ${cmFmtTime(d.best)}` : null;
   return `
     <div class="cm-menu-screen">
       <div class="cm-menu-logo">🃏</div>
@@ -2291,7 +2313,8 @@ function renderCmMenu() {
         <button class="cm-menu-card cm-solo-card" onclick="cmStartSolo()">
           <div class="cm-mc-icon">⚡</div>
           <div class="cm-mc-label">ひとりでプレイ</div>
-          <div class="cm-mc-desc">タイムアタック<br>${bestStr}${cmTeacherTime != null ? `<br>👑 小林T ${cmFmtTime(cmTeacherTime)}` : ''}</div>
+          ${bestStr ? `<div class="cm-mc-best">${bestStr}</div>` : ''}
+          ${cmRewardTableHtml()}
         </button>
         <button class="cm-menu-card cm-group-card" onclick="cmShowGroupSetup()">
           <div class="cm-mc-icon">👥</div>
@@ -2357,6 +2380,18 @@ function renderCmSolo() {
         <div id="cm-hearts" class="cm-hearts">
           ${'<span class="cm-heart">♥</span>'.repeat(CM_MAX_MISS)}
         </div>
+      </div>
+      <div class="cm-reward-bar">
+        <span class="cmrb-item">🌱×5&nbsp;<span class="cmrb-t">0:20</span></span>
+        <span class="cmrb-sep">|</span>
+        <span class="cmrb-item">×4&nbsp;<span class="cmrb-t">0:30</span></span>
+        <span class="cmrb-sep">|</span>
+        <span class="cmrb-item">×3&nbsp;<span class="cmrb-t">0:40</span></span>
+        <span class="cmrb-sep">|</span>
+        <span class="cmrb-item">×2&nbsp;<span class="cmrb-t">0:50</span></span>
+        <span class="cmrb-sep">|</span>
+        <span class="cmrb-item">×1&nbsp;<span class="cmrb-t">1:00</span></span>
+        ${cmTeacherTime != null ? `<span class="cmrb-sep">|</span><span class="cmrb-item cmrb-teacher">👑×10&nbsp;<span class="cmrb-t">${cmFmtTime(cmTeacherTime)}超</span></span>` : ''}
       </div>
       <div id="cm-grid" class="cm-grid"></div>
       <div id="cm-overlay" class="cm-overlay"></div>

@@ -3505,6 +3505,35 @@ body {
 .cm-teacher-time-disp {
   font-size: 0.7rem; color: #fbbf24; margin-top: 0.1rem; font-weight: 700;
 }
+/* ---- ゲーム中報酬バー ---- */
+.cm-reward-bar {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 0.1rem;
+  background: rgba(0,0,0,0.25);
+  padding: 0.22rem 0.6rem;
+  font-size: 0.72rem; color: #86efac;
+}
+.cmrb-item   { white-space: nowrap; font-weight: 700; }
+.cmrb-t      { color: rgba(255,255,255,0.55); font-weight: 400; }
+.cmrb-sep    { color: rgba(255,255,255,0.2); margin: 0 0.15rem; }
+.cmrb-teacher { color: #fbbf24; }
+/* ---- メニュー報酬テーブル ---- */
+.cm-mc-best {
+  font-size: 0.72rem; color: #a5b4fc; margin-bottom: 0.3rem;
+}
+.cmr-table {
+  display: flex; flex-direction: column; gap: 0.18rem;
+  width: 100%; margin-top: 0.3rem;
+}
+.cmr-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255,255,255,0.05); border-radius: 6px;
+  padding: 0.18rem 0.5rem; font-size: 0.72rem;
+}
+.cmr-time  { color: rgba(255,255,255,0.65); }
+.cmr-peas  { color: #86efac; font-weight: 800; }
+.cmr-teacher .cmr-time { color: #fbbf24; }
+.cmr-teacher .cmr-peas { color: #fbbf24; }
 .cm-result-btns  { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1rem; }
 .cm-btn { padding: 0.65rem 1.2rem; border-radius: 12px; font-size: 0.9rem;
           font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
