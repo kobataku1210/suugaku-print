@@ -1884,7 +1884,9 @@ function cmApplyPositions(renderFn) {
   if (!grid) return;
   const w = grid.clientWidth;
   const h = grid.clientHeight;
-  if (w === 0 || h === 0) {
+  // h が小さすぎる場合はレイアウト未確定 → 再試行
+  // （カード4行×最低52px = 208px を下回る場合は待つ）
+  if (w === 0 || h < 150) {
     requestAnimationFrame(() => cmApplyPositions(renderFn));
     return;
   }
@@ -1902,7 +1904,7 @@ function cmLayoutCards() {
   if (!grid) return;
   const w = grid.clientWidth;
   const h = grid.clientHeight;
-  if (w === 0 || h === 0) {
+  if (w === 0 || h < 150) {
     requestAnimationFrame(cmLayoutCards);
     return;
   }
@@ -2436,14 +2438,15 @@ function render() {
   if (state.view === 'cardmatch') {
     document.body.classList.add('cm-mode');
     if (cmMode === 'solo') {
-      requestAnimationFrame(cmLayoutCards);
+      requestAnimationFrame(() => requestAnimationFrame(cmLayoutCards));
       cmStartTimer();
     } else if (cmMode === 'group_play') {
-      requestAnimationFrame(() => cmApplyPositions(() => {
+      // ダブルRAFでレイアウト確定を確実に待つ
+      requestAnimationFrame(() => requestAnimationFrame(() => cmApplyPositions(() => {
         cmGroupRenderGrid();
         cmGroupRenderTurn();
         cmGroupRenderScores();
-      }));
+      })));
     }
     // menu / group_setup は cm-mode だが cm-grid なし
   } else {
