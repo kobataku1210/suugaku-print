@@ -34,6 +34,29 @@
     .login-btn:hover { filter: brightness(1.1); }
     .login-error { color: #ff6b6b; font-size: 0.85rem; margin-top: 0.6rem; display: none; }
 
+    /* ===== カードマッチ 小林Tタイム設定バー ===== */
+    .cm-teacher-setting {
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      background: rgba(251,191,36,0.08); border-bottom: 1px solid rgba(251,191,36,0.25);
+      padding: 0.55rem 2rem; font-size: 0.88rem;
+    }
+    .cm-ts-label  { color: #fbbf24; font-weight: 700; white-space: nowrap; }
+    .cm-ts-input  {
+      width: 64px; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(251,191,36,0.4); border-radius: 6px;
+      color: #fbbf24; font-size: 1rem; font-weight: 800;
+      text-align: center; padding: 0.15rem 0.3rem; font-family: monospace; outline: none;
+    }
+    .cm-ts-input:focus { border-color: #fbbf24; }
+    .cm-ts-unit   { color: rgba(255,255,255,0.45); font-size: 0.8rem; }
+    .cm-ts-btn {
+      background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.5);
+      color: #fbbf24; border-radius: 6px; padding: 0.2rem 0.8rem;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .cm-ts-btn:hover { background: rgba(251,191,36,0.35); }
+    .cm-ts-status { font-size: 0.8rem; color: #86efac; }
+
     /* ===== 管理画面 ===== */
     #admin-screen { display: none; }
     .admin-header {
@@ -269,6 +292,15 @@
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
+  <!-- カードマッチ 小林Tタイム設定 -->
+  <div class="cm-teacher-setting">
+    <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
+    <input type="number" id="cm-teacher-time-input" class="cm-ts-input"
+           min="1" max="300" step="1" placeholder="秒">
+    <span class="cm-ts-unit">秒</span>
+    <button class="cm-ts-btn" onclick="saveCmTeacherTime()">更新</button>
+    <span id="cm-ts-status" class="cm-ts-status"></span>
+  </div>
   <div class="admin-content">
     <div class="chapter-tabs" id="chapter-tabs"></div>
     <div id="sections-area"></div>
@@ -401,8 +433,29 @@ async function hashAllPasswords(data) {
 async function loadQuestions() {
   const res = await fetch('/api/questions');
   questionsData = ensurePasswords(migrateToNewFormat(await res.json()));
+  // カードマッチ 小林Tタイムをフォームに反映
+  const t = questionsData.cardMatchTeacherTime;
+  const el = document.getElementById('cm-teacher-time-input');
+  if (el && t != null) el.value = t;
   renderChapterTabs();
   renderSections(0);
+}
+
+async function saveCmTeacherTime() {
+  const el  = document.getElementById('cm-teacher-time-input');
+  const sta = document.getElementById('cm-ts-status');
+  const val = parseInt(el.value);
+  if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; return; }
+  questionsData.cardMatchTeacherTime = val;
+  // questions.json 全体を保存
+  const res = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const r = await res.json();
+  sta.textContent = r.ok ? `✓ ${val}秒に更新しました` : '❌ 保存失敗';
+  setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
 // ===== 章タブ =====

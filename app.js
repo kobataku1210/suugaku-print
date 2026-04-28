@@ -2038,14 +2038,19 @@ function cmComplete() {
   const peas = cmTimePeas(cmSeconds);
   if (peas > 0) addPeas(peas);
 
+  // 小林Tタイム超えボーナス（別途+10）
+  const beatTeacher = cmTeacherTime != null && cmSeconds < cmTeacherTime;
+  if (beatTeacher) addPeas(10);
+
   const overlay = document.getElementById('cm-overlay');
   if (!overlay) return;
   overlay.innerHTML = `
     <div class="cm-result">
-      <div class="cm-result-icon">🎉</div>
-      <div class="cm-result-title">クリア！</div>
+      <div class="cm-result-icon">${beatTeacher ? '👑' : '🎉'}</div>
+      <div class="cm-result-title">${beatTeacher ? '小林T超え！' : 'クリア！'}</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
+      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(cmTeacherTime)})を超えた！<br>🌱 ×10 ボーナス！</div>` : ''}
       ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
@@ -2077,6 +2082,7 @@ function cmGameOver() {
 // ============================================================
 // ===== カードマッチ グループモード =====
 // ============================================================
+let cmTeacherTime  = null;     // 小林Tのカードマッチ最速タイム（秒）
 let cmMode         = 'menu';   // 'menu' | 'solo' | 'group_setup' | 'group_play'
 let cmGroupPlayers = [];       // [{name, score}]
 let cmGroupTurn    = 0;
@@ -2285,7 +2291,7 @@ function renderCmMenu() {
         <button class="cm-menu-card cm-solo-card" onclick="cmStartSolo()">
           <div class="cm-mc-icon">⚡</div>
           <div class="cm-mc-label">ひとりでプレイ</div>
-          <div class="cm-mc-desc">タイムアタック<br>${bestStr}</div>
+          <div class="cm-mc-desc">タイムアタック<br>${bestStr}${cmTeacherTime != null ? `<br>👑 小林T ${cmFmtTime(cmTeacherTime)}` : ''}</div>
         </button>
         <button class="cm-menu-card cm-group-card" onclick="cmShowGroupSetup()">
           <div class="cm-mc-icon">👥</div>
@@ -2346,6 +2352,7 @@ function renderCmSolo() {
         <div class="cm-header-mid">
           <div class="cm-timer-display">⏱ <span id="cm-timer">0:00</span></div>
           <div class="cm-best-display">自己ベスト&nbsp;${bestStr}</div>
+          ${cmTeacherTime != null ? `<div class="cm-teacher-time-disp">👑 小林T&nbsp;${cmFmtTime(cmTeacherTime)}</div>` : ''}
         </div>
         <div id="cm-hearts" class="cm-hearts">
           ${'<span class="cm-heart">♥</span>'.repeat(CM_MAX_MISS)}
@@ -2445,6 +2452,7 @@ fetch('./questions.json')
   .then(r => r.json())
   .then(data => {
     mathData.chapters = data.chapters;
+    if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     render();
   })
   .catch(() => {

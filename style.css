@@ -3496,6 +3496,15 @@ body {
 .cm-result-badge { color: #fbbf24; font-weight: 700; margin-bottom: 0.3rem; }
 .cm-result-pea   { color: #86efac; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
 .cm-result-nopea { color: #556; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.cm-result-teacher-beat {
+  color: #fbbf24; font-weight: 800; font-size: 0.95rem;
+  background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35);
+  border-radius: 10px; padding: 0.5rem 0.8rem; margin-bottom: 0.4rem;
+  line-height: 1.6;
+}
+.cm-teacher-time-disp {
+  font-size: 0.7rem; color: #fbbf24; margin-top: 0.1rem; font-weight: 700;
+}
 .cm-result-btns  { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1rem; }
 .cm-btn { padding: 0.65rem 1.2rem; border-radius: 12px; font-size: 0.9rem;
           font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
