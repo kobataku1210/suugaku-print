@@ -2298,7 +2298,7 @@ function cmRewardTableHtml() {
       <span class="cmr-time">👑小林T(${cmFmtTime(cmTeacherTime)})超え</span>
       <span class="cmr-peas">🌱×10</span>
     </div>` : '';
-  return `<div class="cmr-table">${rows}${teacherRow}</div>`;
+  return `<div class="cmr-table">${teacherRow}${rows}</div>`;
 }
 
 // ---- 画面描画：メニュー ----
