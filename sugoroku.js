@@ -1,6 +1,30 @@
 // ============================================================
-// sugoroku.js  —  すごろく Phase 1 リニューアル
+// sugoroku.js  —  すごろく Phase 1 & 2
 // ============================================================
+
+// ===== ステージ管理 =====
+let sgStage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+function setSgStage(n) { sgStage = n; localStorage.setItem('sgCurrentStage', String(n)); }
+function sgCurrentMax()    { return sgStage === 1 ? 100 : 150; }
+function sgCurrentSpaces() { return sgStage === 1 ? SUGOROKU_SPACES : SUGOROKU_SPACES_V2; }
+function sgIsStage1Cleared() {
+  try { return !!(JSON.parse(localStorage.getItem('sgSave_v1') || '{}').cleared); }
+  catch(e) { return false; }
+}
+function sgEnterStage2() {
+  if (!sgIsStage1Cleared()) return;
+  setSgStage(2); _sgClearPhase(); renderSugoroku();
+}
+function sgGoToStage1() { setSgStage(1); _sgClearPhase(); renderSugoroku(); }
+function _sgClearPhase() {
+  sgPhase = 'idle'; sgMsg = ''; sgMsgType = 'info';
+  sgStarActive = false; sgStarExchangeGive = null;
+  sgBossSquare = null; sgBossQList = []; sgBossQIndex = 0;
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
+  document.getElementById('sg-boss-overlay')?.remove();
+  document.getElementById('sg-dice-overlay')?.remove();
+  document.getElementById('sg-dig-overlay')?.remove();
+}
 
 // ===== 定数 =====
 const BALL_COLORS = ['red','blue','yellow','green','purple'];
@@ -66,6 +90,66 @@ const SUGOROKU_SPACES = (() => {
   return sp;
 })();
 
+// ===== ステージ2 マス定義（150マス）=====
+const SUGOROKU_SPACES_V2 = (() => {
+  const sp = [null];
+  for (let i = 1; i <= 150; i++) sp.push({ num: i, type: 'normal' });
+  const set = (n, t, p) => { sp[n].type = t; if (p !== undefined) sp[n].param = p; };
+
+  // ⚔️ ボスマス（関門）
+  set(50,  'boss');
+  set(100, 'boss');
+  set(150, 'boss'); // ボス兼ゴール
+
+  // ⬆ 進む
+  set(3,'forward',2); set(8,'forward',1);  set(17,'forward',3); set(24,'forward',2);
+  set(33,'forward',1);set(38,'forward',4); set(53,'forward',2); set(58,'forward',1);
+  set(63,'forward',3);set(74,'forward',2); set(78,'forward',1); set(87,'forward',3);
+  set(93,'forward',2);set(107,'forward',2);set(112,'forward',3);set(122,'forward',1);
+  set(133,'forward',2);set(138,'forward',4);
+
+  // 🎲⬆ ロールして進む
+  set(20,'rollAndForward'); set(75,'rollAndForward'); set(125,'rollAndForward');
+
+  // ⬇ 戻る
+  set(6,'back',1); set(12,'back',2); set(28,'back',3);
+  set(42,'back',2);set(48,'back',1); set(67,'back',3);
+  set(72,'back',2);set(82,'back',1); set(95,'back',3);
+  set(110,'back',2);set(118,'back',1);set(127,'back',3);
+  set(142,'back',2);set(145,'back',1);
+
+  // 🎲⬇ ロールして戻る
+  set(45,'rollAndBack'); set(97,'rollAndBack'); set(135,'rollAndBack');
+
+  // 🎲 もう一度
+  set(16,'again'); set(55,'again'); set(90,'again'); set(128,'again');
+
+  // 💤 1回休み
+  set(30,'rest'); set(70,'rest'); set(105,'rest'); set(140,'rest');
+
+  // 🌀 ワープ
+  set(35,'warp',57); set(88,'warp',116); set(126,'warp',148);
+
+  // 👾 モンスター
+  [9,22,36,46,62,77,85,96,108,119,131,143].forEach(n => set(n,'monster'));
+
+  // 💀 球落とし
+  [14,29,43,66,81,102,117,129,144].forEach(n => set(n,'dropBall'));
+
+  // ⭐ ラッキースター
+  set(65,'star'); set(132,'star');
+
+  // 🔄 交換所
+  [15,40,60,79,99,113,130,147].forEach(n => set(n,'exchange'));
+
+  // ⛏ 掘れるマス
+  [2,4,7,11,13,18,21,25,27,31,34,39,41,47,49,51,54,
+   61,64,69,71,76,83,86,89,91,94,98,103,106,109,111,
+   114,121,124,134,136,139,141,146,149].forEach(n => set(n,'dig'));
+
+  return sp;
+})();
+
 // ===== ウォーム配色 =====
 const SG_WARM = {
   normal:         { bg:'#ffffff', bd:'#c8a060' },
@@ -81,21 +165,53 @@ const SG_WARM = {
   dig:            { bg:'#f0e0c0', bd:'#806030' },
   exchange:       { bg:'#ffe0f8', bd:'#c040a0' },
   star:           { bg:'#fffacd', bd:'#e6b800' },
+  boss:           { bg:'#2d0a4a', bd:'#9b30ff' },
   goal:           { bg:'#ffe860', bd:'#d0a000' },
   gate_spawn:     { bg:'#ffe080', bd:'#c07800' },
 };
 
 // ===== セーブ =====
-const SG_SAVE_KEY = 'sgSave_v1';
+const SG_SAVE_KEY    = 'sgSave_v1';
+const SG_SAVE_KEY_V2 = 'sgSave_v2';
 
 function getSgSave() {
   try { const r = localStorage.getItem(SG_SAVE_KEY); if (r) return JSON.parse(r); }
   catch(e) {}
   return null;
 }
-function setSgSave(data) { localStorage.setItem(SG_SAVE_KEY, JSON.stringify(data)); }
+// setSgSave: ステージ対応（全既存コードがそのまま使える）
+function setSgSave(data) {
+  if (sgStage === 2) { localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(data)); return; }
+  localStorage.setItem(SG_SAVE_KEY, JSON.stringify(data));
+}
 
+function _ensureSgInitV2() {
+  let raw = localStorage.getItem(SG_SAVE_KEY_V2);
+  if (!raw) {
+    // グリンピースはステージ1から引き継ぐ
+    let initPeas = 0;
+    try { const s1 = JSON.parse(localStorage.getItem(SG_SAVE_KEY)||'{}'); initPeas = s1.peas || 0; }
+    catch(e) {}
+    const save = {
+      peas: initPeas, pos: 0, maxPos: 0,
+      skipNext: false, cleared: false,
+      balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
+      boss50Cleared: false, boss100Cleared: false, boss150Cleared: false,
+    };
+    localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
+    return save;
+  }
+  const save = JSON.parse(raw);
+  // 移行
+  ['boss50Cleared','boss100Cleared','boss150Cleared'].forEach(k => {
+    if (save[k] === undefined) { save[k] = false; localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save)); }
+  });
+  return save;
+}
+
+// ensureSgInit: ステージ対応（全既存コードがそのまま使える）
 function ensureSgInit() {
+  if (sgStage === 2) return _ensureSgInitV2();
   let save = getSgSave();
   if (!save) {
     let init = 0;
@@ -108,17 +224,17 @@ function ensureSgInit() {
       skipNext: false, cleared: false, touchedGoal: false,
       balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
     };
-    setSgSave(save);
+    localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save));
+    return save;
   }
   // 旧データ移行
-  if (!save.balls)       { save.balls = { red:0, blue:0, yellow:0, green:0, purple:0 }; setSgSave(save); }
-  if (save.touchedGoal  === undefined) { save.touchedGoal  = false; setSgSave(save); }
-  if (save.gate85Active === undefined) { save.gate85Active = false; setSgSave(save); }
-  if (save.gate90Active === undefined) { save.gate90Active = false; setSgSave(save); }
-  // passedGate1 移行：マス81以降にいた or touchedGoal なら門1通過済みとみなす
+  if (!save.balls)       { save.balls = { red:0, blue:0, yellow:0, green:0, purple:0 }; localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save)); }
+  if (save.touchedGoal  === undefined) { save.touchedGoal  = false; localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save)); }
+  if (save.gate85Active === undefined) { save.gate85Active = false; localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save)); }
+  if (save.gate90Active === undefined) { save.gate90Active = false; localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save)); }
   if (save.passedGate1  === undefined) {
     save.passedGate1 = (save.pos >= 81) || (save.touchedGoal || false);
-    setSgSave(save);
+    localStorage.setItem(SG_SAVE_KEY, JSON.stringify(save));
   }
   return save;
 }
@@ -138,7 +254,7 @@ function spendSgPeas(n) {
 }
 function moveSgTo(rawPos) {
   const save = ensureSgInit();
-  save.pos = Math.max(0, Math.min(100, rawPos));
+  save.pos = Math.max(0, Math.min(sgCurrentMax(), rawPos));
   if (save.pos > save.maxPos) save.maxPos = save.pos;
   setSgSave(save);
 }
@@ -166,6 +282,171 @@ function getSgCharIcon() {
   if (total >= 3) return '🤺';
   if (total >= 1) return '🗡️🧒';
   return '🧒';
+}
+
+// ===== ⚔️ ボス問題バンク（中3 展開と因数分解）=====
+const SG_BOSS_QUESTIONS = {
+  // ボス1（マス50）：展開
+  1: [
+    { q:'(x+3)(x+2) を展開すると？',   choices:['x²+5x+6','x²+6x+6','x²+5x+5','x²+6x+5'],    ans:0 },
+    { q:'(x+5)² を展開すると？',        choices:['x²+5x+25','x²+25x+10','x²+10x+25','x²+10x+5'], ans:2 },
+    { q:'(x−3)² を展開すると？',        choices:['x²+6x+9','x²−6x−9','x²−3x+9','x²−6x+9'],   ans:3 },
+    { q:'(x+4)(x−4) を展開すると？',   choices:['x²−8','x²+16','x²−4','x²−16'],             ans:3 },
+    { q:'(x−4)(x+1) を展開すると？',   choices:['x²+3x−4','x²−3x−4','x²−3x+4','x²−5x−4'],  ans:1 },
+    { q:'(x+6)(x−2) を展開すると？',   choices:['x²+4x−12','x²−4x−12','x²+4x+12','x²−4x+12'], ans:0 },
+    { q:'(x+7)(x+1) を展開すると？',   choices:['x²+7x+7','x²+8x+8','x²+8x+7','x²+7x+8'],   ans:2 },
+    { q:'(x−2)(x−5) を展開すると？',   choices:['x²+7x+10','x²−7x−10','x²+7x−10','x²−7x+10'], ans:3 },
+  ],
+  // ボス2（マス100）：因数分解
+  2: [
+    { q:'x²+7x+12 を因数分解すると？', choices:['(x+2)(x+6)','(x+3)(x+4)','(x+1)(x+12)','(x+3)(x+5)'], ans:1 },
+    { q:'x²−9 を因数分解すると？',     choices:['(x−3)²','(x+3)²','(x+3)(x−3)','(x−9)(x+1)'],        ans:2 },
+    { q:'x²+6x+9 を因数分解すると？', choices:['(x+3)²','(x+3)(x−3)','(x−3)²','(x+9)(x+1)'],          ans:0 },
+    { q:'x²−5x+6 を因数分解すると？', choices:['(x+2)(x−3)','(x−1)(x−6)','(x−2)(x+3)','(x−2)(x−3)'],  ans:3 },
+    { q:'x²+4x−12 を因数分解すると？',choices:['(x+6)(x−2)','(x−6)(x+2)','(x+4)(x−3)','(x−4)(x+3)'],  ans:0 },
+    { q:'x²−4x+4 を因数分解すると？', choices:['(x+2)²','(x−2)(x+2)','(x−2)²','(x−4)(x+1)'],          ans:2 },
+    { q:'x²+3x−10 を因数分解すると？',choices:['(x+5)(x−2)','(x−5)(x+2)','(x+3)(x−4)','(x+2)(x+5)'],  ans:0 },
+    { q:'x²−16 を因数分解すると？',   choices:['(x−4)²','(x+4)²','(x−16)(x+1)','(x+4)(x−4)'],          ans:3 },
+  ],
+  // ボス3（マス150）：展開・因数分解 混合
+  3: [
+    { q:'x²−8x+15 を因数分解すると？',  choices:['(x−3)(x+5)','(x+3)(x−5)','(x−3)(x−5)','(x−1)(x−15)'], ans:2 },
+    { q:'(2x+3)(2x−3) を展開すると？', choices:['4x²+9','4x²−9','2x²−9','4x²−12x−9'],                    ans:1 },
+    { q:'x²−2x−15 を因数分解すると？', choices:['(x+3)(x−5)','(x−3)(x+5)','(x−3)(x−5)','(x+5)(x+3)'],   ans:0 },
+    { q:'x²+4x+4 を因数分解すると？',  choices:['(x+4)²','(x+2)(x−2)','(x+2)²','(x+4)(x+1)'],            ans:2 },
+    { q:'x²−x−6 を因数分解すると？',   choices:['(x+2)(x−3)','(x−2)(x+3)','(x+3)(x−2)','(x−1)(x+6)'],   ans:1 },
+    { q:'(x+3)² を展開すると？',        choices:['x²+3x+9','x²+9x+6','x²+6x+9','x²+6x+6'],                ans:2 },
+    { q:'x²+5x−14 を因数分解すると？', choices:['(x+7)(x−2)','(x−7)(x+2)','(x+5)(x−3)','(x+2)(x+7)'],   ans:0 },
+    { q:'(x−5)(x+5) を展開すると？',   choices:['x²+25','x²−5x−25','x²+5x−25','x²−25'],                  ans:3 },
+  ],
+};
+
+// ===== ⚔️ ボスバトル 状態変数 =====
+let sgBossSquare    = null;  // 50 | 100 | 150
+let sgBossQList     = [];    // 今回の5問
+let sgBossQIndex    = 0;     // 現在の問題番号（0-4）
+let sgBossAllPassed = true;  // 全問正解フラグ
+let sgBossTimer     = null;  // setInterval ID
+let sgBossTimeLeft  = 5;     // 残り秒数
+let sgBossAnswered  = false; // 現問題を回答済みか
+
+// ===== ⚔️ ボスバトル 関数 =====
+function sgStartBoss(pos) {
+  sgBossSquare = pos;
+  const tier = pos === 50 ? 1 : pos === 100 ? 2 : 3;
+  const pool  = [...SG_BOSS_QUESTIONS[tier]].sort(() => Math.random() - 0.5);
+  sgBossQList = pool.slice(0, 5);
+  sgBossQIndex = 0; sgBossAllPassed = true;
+  sgPhase = 'boss';
+  renderSugoroku();
+  sgBossShowQuestion();
+}
+function sgBossShowQuestion() {
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
+  sgBossTimeLeft = 5; sgBossAnswered = false;
+  document.getElementById('sg-boss-overlay')?.remove();
+  const q   = sgBossQList[sgBossQIndex];
+  const cur = sgBossQIndex + 1;
+  const tot = sgBossQList.length;
+  const ov  = document.createElement('div');
+  ov.id = 'sg-boss-overlay'; ov.className = 'sg-boss-overlay';
+  ov.innerHTML = _sgBossQHtml(q, cur, tot, sgBossTimeLeft);
+  document.body.appendChild(ov);
+  sgBossTimer = setInterval(() => {
+    sgBossTimeLeft--;
+    const te = document.getElementById('sg-boss-timer');     if (te) te.textContent = sgBossTimeLeft;
+    const be = document.getElementById('sg-boss-tbar');
+    if (be) be.style.width = `${(sgBossTimeLeft / 5) * 100}%`;
+    if (sgBossTimeLeft <= 0 && !sgBossAnswered) {
+      clearInterval(sgBossTimer); sgBossTimer = null;
+      sgBossOnAnswer(false, null);
+    }
+  }, 1000);
+}
+function _sgBossQHtml(q, cur, tot, t) {
+  const choices = q.choices.map((c, i) =>
+    `<button class="sg-boss-choice" onclick="sgBossAnswer(${i})">${['Ａ','Ｂ','Ｃ','Ｄ'][i]}. ${c}</button>`
+  ).join('');
+  return `
+    <div class="sg-boss-hd">
+      <span class="sg-boss-tag">⚔️ ボス${sgBossSquare}</span>
+      <span class="sg-boss-prog">${cur} / ${tot} 問</span>
+      <span class="sg-boss-tc">⏱ <span id="sg-boss-timer">${t}</span>秒</span>
+    </div>
+    <div class="sg-boss-tbar-wrap"><div id="sg-boss-tbar" class="sg-boss-tbar" style="width:100%"></div></div>
+    <div class="sg-boss-q">${q.q}</div>
+    <div class="sg-boss-choices">${choices}</div>
+  `;
+}
+function sgBossAnswer(idx) {
+  if (sgBossAnswered) return;
+  sgBossAnswered = true;
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
+  sgBossOnAnswer(idx === sgBossQList[sgBossQIndex].ans, idx);
+}
+function sgBossOnAnswer(correct, selectedIdx) {
+  const q  = sgBossQList[sgBossQIndex];
+  const ov = document.getElementById('sg-boss-overlay');
+  if (!ov) return;
+  const btns = ov.querySelectorAll('.sg-boss-choice');
+  btns.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.ans) b.classList.add('sg-boss-correct');
+    else if (selectedIdx !== null && i === selectedIdx) b.classList.add('sg-boss-wrong');
+  });
+  if (correct) {
+    setTimeout(() => {
+      sgBossQIndex++;
+      if (sgBossQIndex >= sgBossQList.length) sgBossSuccess();
+      else sgBossShowQuestion();
+    }, 700);
+  } else {
+    const msg = document.createElement('div');
+    msg.className = 'sg-boss-fail-msg';
+    msg.textContent = selectedIdx === null ? '⏰ 時間切れ！' : '❌ 不正解…';
+    ov.appendChild(msg);
+    setTimeout(sgBossFail, 1500);
+  }
+}
+function sgBossSuccess() {
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
+  document.getElementById('sg-boss-overlay')?.remove();
+  const save = ensureSgInit();
+  save[`boss${sgBossSquare}Cleared`] = true;
+  setSgSave(save);
+  if (sgBossSquare === 150) {
+    if (hasAllBalls()) {
+      save.cleared = true; save.peas += 50; setSgSave(save);
+      showSpaceOv('🏆','ステージ2クリア！','5色球コンプリート！\n🌱×50プレゼント！', 3500, () => {
+        sgMsg='🏆 ステージ2クリア！おめでとう！🌱×50ゲット！'; sgMsgType='good';
+        sgBossSquare=null; sgPhase='idle'; renderSugoroku();
+      });
+    } else {
+      showSpaceOv('⚔️','ボスクリア！','ゴール地点到達！\nでも球がまだ揃っていない…', 2500, () => {
+        sgMsg='⚔️ ボスクリア！球を5色集めて再度ゴールへ！'; sgMsgType='info';
+        sgBossSquare=null; sgPhase='idle'; renderSugoroku();
+      });
+    }
+  } else {
+    showSpaceOv('⚔️','ボスクリア！！','先へ進め！', 2000, () => {
+      sgMsg=`⚔️ ボス${sgBossSquare}クリア！先へ進もう！`; sgMsgType='good';
+      sgBossSquare=null; sgPhase='idle'; renderSugoroku();
+    });
+  }
+}
+function sgBossFail() {
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
+  document.getElementById('sg-boss-overlay')?.remove();
+  sgBossSquare = sgBossSquare; // keep position
+  sgPhase = 'bossWait';
+  sgMsg = `⚔️ ボス失敗…🌱×10で再挑戦できます`; sgMsgType = 'bad';
+  renderSugoroku();
+}
+function sgBossRetry() {
+  const sv = ensureSgInit();
+  if (sv.peas < 10) return;
+  spendSgPeas(10);
+  sgStartBoss(sgBossSquare);
 }
 
 // ===== モンスター問題バンク（式の乗法・除法）=====
@@ -309,20 +590,24 @@ function sgDropBallClose() {
 
 // ===== リセット =====
 function sgReset() {
-  if (!confirm('データをリセットして最初からやり直しますか？\n（グリンピース・球・進捗がすべて消えます）')) return;
-  // 表示中のオーバーレイを消す
+  const label = sgStage === 2 ? 'ステージ2のデータ' : 'データ';
+  if (!confirm(`${label}をリセットして最初からやり直しますか？\n（グリンピース・球・進捗がすべて消えます）`)) return;
   document.getElementById('sg-dice-overlay')?.remove();
   document.getElementById('sg-dig-overlay')?.remove();
-  // セーブデータ削除
-  localStorage.removeItem(SG_SAVE_KEY);
-  // 状態変数リセット
-  sgPhase = 'idle';
-  sgMsg = ''; sgMsgType = 'info';
+  document.getElementById('sg-boss-overlay')?.remove();
+  if (sgStage === 2) {
+    localStorage.removeItem(SG_SAVE_KEY_V2);
+  } else {
+    localStorage.removeItem(SG_SAVE_KEY);
+  }
+  sgPhase = 'idle'; sgMsg = ''; sgMsgType = 'info';
   sgDiceVal = null; sgPendingRoll = null;
   sgFreeRoll = false; sgBonusDir = null;
   sgDigSpaceNum = null; sgDigResult = null; sgDigBallColor = null;
   sgExchangeGive = null;
   sgStarActive = false; sgStarExchangeGive = null;
+  sgBossSquare = null; sgBossQList = []; sgBossQIndex = 0;
+  if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
   sgDisplayPos = null; sgIsAnimating = false;
   renderSugoroku();
 }
@@ -351,7 +636,7 @@ let sgIsAnimating = false;
 // ===== サイコロを振る =====
 function sgRoll() {
   const save = ensureSgInit();
-  if (save.cleared || sgPhase !== 'idle' || sgIsAnimating) return;
+  if (save.cleared || sgPhase !== 'idle' || sgPhase === 'bossWait' || sgIsAnimating) return;
   sgStarActive = false; sgStarExchangeGive = null;  // ⭐メニューを閉じる
 
   // 1回休み中：🌱×10で解除＋そのままロール（合計10個）
@@ -450,14 +735,15 @@ function startSgDiceAnimation(label, onComplete) {
 
 // ===== ③ 一歩ずつ移動パス =====
 function sgBuildMovePath(fromPos, roll) {
+  const maxPos = sgCurrentMax();
   const target = fromPos + roll;
   const path = [];
-  if (target <= 100) {
+  if (target <= maxPos) {
     for (let p = fromPos + 1; p <= target; p++) path.push(p);
   } else {
-    for (let p = fromPos + 1; p <= 100; p++) path.push(p);
-    const over = target - 100;
-    for (let p = 99; p >= 100 - over; p--) path.push(p);
+    for (let p = fromPos + 1; p <= maxPos; p++) path.push(p);
+    const over = target - maxPos;
+    for (let p = maxPos - 1; p >= maxPos - over; p--) path.push(p);
   }
   return path;
 }
@@ -515,51 +801,73 @@ function sgTrimPathAtGate(fromPos, path) {
 function sgExecuteRoll(roll) {
   const save   = ensureSgInit();
   const oldPos = save.pos;
+  const maxPos = sgCurrentMax();
   let   newPos = oldPos + roll;
   let   bounced = false;
   let   willTouchGoal = false;
 
-  // ⑤ ゴールはピッタリ：オーバーしたら折り返し
-  if (newPos > 100) {
+  // ゴールはピッタリ：オーバーしたら折り返し
+  if (newPos > maxPos) {
     bounced = true;
-    newPos  = 100 - (newPos - 100);
+    newPos  = maxPos - (newPos - maxPos);
     willTouchGoal = true;
-  } else if (newPos === 100) {
+  } else if (newPos === maxPos) {
     willTouchGoal = true;
   }
 
-  // ② 門チェック（前進パスのみ対象）
   const rawPath = sgBuildMovePath(oldPos, roll);
-  const gateResult = sgTrimPathAtGate(oldPos, rawPath);
-  if (gateResult.blocked) {
-    sgAnimateAlongPath(gateResult.path, () => {
-      moveSgTo(gateResult.stopAt);
-      sgMsg = gateResult.msg; sgMsgType = 'bad'; sgPhase = 'idle';
-      renderSugoroku();
-    });
-    return;
+
+  // ★ ステージ2：ボスブロック（未クリアのボスマスを越えられない）
+  if (sgStage === 2) {
+    for (const bp of [50, 100, 150]) {
+      if (!save[`boss${bp}Cleared`] && oldPos < bp && (newPos >= bp || (bounced && bp === maxPos))) {
+        const bPath = [];
+        for (let p = oldPos + 1; p <= bp; p++) bPath.push(p);
+        sgAnimateAlongPath(bPath, () => {
+          moveSgTo(bp);
+          applySpaceEffect(bp, () => renderSugoroku());
+        });
+        return;
+      }
+    }
+  }
+
+  // ステージ1：門チェック
+  if (sgStage === 1) {
+    const gateResult = sgTrimPathAtGate(oldPos, rawPath);
+    if (gateResult.blocked) {
+      sgAnimateAlongPath(gateResult.path, () => {
+        moveSgTo(gateResult.stopAt);
+        sgMsg = gateResult.msg; sgMsgType = 'bad'; sgPhase = 'idle';
+        renderSugoroku();
+      });
+      return;
+    }
   }
 
   // touchedGoal を保存
   if (willTouchGoal) {
     const s = ensureSgInit(); s.touchedGoal = true; setSgSave(s);
   }
-  // passedGate1 チェック（門1を初めて突破）
-  const crossingGate1 = oldPos <= 80 && newPos >= 81;
+
+  // passedGate1 チェック（ステージ1のみ）
+  const crossingGate1 = sgStage === 1 && oldPos <= 80 && newPos >= 81;
 
   sgAnimateAlongPath(rawPath, () => {
     moveSgTo(newPos);
 
-    // 門1初突破を記録
     if (crossingGate1) {
       const s = ensureSgInit();
       if (!s.passedGate1) { s.passedGate1 = true; setSgSave(s); }
     }
 
-    if (newPos === 100 && !bounced) {
+    // ステージ1ゴール（ステージ2は applySpaceEffect の 'boss' ケースで処理）
+    if (sgStage === 1 && newPos === maxPos && !bounced) {
       if (hasAllBalls()) {
-        const s = ensureSgInit(); s.cleared = true; setSgSave(s);
-        sgMsg = `🎲 ${roll} が出た！ 🏆 ゴール！おめでとう！！`;
+        const s = ensureSgInit(); s.cleared = true;
+        if (!s.stage1BonusPaid) { s.peas += 30; s.stage1BonusPaid = true; }
+        setSgSave(s);
+        sgMsg = `🎲 ${roll} が出た！ 🏆 ゴール！おめでとう！🌱×30ゲット！`;
         sgMsgType = 'good'; sgPhase = 'idle';
       } else {
         sgMsg = `🎲 ${roll} が出た！ ゴール到着！でも球が揃っていない…まず球を集めよう！`;
@@ -585,11 +893,12 @@ function sgBonusRoll() {
     sgDiceVal = roll;
     const save = ensureSgInit();
     const old  = save.pos;
+    const maxPos = sgCurrentMax();
     let dest, path;
     if (sgBonusDir === 'forward') {
       const target = old + roll;
-      if (target > 100) {
-        dest = 100 - (target - 100);
+      if (target > maxPos) {
+        dest = maxPos - (target - maxPos);
         const s = ensureSgInit(); s.touchedGoal = true; setSgSave(s);
       } else {
         dest = target;
@@ -624,8 +933,9 @@ function applySpaceEffect(pos, onDone) {
     case 'forward': {
       const n = space.param||1;
       let dest = pos + n;
+      const maxP = sgCurrentMax();
       const s = ensureSgInit();
-      if (dest > 100) { s.touchedGoal=true; setSgSave(s); dest = 100-(dest-100); }
+      if (dest > maxP) { s.touchedGoal=true; setSgSave(s); dest = maxP-(dest-maxP); }
       const fwdPath = sgBuildMovePath(pos, n);
       // ① 全画面表示してからアニメーション → ② 着地先の効果も発動
       showSpaceOv('⬆', `さらに${n}マス進む！`, `マス${pos} → マス${dest}`, 1200, () => {
@@ -723,16 +1033,32 @@ function applySpaceEffect(pos, onDone) {
 
     case 'goal':
       if (hasAllBalls()) {
-        const s=ensureSgInit(); s.cleared=true; setSgSave(s);
-        showSpaceOv('🏆', 'ゴール！おめでとう！', '5色の球を集めてクリア！', 2500, () => {
-          sgMsg='🏆 ゴール！おめでとう！！'; sgMsgType='good'; onDone();
+        const s=ensureSgInit(); s.cleared=true;
+        if (!s.stage1BonusPaid) { s.peas+=30; s.stage1BonusPaid=true; }
+        setSgSave(s);
+        showSpaceOv('🏆','ゴール！おめでとう！','5色球コンプリート！🌱×30ゲット！', 3000, () => {
+          sgMsg='🏆 ゴール！おめでとう！🌱×30もらった！'; sgMsgType='good'; onDone();
         });
       } else {
-        showSpaceOv('🏆', 'ゴールに到着！', 'でも球が揃っていない…\nまず球を5色集めよう！', 2000, () => {
+        showSpaceOv('🏆','ゴールに到着！','でも球が揃っていない…\nまず球を5色集めよう！', 2000, () => {
           sgMsg='ゴール！でも球が揃っていない…'; sgMsgType='info'; onDone();
         });
       }
       break;
+
+    case 'boss': {
+      const sv = ensureSgInit();
+      if (!sv[`boss${pos}Cleared`]) {
+        showSpaceOv('⚔️', `ボス${pos}登場！`, '5問全問正解で突破！\n1問でも間違えたら失敗…', 2000, () => {
+          sgStartBoss(pos);
+          onDone();
+        });
+      } else {
+        // 既クリアのボスは素通り
+        sgMsg = `マス${pos}に到着。（ボスはクリア済み）`; sgMsgType='info'; onDone();
+      }
+      break;
+    }
 
     default:
       sgMsg=`マス${pos}に到着。`; sgMsgType='info'; onDone(); break;
@@ -892,6 +1218,15 @@ function sgStarSkipExchange() {
 
 // ===== レンダー =====
 function renderSugoroku() {
+  // ステージ1クリア遡及ボーナス（更新後初回のみ）
+  if (sgStage === 1) {
+    const _sv = ensureSgInit();
+    if (_sv.cleared && _sv.stage1BonusPaid === undefined) {
+      _sv.peas += 30; _sv.stage1BonusPaid = true; setSgSave(_sv);
+      setTimeout(() => showSpaceOv('🌱','クリアボーナス！','ステージ1クリアおめでとう！\n🌱×30プレゼント！', 2500, ()=>{}), 400);
+    }
+  }
+
   const save      = ensureSgInit();
   const peas      = save.peas;
   const diceCount = Math.floor(peas/10);
@@ -899,6 +1234,15 @@ function renderSugoroku() {
   const balls     = save.balls;
   const allBalls  = hasAllBalls();
   const charIcon  = getSgCharIcon();
+  const maxPos    = sgCurrentMax();
+
+  // ステージ切替バー
+  const s1cleared = sgIsStage1Cleared();
+  const stageBar  = s1cleared ? `
+    <div class="sg-stage-bar">
+      <button class="sg-stage-btn${sgStage===1?' sg-stage-active':''}" onclick="sgGoToStage1()">📌 ステージ1</button>
+      <button class="sg-stage-btn${sgStage===2?' sg-stage-active':''}" onclick="sgEnterStage2()">⚔️ ステージ2</button>
+    </div>` : '';
 
   // 球バー
   const ballsHtml = BALL_COLORS.map(c => {
@@ -918,12 +1262,12 @@ function renderSugoroku() {
   const html = `
     <button class="back-btn" onclick="navigate('home')">← 章一覧に戻る</button>
     <div class="sg-wrap">
-
+      ${stageBar}
       <div class="sg-sticky-top">
         <div class="sg-status-bar">
           <div class="sg-status-item"><span>🌱</span><strong>${peas}</strong><small>個</small></div>
           <div class="sg-status-item"><span>🎲</span><strong>${diceCount}</strong><small>回</small></div>
-          <div class="sg-status-item"><span>📍</span><strong>${pos}</strong><small>/ 100</small></div>
+          <div class="sg-status-item"><span>📍</span><strong>${pos}</strong><small>/ ${maxPos}</small></div>
           <div class="sg-status-item sg-status-char"><span>${charIcon}</span></div>
           <button class="sg-reset-btn" onclick="sgReset()">🔄 最初から</button>
         </div>
@@ -953,6 +1297,7 @@ function renderSugoroku() {
             {t:'dropBall',       i:'💀',  l:'球落とし'},
             {t:'dig',            i:'⛏',  l:'穴掘り'},
             {t:'exchange',       i:'🔄',  l:'交換所'},
+            {t:'boss',           i:'⚔️',  l:'ボス関門'},
             {t:'gate_spawn',     i:'🚪',  l:'門出現'},
             {t:'goal',           i:'🏆',  l:'ゴール'},
           ].map(({t,i,l})=>`
@@ -975,10 +1320,16 @@ function renderSugoroku() {
 // ===== アクションエリア =====
 function renderSgActionArea(save) {
   if (save.cleared)
-    return `<div class="sg-cleared-msg">🏆 ゴール達成！5色コンプリート！おめでとう！</div>`;
+    return sgStage === 2
+      ? `<div class="sg-cleared-msg">🏆 ステージ2クリア！完全制覇！おめでとう！</div>`
+      : `<div class="sg-cleared-msg">🏆 ゴール達成！5色コンプリート！おめでとう！<br><small>ステージ2も挑戦しよう！⚔️</small></div>`;
 
   switch (sgPhase) {
     case 'idle': {
+      // ⭐ ページリロード後もスターマスにいる場合は復元
+      if (SUGOROKU_SPACES[save.pos] && SUGOROKU_SPACES[save.pos].type === 'star') {
+        sgStarActive = true;
+      }
       const free = sgFreeRoll;
       const skip = save.skipNext;
       const can  = !skip && (free || save.peas>=10);
@@ -1103,6 +1454,24 @@ function renderSgActionArea(save) {
                 onclick="sgBonusRoll()">🎲 振る！</button>
       </div>`;
 
+    case 'boss':
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">⚔️ ボス挑戦中…</div>
+        <div style="text-align:center;color:#888;font-size:13px;">画面上の問題に答えてください</div>
+      </div>`;
+
+    case 'bossWait': {
+      const sv = ensureSgInit();
+      const canR = sv.peas >= 10;
+      return `<div class="sg-sub-panel">
+        <div class="sg-sub-title">⚔️ ボス失敗…</div>
+        <div class="sg-boss-wait-info">🌱×10で再挑戦できます（現在: 🌱×${sv.peas}）</div>
+        ${canR
+          ? `<button class="sg-boss-retry-btn" onclick="sgBossRetry()">🌱×10 再挑戦する</button>`
+          : `<button class="sg-boss-retry-btn sg-roll-disabled" disabled>🌱が足りない（10個必要）</button>`}
+      </div>`;
+    }
+
     default: return '';
   }
 }
@@ -1110,23 +1479,29 @@ function renderSgActionArea(save) {
 // ===== ボードグリッド（①左上スタート）=====
 function renderSgBoardGrid(currentPos) {
   let html = '';
-  const digMode  = (sgPhase==='digAnySelect');
-  const sgSv     = ensureSgInit();   // キャッシュ（ループ内で毎回読まない）
-  const allOK    = hasAllBalls();
-  // アクティブな門の「通行不可セル番号」
-  const gateCells = new Set([81]);
-  if (sgSv.gate85Active) gateCells.add(86);
-  if (sgSv.gate90Active) gateCells.add(91);
+  const digMode   = (sgPhase==='digAnySelect');
+  const sgSv      = ensureSgInit();
+  const allOK     = hasAllBalls();
+  const spaces    = sgCurrentSpaces();
+  const maxPos    = sgCurrentMax();
+  const totalRows = maxPos / 10;
 
-  for (let r=0; r<10; r++) {
-    // ①左上スタート：r=0 上段（偶数=LTR）、スペース番号 = r*10+posInRow+1
+  // アクティブな門の「通行不可セル番号」（ステージ1のみ）
+  const gateCells = new Set();
+  if (sgStage === 1) {
+    gateCells.add(81);
+    if (sgSv.gate85Active) gateCells.add(86);
+    if (sgSv.gate90Active) gateCells.add(91);
+  }
+
+  for (let r=0; r<totalRows; r++) {
     const isOdd = (r%2!==0);
     html += `<div class="sg-path-row">`;
 
     for (let c=0; c<10; c++) {
       const posInRow = isOdd?(9-c):c;
       const spaceNum = r*10+posInRow+1;
-      const space    = SUGOROKU_SPACES[spaceNum];
+      const space    = spaces[spaceNum];
       const isHere   = (currentPos===spaceNum);
       const w        = SG_WARM[space.type]||SG_WARM.normal;
 
@@ -1135,11 +1510,11 @@ function renderSgBoardGrid(currentPos) {
 
       let icon='', label='', numStr='';
       if (!isHere) {
-        if      (isGateBlocked)  { icon='🚪'; label='門'; }
-        else if (spaceNum===1)   { icon='🚩'; label='S'; }
-        else if (spaceNum===100) { icon='🏆'; label='GOAL'; }
+        if      (isGateBlocked)         { icon='🚪'; label='門'; }
+        else if (spaceNum===1)          { icon='🚩'; label='S'; }
+        else if (spaceNum===maxPos)     { icon= sgStage===2?'⚔️':'🏆'; label='GOAL'; }
         else {
-          numStr = String(spaceNum);  // 全マスに番号を表示
+          numStr = String(spaceNum);
           switch(space.type){
             case 'forward':        icon='⬆'; label=`+${space.param}`; break;
             case 'rollAndForward': icon='🎲'; label='⬆'; break;
@@ -1154,7 +1529,8 @@ function renderSgBoardGrid(currentPos) {
             case 'exchange':       icon='🔄'; break;
             case 'gate_spawn':     icon='🚪'; break;
             case 'star':           icon='⭐'; break;
-            default: break;  // normal: numStr のみ
+            case 'boss':           icon='⚔️'; label='BOSS'; break;
+            default: break;
           }
         }
       }
@@ -1177,7 +1553,7 @@ function renderSgBoardGrid(currentPos) {
     }
 
     html += `</div>`;
-    if (r<9) {
+    if (r < totalRows - 1) {
       const side=(r%2===0)?'right':'left';
       html += `<div class="sg-conn-wrap sg-conn-${side}"><div class="sg-conn-seg"></div></div>`;
     }
@@ -1191,6 +1567,7 @@ function sgTypeName(type) {
     normal:'普通', forward:'進む', rollAndForward:'振って進む',
     back:'戻る', rollAndBack:'振って戻る', again:'もう一度',
     rest:'1回休み', treasure:'お宝', warp:'ワープ',
-    monster:'モンスター', dig:'穴掘り', exchange:'交換所', star:'ラッキースター', goal:'ゴール', gate_spawn:'門出現マス',
+    monster:'モンスター', dig:'穴掘り', exchange:'交換所', star:'ラッキースター',
+    boss:'ボス関門', goal:'ゴール', gate_spawn:'門出現マス',
   }[type] || type;
 }

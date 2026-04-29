@@ -3716,3 +3716,103 @@ body {
 .cmg-rank-name  { flex: 1; font-size: 1rem; font-weight: 800; text-align: left; }
 .cmg-rank-count { font-size: 0.75rem; color: #9ab; white-space: nowrap; }
 .cmg-rank-score { font-size: 0.9rem; color: #9ab; white-space: nowrap; }
+
+/* =====================================================
+   すごろく ステージ2 追加スタイル
+   ===================================================== */
+
+/* ステージ切替バー */
+.sg-stage-bar {
+  display: flex; gap: 8px; justify-content: center;
+  padding: 8px 12px 4px; background: #1a1a2e;
+}
+.sg-stage-btn {
+  flex: 1; max-width: 160px;
+  padding: 7px 12px; border-radius: 20px; border: 2px solid #555;
+  background: #2a2a3e; color: #aaa; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.sg-stage-btn:hover { border-color: #888; color: #ddd; }
+.sg-stage-btn.sg-stage-active {
+  background: linear-gradient(135deg,#3a1a6a,#6030c0);
+  border-color: #9b30ff; color: #fff;
+}
+
+/* ボスマス色 */
+.sg-cell[style*="background:#2d0a4a"] { color: #ddb6ff !important; }
+
+/* ⚔️ ボスバトル オーバーレイ */
+.sg-boss-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(0,0,0,0.88);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 16px; gap: 10px;
+  animation: sgBossIn .25s ease;
+}
+@keyframes sgBossIn { from { opacity:0; transform:scale(.93); } to { opacity:1; transform:scale(1); } }
+
+.sg-boss-hd {
+  display: flex; align-items: center; gap: 10px; width: 100%; max-width: 480px;
+}
+.sg-boss-tag {
+  background: linear-gradient(135deg,#4a0080,#9b30ff);
+  color: #fff; font-size: 0.9rem; font-weight: 800;
+  padding: 4px 12px; border-radius: 14px;
+}
+.sg-boss-prog { flex: 1; text-align: center; color: #bbb; font-size: 0.85rem; font-weight: 700; }
+.sg-boss-tc   { color: #f5c542; font-size: 1rem; font-weight: 800; min-width: 56px; text-align: right; }
+
+.sg-boss-tbar-wrap {
+  width: 100%; max-width: 480px; height: 8px;
+  background: #333; border-radius: 4px; overflow: hidden;
+}
+.sg-boss-tbar {
+  height: 100%; background: linear-gradient(90deg,#f5c542,#ff6b35);
+  border-radius: 4px; transition: width 1s linear;
+}
+
+.sg-boss-q {
+  width: 100%; max-width: 480px;
+  background: #1e1e30; border: 2px solid #9b30ff; border-radius: 14px;
+  color: #fff; font-size: 1.05rem; font-weight: 700;
+  padding: 14px 16px; text-align: center; line-height: 1.5;
+}
+
+.sg-boss-choices {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; width: 100%; max-width: 480px;
+}
+.sg-boss-choice {
+  padding: 12px 10px; border-radius: 12px;
+  background: #2a2a40; border: 2px solid #555; color: #ddd;
+  font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  transition: all .15s; text-align: left; line-height: 1.3;
+}
+.sg-boss-choice:hover:not(:disabled) { background: #3a3a55; border-color: #9b30ff; color: #fff; }
+.sg-boss-choice:disabled { cursor: default; opacity: .75; }
+.sg-boss-choice.sg-boss-correct { background: #1a4a20; border-color: #4caf50; color: #8fff90; }
+.sg-boss-choice.sg-boss-wrong   { background: #4a1a1a; border-color: #f44336; color: #ff8a80; }
+
+.sg-boss-fail-msg {
+  margin-top: 8px; font-size: 1.3rem; font-weight: 900;
+  color: #ff6b35; animation: sgShake .4s ease;
+}
+@keyframes sgShake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)}
+}
+
+/* bossWait フェーズのアクションエリア */
+.sg-boss-wait-info {
+  text-align: center; color: #e0a040; font-size: 0.9rem;
+  font-weight: 700; margin: 8px 0;
+}
+.sg-boss-retry-btn {
+  display: block; width: 100%; max-width: 320px; margin: 6px auto 0;
+  padding: 12px; border-radius: 14px; border: none;
+  background: linear-gradient(135deg,#4a0080,#9b30ff);
+  color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer;
+}
+.sg-boss-retry-btn:hover { opacity: .85; }
+.sg-boss-retry-btn.sg-roll-disabled {
+  background: #333; color: #666; cursor: default;
+}
