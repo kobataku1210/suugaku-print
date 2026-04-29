@@ -817,17 +817,21 @@ function sgExecuteRoll(roll) {
 
   const rawPath = sgBuildMovePath(oldPos, roll);
 
-  // ★ ステージ2：ボスブロック（未クリアのボスマスを越えられない）
+  // ★ ステージ2：ボスブロック（クリア済みを含む、すべてのボスマスで必ず止まる）
   if (sgStage === 2) {
     for (const bp of [50, 100, 150]) {
-      if (!save[`boss${bp}Cleared`] && oldPos < bp && (newPos >= bp || (bounced && bp === maxPos))) {
-        const bPath = [];
-        for (let p = oldPos + 1; p <= bp; p++) bPath.push(p);
-        sgAnimateAlongPath(bPath, () => {
-          moveSgTo(bp);
-          applySpaceEffect(bp, () => renderSugoroku());
-        });
-        return;
+      if (oldPos < bp && (newPos > bp || (bounced && bp === maxPos) || (newPos === bp))) {
+        if (newPos > bp || (bounced && bp === maxPos)) {
+          // 通り過ぎる場合はボスマスで強制停止
+          const bPath = [];
+          for (let p = oldPos + 1; p <= bp; p++) bPath.push(p);
+          sgAnimateAlongPath(bPath, () => {
+            moveSgTo(bp);
+            applySpaceEffect(bp, () => renderSugoroku());
+          });
+          return;
+        }
+        break; // ちょうどボスマスに止まる場合はそのまま続行
       }
     }
   }
@@ -923,7 +927,7 @@ function sgBonusRoll() {
 function applySpaceEffect(pos, onDone) {
   onDone = onDone || (() => {});
   const save  = ensureSgInit();
-  const space = SUGOROKU_SPACES[pos];
+  const space = sgCurrentSpaces()[pos];
   if (!space) { onDone(); return; }
 
   switch (space.type) {
@@ -1327,7 +1331,7 @@ function renderSgActionArea(save) {
   switch (sgPhase) {
     case 'idle': {
       // ⭐ ページリロード後もスターマスにいる場合は復元
-      if (SUGOROKU_SPACES[save.pos] && SUGOROKU_SPACES[save.pos].type === 'star') {
+      if (sgCurrentSpaces()[save.pos] && sgCurrentSpaces()[save.pos].type === 'star') {
         sgStarActive = true;
       }
       const free = sgFreeRoll;
