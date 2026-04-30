@@ -3816,3 +3816,41 @@ body {
 .sg-boss-retry-btn.sg-roll-disabled {
   background: #333; color: #666; cursor: default;
 }
+
+/* ===== 🚪 関門パネル（gate_v2）===== */
+.sg-gate-panel { border: 2px solid #e6a817; background: #fffbe6; }
+.sg-gate-balls {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin: 8px 0;
+}
+.sg-gate-ball {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 4px 8px; border-radius: 20px; font-size: 0.95rem;
+  font-weight: bold;
+}
+.sg-gate-ball-have {
+  background: #d4f0c8; border: 1px solid #55b040; color: #2a7020;
+}
+.sg-gate-ball-miss {
+  background: #f0e0e0; border: 1px solid #c08080; color: #906060;
+  opacity: 0.6;
+}
+.sg-gate-msg {
+  text-align: center; font-size: 0.88rem; color: #7a5a00;
+  margin: 4px 0 8px;
+}
+.sg-gate-insufficient {
+  color: #b04040; font-weight: bold;
+}
+.sg-gate-open-btn {
+  display: block; width: 100%; max-width: 320px; margin: 0 auto 8px;
+  padding: 12px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #f5a623, #e88b00);
+  color: #fff; font-size: 1rem; font-weight: bold;
+  cursor: pointer; letter-spacing: 0.05em;
+  box-shadow: 0 3px 0 #b06800;
+}
+.sg-gate-open-btn:hover { opacity: 0.88; }
+
+/* gate_v2 マスの凡例ドット */
+.sg-ld-gate_v2 { background: #fff0b3; border: 2px solid #e6a817; }

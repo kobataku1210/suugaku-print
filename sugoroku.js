@@ -19,6 +19,7 @@ function sgGoToStage1() { setSgStage(1); _sgClearPhase(); renderSugoroku(); }
 function _sgClearPhase() {
   sgPhase = 'idle'; sgMsg = ''; sgMsgType = 'info';
   sgStarActive = false; sgStarExchangeGive = null;
+  sgGateV2Pos = null;
   sgBossSquare = null; sgBossQList = []; sgBossQIndex = 0;
   if (sgBossTimer) { clearInterval(sgBossTimer); sgBossTimer = null; }
   document.getElementById('sg-boss-overlay')?.remove();
@@ -139,13 +140,18 @@ const SUGOROKU_SPACES_V2 = (() => {
   // ⭐ ラッキースター
   set(65,'star'); set(132,'star');
 
-  // 🔄 交換所
-  [15,40,60,79,99,113,130,147].forEach(n => set(n,'exchange'));
+  // 🚪 関門（どこでも掘る解放 & 球1個ずつ消費で通過）
+  set(49,  'gate_v2', 1);
+  set(99,  'gate_v2', 2);
+  set(149, 'gate_v2', 3);
 
-  // ⛏ 掘れるマス
-  [2,4,7,11,13,18,21,25,27,31,34,39,41,47,49,51,54,
+  // 🔄 交換所（99 は gate_v2 に変更したので除外）
+  [15,40,60,79,113,130,147].forEach(n => set(n,'exchange'));
+
+  // ⛏ 掘れるマス（49・149 は gate_v2 に変更したので除外）
+  [2,4,7,11,13,18,21,25,27,31,34,39,41,47,51,54,
    61,64,69,71,76,83,86,89,91,94,98,103,106,109,111,
-   114,121,124,134,136,139,141,146,149].forEach(n => set(n,'dig'));
+   114,121,124,134,136,139,141,146].forEach(n => set(n,'dig'));
 
   return sp;
 })();
@@ -165,6 +171,7 @@ const SG_WARM = {
   dig:            { bg:'#f0e0c0', bd:'#806030' },
   exchange:       { bg:'#ffe0f8', bd:'#c040a0' },
   star:           { bg:'#fffacd', bd:'#e6b800' },
+  gate_v2:        { bg:'#fff0b3', bd:'#e6a817' },
   boss:           { bg:'#2d0a4a', bd:'#9b30ff' },
   goal:           { bg:'#ffe860', bd:'#d0a000' },
   gate_spawn:     { bg:'#ffe080', bd:'#c07800' },
@@ -197,6 +204,8 @@ function _ensureSgInitV2() {
       skipNext: false, cleared: false,
       balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
       boss50Cleared: false, boss100Cleared: false, boss150Cleared: false,
+      gate49Opened: false, gate99Opened: false, gate149Opened: false,
+      digAnyActive: false,
     };
     localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
     return save;
@@ -207,6 +216,10 @@ function _ensureSgInitV2() {
   ['boss50Cleared','boss100Cleared','boss150Cleared'].forEach(k => {
     if (save[k] === undefined) { save[k] = false; dirty = true; }
   });
+  ['gate49Opened','gate99Opened','gate149Opened'].forEach(k => {
+    if (save[k] === undefined) { save[k] = false; dirty = true; }
+  });
+  if (save.digAnyActive  === undefined) { save.digAnyActive  = false; dirty = true; }
   if (save.stage2BonusPaid === undefined) { save.stage2BonusPaid = false; dirty = true; }
   if (dirty) localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
   return save;
@@ -324,6 +337,9 @@ const SG_BOSS_QUESTIONS = {
   ],
 };
 
+// ===== 🚪 関門 状態変数 =====
+let sgGateV2Pos = null;  // 49 | 99 | 149
+
 // ===== ⚔️ ボスバトル 状態変数 =====
 let sgBossSquare    = null;  // 50 | 100 | 150
 let sgBossQList     = [];    // 今回の5問
@@ -416,6 +432,7 @@ function sgBossSuccess() {
   document.getElementById('sg-boss-overlay')?.remove();
   const save = ensureSgInit();
   save[`boss${sgBossSquare}Cleared`] = true;
+  save.digAnyActive = false; // ボスクリアでどこでも掘るを無効化
   setSgSave(save);
   if (sgBossSquare === 150) {
     if (hasAllBalls()) {
@@ -447,6 +464,23 @@ function sgBossFail() {
   sgMsg = `⚔️ ボス失敗…🌱×10で再挑戦できます`; sgMsgType = 'bad';
   renderSugoroku();
 }
+// ===== 🚪 関門を開ける =====
+function sgOpenGateV2() {
+  if (sgPhase !== 'gateV2' || !sgGateV2Pos) return;
+  if (!hasAllBalls()) {
+    sgMsg='球が5色揃っていません！'; sgMsgType='bad'; renderSugoroku(); return;
+  }
+  const sv = ensureSgInit();
+  // 各色から1個ずつ消費（複数持っていたら残りは保持）
+  BALL_COLORS.forEach(c => { if ((sv.balls[c]||0) > 0) sv.balls[c]--; });
+  sv[`gate${sgGateV2Pos}Opened`] = true;
+  setSgSave(sv);
+  showSpaceOv('🚪✨','関門が開いた！','球を1個ずつ消費しました！\n先へ進もう！', 2000, () => {
+    sgMsg=`🚪 マス${sgGateV2Pos}の関門を突破！先へ進もう！`; sgMsgType='good';
+    sgGateV2Pos=null; sgPhase='idle'; renderSugoroku();
+  });
+}
+
 function sgBossRetry() {
   const sv = ensureSgInit();
   if (sv.peas < 10) return;
@@ -618,7 +652,7 @@ function sgReset() {
 }
 
 // ===== ゲーム状態 =====
-// idle | rolling | digChoice | digAnySelect | digging | digResult | exchange | bonusRoll | starExchange
+// idle | rolling | digChoice | digAnySelect | digging | digResult | exchange | bonusRoll | starExchange | gateV2
 let sgPhase        = 'idle';
 let sgMsg          = '';
 let sgMsgType      = 'info';
@@ -822,22 +856,35 @@ function sgExecuteRoll(roll) {
 
   const rawPath = sgBuildMovePath(oldPos, roll);
 
-  // ★ ステージ2：ボスブロック（クリア済みを含む、すべてのボスマスで必ず止まる）
+  // ★ ステージ2：関門＋ボスの統合ブロック処理
   if (sgStage === 2) {
-    for (const bp of [50, 100, 150]) {
-      if (oldPos < bp && (newPos > bp || (bounced && bp === maxPos) || (newPos === bp))) {
-        if (newPos > bp || (bounced && bp === maxPos)) {
-          // 通り過ぎる場合はボスマスで強制停止
-          const bPath = [];
-          for (let p = oldPos + 1; p <= bp; p++) bPath.push(p);
-          sgAnimateAlongPath(bPath, () => {
-            moveSgTo(bp);
-            applySpaceEffect(bp, () => renderSugoroku());
-          });
-          return;
-        }
-        break; // ちょうどボスマスに止まる場合はそのまま続行
+    const sv2 = ensureSgInit();
+    const originalDest = oldPos + roll; // バウンス前の到達予定マス
+    // ブロック候補をマス順に並べる（関門は未開放のみ・ボスは常時）
+    const blocks = [
+      { pos: 49,  active: !sv2.gate49Opened  },
+      { pos: 50,  active: true },
+      { pos: 99,  active: !sv2.gate99Opened  },
+      { pos: 100, active: true },
+      { pos: 149, active: !sv2.gate149Opened },
+      { pos: 150, active: true },
+    ].filter(b => b.active && b.pos > oldPos);
+
+    for (const block of blocks) {
+      const bp = block.pos;
+      if (originalDest >= bp) {
+        // ちょうどピッタリ着地（バウンスなし）→ 通常 applySpaceEffect に任せる
+        if (originalDest === bp && !bounced) break;
+        // 通り過ぎ or バウンス → bp で強制停止
+        const bPath = [];
+        for (let p = oldPos + 1; p <= bp; p++) bPath.push(p);
+        sgAnimateAlongPath(bPath, () => {
+          moveSgTo(bp);
+          applySpaceEffect(bp, () => renderSugoroku());
+        });
+        return;
       }
+      break; // このブロックより先には届かない
     }
   }
 
@@ -1055,6 +1102,29 @@ function applySpaceEffect(pos, onDone) {
       }
       break;
 
+    case 'gate_v2': {
+      const sv = ensureSgInit();
+      const gateKey = `gate${pos}Opened`;
+      if (sv[gateKey]) {
+        // 通過済み
+        sgMsg = `マス${pos}に到着。（関門は通過済み）`; sgMsgType = 'info'; onDone();
+        break;
+      }
+      // 初回：どこでも掘るを解放
+      if (!sv.digAnyActive) { sv.digAnyActive = true; setSgSave(sv); }
+      const hasBalls = hasAllBalls();
+      if (hasBalls) {
+        showSpaceOv('🚪', `関門 マス${pos}！`, '5色の球が揃っている！\n球を1個ずつ消費して門を開けよう！', 2500, () => {
+          sgGateV2Pos = pos; sgPhase = 'gateV2'; onDone();
+        });
+      } else {
+        showSpaceOv('🚪', `関門 マス${pos}！`, '5色の球を揃えないと通れない！\n「どこでも掘る」で球を集めよう！\n🌱×10で好きなマスを掘れます', 2800, () => {
+          sgGateV2Pos = pos; sgPhase = 'gateV2'; onDone();
+        });
+      }
+      break;
+    }
+
     case 'boss': {
       const sv = ensureSgInit();
       if (!sv[`boss${pos}Cleared`]) {
@@ -1145,11 +1215,19 @@ function sgTryDig() {
 
 function sgFinishDig() {
   document.getElementById('sg-dig-overlay')?.remove();
-  sgPhase='idle'; sgDigResult=null; sgDigBallColor=null; sgDigSpaceNum=null;
+  sgDigResult=null; sgDigBallColor=null; sgDigSpaceNum=null;
+  // 関門マスにいる場合は gateV2 フェーズに戻す
+  if (sgStage === 2) {
+    const sv = ensureSgInit();
+    const gp = [49,99,149].find(p => p === sv.pos && !sv[`gate${p}Opened`]);
+    if (gp) { sgPhase='gateV2'; sgGateV2Pos=gp; renderSugoroku(); return; }
+  }
+  sgPhase='idle';
   renderSugoroku();
 }
 
 function sgDigAnyMode() {
+  if (sgPhase !== 'idle' && sgPhase !== 'gateV2') return;
   const sv = ensureSgInit();
   if (sv.peas < 10) {
     sgMsg='🌱 グリンピースが足りません（掘るには🌱×10必要）'; sgMsgType='bad';
@@ -1327,6 +1405,7 @@ function renderSugoroku() {
             {t:'dropBall',       i:'💀',  l:'球落とし'},
             {t:'dig',            i:'⛏',  l:'穴掘り'},
             {t:'exchange',       i:'🔄',  l:'交換所'},
+            {t:'gate_v2',        i:'🚪',  l:'関門（球消費）'},
             {t:'boss',           i:'⚔️',  l:'ボス関門'},
             {t:'gate_spawn',     i:'🚪',  l:'門出現'},
             {t:'goal',           i:'🏆',  l:'ゴール'},
@@ -1360,6 +1439,14 @@ function renderSgActionArea(save) {
       if (sgCurrentSpaces()[save.pos] && sgCurrentSpaces()[save.pos].type === 'star') {
         sgStarActive = true;
       }
+      // 🚪 ページリロード後も関門マスにいる場合は gateV2 フェーズに復元
+      if (sgStage === 2) {
+        const gp = [49,99,149].find(p => p === save.pos && !save[`gate${p}Opened`]);
+        if (gp) {
+          sgPhase = 'gateV2'; sgGateV2Pos = gp;
+          return renderSgActionArea(save); // gateV2 ケースで再描画
+        }
+      }
       const free = sgFreeRoll;
       const skip = save.skipNext;
       const can  = !skip && (free || save.peas>=10);
@@ -1367,8 +1454,8 @@ function renderSgActionArea(save) {
                  : skip  ? `<button class="sg-roll-btn sg-roll-skip" onclick="sgRoll()">💤 1回休みを解除（🌱×10）</button>`
                  : can   ? `<button class="sg-roll-btn" onclick="sgRoll()">🎲 サイコロを振る（🌱×10）</button>`
                          : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
-      // ステージ2はゲートなし→どこでも掘るは常時開放、ステージ1は門通過後
-      const digAnyUnlocked = sgStage === 2 ? true : !!save.passedGate1;
+      // どこでも掘る：ステージ2は digAnyActive フラグで管理、ステージ1は門通過後
+      const digAnyUnlocked = sgStage === 2 ? !!save.digAnyActive : !!save.passedGate1;
       const digAny = digAnyUnlocked
         ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
       const starMenu = sgStarActive ? `
@@ -1380,6 +1467,32 @@ function renderSgActionArea(save) {
           </div>
         </div>` : '';
       return btn + digAny + starMenu;
+    }
+
+    case 'gateV2': {
+      const sv = ensureSgInit();
+      const hasBalls = hasAllBalls();
+      const ballsDisplay = BALL_COLORS.map((c, i) => {
+        const n = sv.balls[c]||0;
+        return `<span class="sg-gate-ball ${n>0?'sg-gate-ball-have':'sg-gate-ball-miss'}">${BALL_EMOJI[c]}${n>0?`×${n}`:'✗'}</span>`;
+      }).join('');
+      const digBtn = `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>`;
+      if (hasBalls) {
+        return `<div class="sg-sub-panel sg-gate-panel">
+          <div class="sg-sub-title">🚪 関門 マス${sgGateV2Pos}</div>
+          <div class="sg-gate-balls">${ballsDisplay}</div>
+          <div class="sg-gate-msg">5色の球を1個ずつ消費して門を開けます</div>
+          <button class="sg-gate-open-btn" onclick="sgOpenGateV2()">🚪 門を開ける！（球×各1消費）</button>
+          ${digBtn}
+        </div>`;
+      } else {
+        return `<div class="sg-sub-panel sg-gate-panel">
+          <div class="sg-sub-title">🚪 関門 マス${sgGateV2Pos}</div>
+          <div class="sg-gate-balls">${ballsDisplay}</div>
+          <div class="sg-gate-msg sg-gate-insufficient">まだ球が揃っていない…5色全部集めよう！</div>
+          ${digBtn}
+        </div>`;
+      }
     }
 
     case 'rolling': {
