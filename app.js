@@ -159,7 +159,11 @@ function initMathBackground() {
 // ===== 進捗管理（localStorage） =====
 function getProgress() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { done: {}, peaCount: 0 };
+    const p = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!p || typeof p !== 'object') return { done: {}, peaCount: 0 };
+    // 古いデータで done フィールドが欠落していてもクラッシュしないよう保証
+    if (!p.done || typeof p.done !== 'object') p.done = {};
+    return p;
   } catch {
     return { done: {}, peaCount: 0 };
   }

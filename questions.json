@@ -167,8 +167,8 @@
             }
           ],
           "miniTestPassword": "4206",
-          "studentBestName": "A君",
-          "studentBestTime": 20
+          "studentBestName": null,
+          "studentBestTime": null
         },
         {
           "title": "式の除法",
