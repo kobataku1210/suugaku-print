@@ -2615,7 +2615,7 @@ function render() {
     }
   }
 
-  // タイムアタック：ライブタイマー開始
+  // タイムアタック：ライブタイマー開始 ＋ Enter キーで次の問題へ
   if (state.view === 'timeattack' && state.timeAttackPhase === 'quiz') {
     const startTime = state.timeAttackStartTime;
     taTimerInterval = setInterval(() => {
@@ -2628,6 +2628,35 @@ function render() {
       else if (elapsed > 30) el.style.color = '#ffd200';
       else                   el.style.color = '#00d2ff';
     }, 100);
+
+    // Enter キー → 次の入力欄へ自動移動（問題が見えるようスクロール）
+    const totalQ = state.timeAttackQuestions.length;
+    for (let i = 0; i < totalQ; i++) {
+      const el = document.getElementById(`ta-${i}`);
+      if (!el) continue;
+      el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const next = document.getElementById(`ta-${i + 1}`);
+        if (next) {
+          next.focus();
+          // 問題行全体が見えるようにスクロール
+          const row = next.closest('.bulk-q-row');
+          (row || next).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // 最終問題 → 採点ボタンへ
+          const btn = document.querySelector('.ta-submit-btn');
+          if (btn) {
+            btn.focus();
+            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      });
+    }
+
+    // 最初の入力欄にフォーカス
+    const firstInput = document.getElementById('ta-0');
+    if (firstInput) firstInput.focus();
   }
 }
 
