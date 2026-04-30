@@ -815,18 +815,7 @@ function renderHome() {
       <span class="bt-ip-board-share" id="bt-ip-board-share">読み込み中…</span>
     </div>` : ''}`;
 
-  // カードマッチバナー
-  const cmData    = cmLoad();
-  const cmBestStr = cmData.best != null ? cmFmtTime(cmData.best) : null;
-  const cardMatchBanner = `
-    <div class="cm-home-banner" onclick="navigate('cardmatch')">
-      <span class="cm-home-icon">🃏</span>
-      <div class="cm-home-text">
-        <div class="cm-home-title">カードマッチ</div>
-        <div class="cm-home-sub">${cmBestStr ? `自己ベスト：${cmBestStr}` : '展開・因数分解マッチング'}</div>
-      </div>
-      <div class="cm-home-arrow">›</div>
-    </div>`;
+  // カードマッチバナー（ホーム画面では非表示・数学ゲーム画面でのみ表示）
 
   // ===== 数学ゲームバナー =====
   const gamesBanner = `
@@ -846,7 +835,6 @@ function renderHome() {
     </div>
     ${sgBanner}
     ${battleBanner}
-    ${cardMatchBanner}
     ${gamesBanner}
     <div class="chapters-grid">${cards}</div>`;
 }
@@ -873,14 +861,25 @@ const GAME_ITEMS = [
   },
 ];
 function renderGamesPage() {
-  const cards = GAME_ITEMS.map(g => `
+  // カードマッチの自己ベストを取得
+  const cmData    = cmLoad();
+  const cmBestStr = cmData.best != null ? cmFmtTime(cmData.best) : null;
+
+  const cards = GAME_ITEMS.map(g => {
+    // カードマッチのみ自己ベストをサブテキストに表示
+    const subText = (g.onclick === "navigate('cardmatch')" && cmBestStr)
+      ? `<div class="game-card-best">🏅 自己ベスト：${cmBestStr}</div>`
+      : '';
+    return `
     <div class="game-card" style="--gradient:${g.gradient}"
          onclick="${g.onclick}">
       <span class="game-card-icon">${g.icon}</span>
       <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
       <div class="game-card-desc">${g.desc}</div>
+      ${subText}
       <div class="game-card-cta">遊ぶ ›</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return `
     <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
     <div class="section-title">
