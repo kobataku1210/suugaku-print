@@ -828,27 +828,16 @@ function renderHome() {
       <div class="cm-home-arrow">›</div>
     </div>`;
 
-  // ===== 数学ゲームセクション =====
-  // 章一覧の下に並ぶ「ミニゲーム」コーナー。今後ゲームを追加する場合は
-  // gameItems 配列に新しいゲームカードを追加するだけで OK。
-  const gameItems = [
-    {
-      title: '因数分解シューティング',
-      desc: '和と積を満たす数字の風船を撃ち落とそう！',
-      icon: '🎈',
-      href: 'games/因数分解シューティング.html',
-      gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
-      isNew: true,
-    },
-  ];
-  const gamesHtml = gameItems.map(g => `
-    <div class="game-card" style="--gradient:${g.gradient}"
-         onclick="window.open('${g.href}', '_blank')">
-      <span class="game-card-icon">${g.icon}</span>
-      <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
-      <div class="game-card-desc">${g.desc}</div>
-      <div class="game-card-cta">遊ぶ ›</div>
-    </div>`).join('');
+  // ===== 数学ゲームバナー =====
+  const gamesBanner = `
+    <div class="gm-home-banner" onclick="navigate('games')">
+      <span class="gm-home-icon">🎮</span>
+      <div class="gm-home-text">
+        <div class="gm-home-title">数学ゲーム <span class="game-new-badge">NEW!</span></div>
+        <div class="gm-home-sub">気分転換に遊んで、学習しよう！</div>
+      </div>
+      <div class="gm-home-arrow">›</div>
+    </div>`;
 
   return `
     <div class="section-title">
@@ -858,13 +847,38 @@ function renderHome() {
     ${sgBanner}
     ${battleBanner}
     ${cardMatchBanner}
-    <div class="chapters-grid">${cards}</div>
+    ${gamesBanner}
+    <div class="chapters-grid">${cards}</div>`;
+}
 
-    <div class="section-title section-title-games">
+// ===== ゲーム選択画面 =====
+// 今後ゲームを追加する場合は GAME_ITEMS に1要素加えるだけ。
+const GAME_ITEMS = [
+  {
+    title: '因数分解シューティング',
+    desc: '和と積を満たす数字の風船を撃ち落とそう！ 班リレー対応',
+    icon: '🎈',
+    href: 'games/因数分解シューティング.html',
+    gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
+    isNew: true,
+  },
+];
+function renderGamesPage() {
+  const cards = GAME_ITEMS.map(g => `
+    <div class="game-card" style="--gradient:${g.gradient}"
+         onclick="window.open('${g.href}', '_blank')">
+      <span class="game-card-icon">${g.icon}</span>
+      <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
+      <div class="game-card-desc">${g.desc}</div>
+      <div class="game-card-cta">遊ぶ ›</div>
+    </div>`).join('');
+  return `
+    <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+    <div class="section-title">
       <h2>🎮 数学ゲーム</h2>
-      <p>気分転換に遊ぼう</p>
+      <p>遊びたいゲームを選んでね</p>
     </div>
-    <div class="games-grid">${gamesHtml}</div>`;
+    <div class="games-grid">${cards}</div>`;
 }
 
 function handleChapterClick(e, el, idx) {
@@ -2479,6 +2493,7 @@ function render() {
   else if (state.view === 'practice')   content = renderPractice();
   else if (state.view === 'timeattack') content = renderTimeAttack();
   else if (state.view === 'cardmatch')  content = renderCardMatch();
+  else if (state.view === 'games')      content = renderGamesPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
 
   if (state.view === 'sugoroku') {

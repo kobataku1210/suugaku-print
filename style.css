@@ -1569,14 +1569,32 @@ body {
 .mt-extra-timeattack .mt-extra-title { color: #00d2ff; }
 .mt-btn-timeattack { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #0d0d2b; }
 
-/* ===== 数学ゲームセクション（ホーム下部） ===== */
-.section-title-games { margin-top: 2.5rem; }
+/* ===== 数学ゲームバナー（ホーム） ===== */
+.gm-home-banner {
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, rgba(255,107,107,0.18), rgba(253,203,110,0.18));
+  border: 1.5px solid rgba(255,107,107,0.45);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  gap: 0.9rem;
+}
+.gm-home-banner:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,107,107,0.3); }
+.gm-home-icon  { font-size: 2rem; flex-shrink: 0; }
+.gm-home-text  { flex: 1; }
+.gm-home-title { font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.gm-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
+.gm-home-arrow { font-size: 1.4rem; color: #ff6b6b; }
+
+/* ===== ゲーム選択画面 ===== */
 .games-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
   max-width: 1200px;
-  margin: 0 auto 2rem;
+  margin: 1.5rem auto 2rem;
   padding: 0 1rem;
 }
 .game-card {
