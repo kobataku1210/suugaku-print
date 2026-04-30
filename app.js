@@ -828,6 +828,28 @@ function renderHome() {
       <div class="cm-home-arrow">›</div>
     </div>`;
 
+  // ===== 数学ゲームセクション =====
+  // 章一覧の下に並ぶ「ミニゲーム」コーナー。今後ゲームを追加する場合は
+  // gameItems 配列に新しいゲームカードを追加するだけで OK。
+  const gameItems = [
+    {
+      title: '因数分解シューティング',
+      desc: '和と積を満たす数字の風船を撃ち落とそう！',
+      icon: '🎈',
+      href: 'games/因数分解シューティング.html',
+      gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
+      isNew: true,
+    },
+  ];
+  const gamesHtml = gameItems.map(g => `
+    <div class="game-card" style="--gradient:${g.gradient}"
+         onclick="window.open('${g.href}', '_blank')">
+      <span class="game-card-icon">${g.icon}</span>
+      <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
+      <div class="game-card-desc">${g.desc}</div>
+      <div class="game-card-cta">遊ぶ ›</div>
+    </div>`).join('');
+
   return `
     <div class="section-title">
       <h2>章を選ぼう！</h2>
@@ -836,7 +858,13 @@ function renderHome() {
     ${sgBanner}
     ${battleBanner}
     ${cardMatchBanner}
-    <div class="chapters-grid">${cards}</div>`;
+    <div class="chapters-grid">${cards}</div>
+
+    <div class="section-title section-title-games">
+      <h2>🎮 数学ゲーム</h2>
+      <p>気分転換に遊ぼう</p>
+    </div>
+    <div class="games-grid">${gamesHtml}</div>`;
 }
 
 function handleChapterClick(e, el, idx) {
@@ -1002,29 +1030,6 @@ function renderDifficulty() {
       </div>
     </div>`;
 
-  // ===== 因数分解ゲームカード（該当セクションのみ） =====
-  // 短い表記(因数分解②)と長い表記(因数分解（展開の公式）)の両方に対応
-  const gameSections = [
-    '因数分解（展開の公式）', '因数分解②',
-    'いろいろな因数分解',
-  ];
-  const showGameCard = gameSections.includes(sec.title);
-  const gameCard = showGameCard ? `
-    <div class="mt-extra-card mt-extra-game fade-in" style="animation-delay:0.52s"
-         onclick="window.open('games/因数分解シューティング.html', '_blank')">
-      <div class="mt-extra-left">
-        <div class="mt-extra-icon">🎈</div>
-        <div>
-          <div class="mt-extra-title">因数分解シューティング <span class="game-new-badge">NEW!</span></div>
-          <div class="mt-extra-desc">和と積を満たす数字の風船を撃ち落とそう！ 班リレー対応</div>
-        </div>
-      </div>
-      <div class="mt-extra-right">
-        <span class="mt-pea-hint">気分転換にどうぞ ✨</span>
-        <button class="mt-extra-btn mt-btn-game">遊ぶ！</button>
-      </div>
-    </div>` : '';
-
   return `
     <button class="back-btn" onclick="navigate('sections')">← 節一覧に戻る</button>
     <div class="section-title">
@@ -1035,7 +1040,6 @@ function renderDifficulty() {
     ${minitestCard}
     ${practiceCard}
     ${timeattackCard}
-    ${gameCard}
     <p class="ta-kobayashi-note">※小林Tの記録を抜いたら小林Tに報告すること。大人げなくまた抜き返します。</p>`;
 }
 
