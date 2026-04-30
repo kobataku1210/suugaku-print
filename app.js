@@ -859,7 +859,7 @@ const GAME_ITEMS = [
     title: '因数分解シューティング',
     desc: '和と積を満たす数字の風船を撃ち落とそう！ 班リレー対応',
     icon: '🎈',
-    onclick: "window.open('games/因数分解シューティング.html', '_blank')",
+    onclick: "navigate('shooting')",
     gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
     isNew: true,
   },
@@ -2504,13 +2504,29 @@ function render() {
   else if (state.view === 'cardmatch')  content = renderCardMatch();
   else if (state.view === 'games')      content = renderGamesPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
+  else if (state.view === 'shooting')   content = ''; // iframeで描画
 
   if (state.view === 'sugoroku') {
-    document.body.classList.add('sg-mode');    // ① お椀を隠す
+    document.body.classList.add('sg-mode');
+    document.body.classList.remove('shooting-mode');
     renderSugoroku();
     return;
   }
-  document.body.classList.remove('sg-mode');   // ① お椀を戻す
+  if (state.view === 'shooting') {
+    document.body.classList.add('shooting-mode');
+    document.body.classList.remove('sg-mode');
+    document.getElementById('main-content').innerHTML = `
+      <div class="shooting-wrap">
+        <button class="shooting-back-btn" onclick="navigate('games')">← ゲーム一覧</button>
+        <iframe class="shooting-iframe"
+                src="games/因数分解シューティング.html"
+                title="因数分解シューティング"
+                allow="autoplay"></iframe>
+      </div>`;
+    updateBowlWidget(false);
+    return;
+  }
+  document.body.classList.remove('sg-mode', 'shooting-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
   if (state.view === 'home')      initBattleBanner();

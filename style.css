@@ -2836,9 +2836,59 @@ body {
 .sg-mode #bowl-widget,
 .sg-mode #completed-bowls-panel,
 .cm-mode #bowl-widget,
-.cm-mode #completed-bowls-panel {
+.cm-mode #completed-bowls-panel,
+.shooting-mode #bowl-widget,
+.shooting-mode #completed-bowls-panel {
   display: none !important;
 }
+
+/* shooting-mode はヘッダー・フッターも非表示 */
+.shooting-mode .header,
+.shooting-mode .footer {
+  display: none !important;
+}
+
+/* ===== シューティングゲーム埋め込み ===== */
+.shooting-mode .main {
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+.shooting-mode #main-content {
+  height: 100dvh;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+.shooting-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.shooting-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+.shooting-back-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.shooting-back-btn:hover { background: rgba(0,0,0,0.85); }
 
 /* ① グリンキャラ画像（③ 中央揃え対応） */
 .sg-char-img {
