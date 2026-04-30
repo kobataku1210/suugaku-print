@@ -1428,14 +1428,26 @@
 
     if (justCleared) {
       if (!cleared.includes(level)) {
-        // 初回クリア → グリンピース付与
+        // 初回クリア → グリンピース付与（お椀＋すごろく両方に反映）
         earnedPeas = PEA_REWARDS[level] || 5;
         try {
+          // ① お椀ウィジェット用（mathPrint_v2）
+          const bowlKey = 'mathPrint_v2';
+          const bowlSave = JSON.parse(localStorage.getItem(bowlKey) || '{}');
+          let cur  = bowlSave.peaCount    || 0;
+          let cups = bowlSave.peaCupCount || 0;
+          cur += earnedPeas;
+          while (cur >= 45) { cur -= 45; cups += 1; }
+          bowlSave.peaCount    = cur;
+          bowlSave.peaCupCount = cups;
+          localStorage.setItem(bowlKey, JSON.stringify(bowlSave));
+
+          // ② すごろく用（sgSave_v1 または sgSave_v2）
           const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
-          const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
-          const sgSave = JSON.parse(localStorage.getItem(key) || '{}');
+          const sgKey = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+          const sgSave = JSON.parse(localStorage.getItem(sgKey) || '{}');
           sgSave.peas = (sgSave.peas || 0) + earnedPeas;
-          localStorage.setItem(key, JSON.stringify(sgSave));
+          localStorage.setItem(sgKey, JSON.stringify(sgSave));
         } catch(e) {}
         cleared.push(level);
         saveProgress(cleared);
