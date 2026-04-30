@@ -131,6 +131,27 @@
     .teacher-time-input:focus { border-color: #00d2ff; background: rgba(0,210,255,0.15); }
     .teacher-time-unit { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
 
+    /* ===== 生徒自己ベスト入力 ===== */
+    .student-best-wrap {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: rgba(157,237,98,0.10); border: 1px solid rgba(157,237,98,0.3);
+      border-radius: 8px; padding: 0.2rem 0.7rem; font-size: 0.82rem;
+    }
+    .student-best-label { color: rgba(255,255,255,0.5); white-space: nowrap; }
+    .student-best-name-input {
+      width: 80px; background: rgba(255,255,255,0.08); border: 1px solid rgba(157,237,98,0.4);
+      border-radius: 6px; color: #9ded62; font-size: 0.85rem; font-weight: 700;
+      text-align: center; padding: 0.15rem 0.4rem; font-family: inherit; outline: none;
+    }
+    .student-best-time-input {
+      width: 62px; background: rgba(255,255,255,0.08); border: 1px solid rgba(157,237,98,0.4);
+      border-radius: 6px; color: #9ded62; font-size: 1rem; font-weight: 800;
+      text-align: center; padding: 0.1rem 0.3rem; font-family: monospace; outline: none;
+    }
+    .student-best-name-input:focus,
+    .student-best-time-input:focus { border-color: #9ded62; background: rgba(157,237,98,0.1); }
+    .student-best-unit { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+
     /* ===== 小テストパスワード表示 ===== */
     .minitest-pw-wrap {
       margin-left: auto; display: flex; align-items: center; gap: 0.5rem;
@@ -300,6 +321,18 @@
     <span class="cm-ts-unit">秒</span>
     <button class="cm-ts-btn" onclick="saveCmTeacherTime()">更新</button>
     <span id="cm-ts-status" class="cm-ts-status"></span>
+    <span style="margin-left:1rem;color:rgba(255,255,255,0.2)">│</span>
+    <span class="cm-ts-label" style="color:#9ded62;">🏅 生徒ベスト</span>
+    <input type="text" id="cm-student-name-input" class="cm-ts-input"
+           style="width:80px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+           placeholder="名前">
+    <input type="number" id="cm-student-time-input" class="cm-ts-input"
+           style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+           min="1" max="300" step="1" placeholder="秒">
+    <span class="cm-ts-unit">秒</span>
+    <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+            onclick="saveCmStudentBest()">更新</button>
+    <span id="cm-sb-status" class="cm-ts-status"></span>
   </div>
   <div class="admin-content">
     <div class="chapter-tabs" id="chapter-tabs"></div>
@@ -403,6 +436,16 @@ function updateTeacherTime(chIdx, si, val) {
   questionsData.chapters[chIdx].sections[si].teacherTime = isNaN(num) ? null : Math.round(num * 10) / 10;
 }
 
+function updateStudentBest(chIdx, si, field, val) {
+  const sec = questionsData.chapters[chIdx].sections[si];
+  if (field === 'name') {
+    sec.studentBestName = val.trim() || null;
+  } else {
+    const num = parseFloat(val);
+    sec.studentBestTime = isNaN(num) ? null : Math.round(num * 10) / 10;
+  }
+}
+
 // パスワード再生成ボタン
 function regenPassword(chIdx, si) {
   const newPw = genPassword();
@@ -437,6 +480,11 @@ async function loadQuestions() {
   const t = questionsData.cardMatchTeacherTime;
   const el = document.getElementById('cm-teacher-time-input');
   if (el && t != null) el.value = t;
+  // カードマッチ 生徒ベストをフォームに反映
+  const sn = document.getElementById('cm-student-name-input');
+  const st = document.getElementById('cm-student-time-input');
+  if (sn) sn.value = questionsData.cardMatchStudentBestName || '';
+  if (st && questionsData.cardMatchStudentBestTime != null) st.value = questionsData.cardMatchStudentBestTime;
   renderChapterTabs();
   renderSections(0);
 }
@@ -455,6 +503,26 @@ async function saveCmTeacherTime() {
   });
   const r = await res.json();
   sta.textContent = r.ok ? `✓ ${val}秒に更新しました` : '❌ 保存失敗';
+  setTimeout(() => { sta.textContent = ''; }, 3000);
+}
+
+async function saveCmStudentBest() {
+  const nameEl = document.getElementById('cm-student-name-input');
+  const timeEl = document.getElementById('cm-student-time-input');
+  const sta    = document.getElementById('cm-sb-status');
+  const name   = nameEl.value.trim();
+  const val    = parseInt(timeEl.value);
+  if (!name) { sta.textContent = '❌ 名前を入力してください'; setTimeout(() => { sta.textContent = ''; }, 3000); return; }
+  if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; setTimeout(() => { sta.textContent = ''; }, 3000); return; }
+  questionsData.cardMatchStudentBestName = name;
+  questionsData.cardMatchStudentBestTime = val;
+  const res = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const r = await res.json();
+  sta.textContent = r.ok ? `✓ ${name} ${val}秒に更新しました` : '❌ 保存失敗';
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
@@ -500,6 +568,20 @@ function renderSections(chIdx) {
                  onchange="updateTeacherTime(${chIdx},${si},this.value)"
                  title="タイムアタックで小林Tの記録として表示されます">
           <span class="teacher-time-unit">秒</span>
+        </div>
+        <div class="student-best-wrap">
+          <span class="student-best-label">🏅 生徒ベスト</span>
+          <input type="text" class="student-best-name-input"
+                 value="${escHtml(sec.studentBestName || '')}"
+                 placeholder="名前"
+                 onchange="updateStudentBest(${chIdx},${si},'name',this.value)"
+                 title="生徒の名前を入力">
+          <input type="number" class="student-best-time-input" min="0" step="0.1"
+                 value="${sec.studentBestTime != null ? sec.studentBestTime : ''}"
+                 placeholder="秒"
+                 onchange="updateStudentBest(${chIdx},${si},'time',this.value)"
+                 title="生徒の自己ベストタイム（このタイムを超えると🌱×50）">
+          <span class="student-best-unit">秒</span>
         </div>
         <div class="minitest-pw-wrap">
           <span class="minitest-pw-label">小テストPW</span>

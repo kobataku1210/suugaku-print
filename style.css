@@ -1883,6 +1883,19 @@ body {
   text-shadow: 0 0 16px rgba(255,213,0,0.5);
   animation: fadeSlideIn 0.35s ease both;
 }
+/* 生徒ベスト */
+.ta-student-badge {
+  background: rgba(157,237,98,0.12) !important;
+  border-color: rgba(157,237,98,0.45) !important;
+  color: #9ded62 !important;
+}
+.ta-student-target {
+  color: #9ded62;
+}
+.ta-student-beaten {
+  color: #9ded62 !important;
+  text-shadow: 0 0 16px rgba(157,237,98,0.5) !important;
+}
 
 @media (max-width: 640px) {
   .ta-tier-cards  { gap: 0.5rem; }

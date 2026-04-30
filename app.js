@@ -134,6 +134,7 @@ const state = {
   timeAttackElapsed: null,
   timeAttackPrevBest: null,        // 今回の挑戦前のベストタイム
   timeAttackTeacherBeaten: false,  // 今回初めて先生を倒したか
+  timeAttackStudentBeaten: false,  // 今回初めて生徒ベストを倒したか
 };
 
 // ===== 背景アニメーション =====
@@ -866,10 +867,16 @@ function renderGamesPage() {
   const cmBestStr = cmData.best != null ? cmFmtTime(cmData.best) : null;
 
   const cards = GAME_ITEMS.map(g => {
-    // カードマッチのみ自己ベストをサブテキストに表示
-    const subText = (g.onclick === "navigate('cardmatch')" && cmBestStr)
-      ? `<div class="game-card-best">🏅 自己ベスト：${cmBestStr}</div>`
-      : '';
+    // カードマッチのみ自己ベスト・生徒ベストをサブテキストに表示
+    let subText = '';
+    if (g.onclick === "navigate('cardmatch')") {
+      const parts = [];
+      if (cmBestStr) parts.push(`🏅 自己ベスト：${cmBestStr}`);
+      if (cmStudentBestTime != null && cmStudentBestName) {
+        parts.push(`🏆 ${cmStudentBestName}：${cmFmtTime(cmStudentBestTime)} 🌱×50`);
+      }
+      if (parts.length) subText = `<div class="game-card-best">${parts.join('　')}</div>`;
+    }
     return `
     <div class="game-card" style="--gradient:${g.gradient}"
          onclick="${g.onclick}">
@@ -1030,6 +1037,13 @@ function renderDifficulty() {
       ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">👑 小林T撃破済み！</span>`
       : `<span class="ta-tier-badge-sm ta-teacher-badge">👑 小林T ${taTeacherTime.toFixed(1)}秒 🌱×10</span>`
     : '';
+  const taStudentBestTime = taSecData.studentBestTime || null;
+  const taStudentBestName = taSecData.studentBestName || '生徒';
+  const taStudentBestBadge = taStudentBestTime !== null
+    ? isStudentBestBeaten(taData, taStudentBestTime)
+      ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">🏅 ${taStudentBestName}撃破済み！</span>`
+      : `<span class="ta-tier-badge-sm ta-student-badge">🏅 ${taStudentBestName} ${taStudentBestTime.toFixed(1)}秒 🌱×50</span>`
+    : '';
   const timeattackCard = `
     <div class="mt-extra-card mt-extra-timeattack fade-in" style="animation-delay:0.44s"
          onclick="startTimeAttack()">
@@ -1040,6 +1054,7 @@ function renderDifficulty() {
           <div class="mt-extra-desc">基礎3問・標準1問・応用1問 ／ 全問正解＋タイムで🌱ゲット</div>
           <div class="ta-tier-badges-sm">
             ${taTeacherBadge}
+            ${taStudentBestBadge}
             ${taTierBadgesHtml}
           </div>
         </div>
@@ -1576,13 +1591,18 @@ const TA_TIERS = [
 // ----- localStorage -----
 function getTimeAttackData(chIdx, secIdx) {
   const p = getProgress();
-  if (!p.timeAttack) return { bestTime: null, earnedTiers: [], teacherBeaten: false, teacherTimeWhenBeaten: null };
-  return p.timeAttack[`${chIdx}_${secIdx}`] || { bestTime: null, earnedTiers: [], teacherBeaten: false, teacherTimeWhenBeaten: null };
+  const def = { bestTime: null, earnedTiers: [], teacherBeaten: false, teacherTimeWhenBeaten: null, studentBestBeaten: false, studentBestTimeWhenBeaten: null };
+  if (!p.timeAttack) return def;
+  return Object.assign({}, def, p.timeAttack[`${chIdx}_${secIdx}`] || {});
 }
 
 // 先生を撃破済みかどうか（先生がタイム更新した場合はリセット）
 function isTeacherBeaten(taData, currentTeacherTime) {
   return taData.teacherBeaten && taData.teacherTimeWhenBeaten === currentTeacherTime;
+}
+// 生徒ベストを撃破済みかどうか（先生が更新した場合はリセット）
+function isStudentBestBeaten(taData, currentStudentTime) {
+  return taData.studentBestBeaten && taData.studentBestTimeWhenBeaten === currentStudentTime;
 }
 
 function saveTimeAttackData(chIdx, secIdx, data) {
@@ -1627,11 +1647,18 @@ function renderTimeAttack() {
     }).join('');
 
     const teacherTime = sec.teacherTime || null;
+    const studentBestTime = sec.studentBestTime || null;
+    const studentBestName = sec.studentBestName || '生徒';
     const taCurrentData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
     const targetHtml = teacherTime !== null && !isTeacherBeaten(taCurrentData, teacherTime)
       ? `<div class="ta-teacher-target">👑 小林T のタイム：<span>${teacherTime.toFixed(1)}秒</span>を超えれば 🌱×10個！</div>`
       : teacherTime !== null && isTeacherBeaten(taCurrentData, teacherTime)
       ? `<div class="ta-teacher-target ta-teacher-beaten-msg">👑 小林T 撃破済み！（${teacherTime.toFixed(1)}秒）</div>`
+      : '';
+    const studentTargetHtml = studentBestTime !== null && !isStudentBestBeaten(taCurrentData, studentBestTime)
+      ? `<div class="ta-teacher-target ta-student-target">🏅 ${studentBestName} のタイム：<span>${studentBestTime.toFixed(1)}秒</span>を超えれば 🌱×50個！</div>`
+      : studentBestTime !== null && isStudentBestBeaten(taCurrentData, studentBestTime)
+      ? `<div class="ta-teacher-target ta-teacher-beaten-msg">🏅 ${studentBestName} 撃破済み！（${studentBestTime.toFixed(1)}秒）</div>`
       : '';
     return `
       <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
@@ -1643,6 +1670,7 @@ function renderTimeAttack() {
         <div class="ta-live-timer" id="ta-live-timer">0.0秒</div>
         <div class="ta-timer-label">タイマー計測中…</div>
         ${targetHtml}
+        ${studentTargetHtml}
       </div>
       <div class="bulk-form-wrap">
         <div class="bulk-questions-list">${qRows}</div>
@@ -1768,6 +1796,7 @@ function renderTimeAttackResult(sec) {
         ${isFirstClear ? '<div class="ta-new-record">🎉 初クリア！</div>' : ''}
         ${isNewBest    ? '<div class="ta-new-record">🏆 新記録！</div>' : ''}
         ${state.timeAttackTeacherBeaten ? '<div class="ta-teacher-beaten">👑 小林T を倒した！ 🌱×10個ゲット！</div>' : ''}
+        ${state.timeAttackStudentBeaten ? `<div class="ta-teacher-beaten ta-student-beaten">🏅 ${sec.studentBestName || '生徒'}のベストを破った！ 🌱×50個ゲット！</div>` : ''}
         ${newPeasThisTime > 0 ? `<div class="ta-peas-earned">🌱 ×${newPeasThisTime}個 ゲット！</div>` : ''}
         ${!isFirstClear && !isNewBest && taData.bestTime !== null
           ? `<div class="ta-best-display">🏆 最速記録：${taData.bestTime.toFixed(1)}秒</div>` : ''}
@@ -1826,6 +1855,16 @@ function submitTimeAttackAnswers() {
       taData.teacherTimeWhenBeaten = teacherTime;  // 倒したときの先生タイムを記録
       newPeas += 10;
       state.timeAttackTeacherBeaten = true;  // 今回初めて先生を倒した
+    }
+
+    // 生徒自己ベスト チャレンジ判定
+    const studentBestTime = sec.studentBestTime || null;
+    state.timeAttackStudentBeaten = false;
+    if (studentBestTime !== null && elapsed < studentBestTime && !isStudentBestBeaten(taData, studentBestTime)) {
+      taData.studentBestBeaten = true;
+      taData.studentBestTimeWhenBeaten = studentBestTime;
+      newPeas += 50;
+      state.timeAttackStudentBeaten = true;
     }
 
     if (taData.bestTime === null || elapsed < taData.bestTime) {
@@ -2161,7 +2200,9 @@ function cmGameOver() {
 // ============================================================
 // ===== カードマッチ グループモード =====
 // ============================================================
-let cmTeacherTime  = null;     // 小林Tのカードマッチ最速タイム（秒）
+let cmTeacherTime      = null;  // 小林Tのカードマッチ最速タイム（秒）
+let cmStudentBestTime  = null;  // 生徒ベストタイム（秒）
+let cmStudentBestName  = null;  // 生徒ベスト名前
 let cmMode         = 'menu';   // 'menu' | 'solo' | 'group_setup' | 'group_play'
 let cmGroupPlayers = [];       // [{name, score}]
 let cmGroupTurn    = 0;
@@ -2585,6 +2626,8 @@ fetch('./questions.json')
   .then(data => {
     mathData.chapters = data.chapters;
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
+    if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;
+    if (data.cardMatchStudentBestName) cmStudentBestName = data.cardMatchStudentBestName;
     render();
   })
   .catch(() => {

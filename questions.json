@@ -166,7 +166,9 @@
               "b": "5"
             }
           ],
-          "miniTestPassword": "4206"
+          "miniTestPassword": "4206",
+          "studentBestName": "A君",
+          "studentBestTime": 20
         },
         {
           "title": "式の除法",
