@@ -2160,15 +2160,20 @@ function cmComplete() {
   const beatTeacher = cmTeacherTime != null && cmSeconds < cmTeacherTime;
   if (beatTeacher) addPeas(10);
 
+  // 生徒ベストタイム超えボーナス（+50）
+  const beatStudentBest = cmStudentBestTime != null && cmSeconds < cmStudentBestTime;
+  if (beatStudentBest) addPeas(50);
+
   const overlay = document.getElementById('cm-overlay');
   if (!overlay) return;
   overlay.innerHTML = `
     <div class="cm-result">
-      <div class="cm-result-icon">${beatTeacher ? '👑' : '🎉'}</div>
-      <div class="cm-result-title">${beatTeacher ? '小林T超え！' : 'クリア！'}</div>
+      <div class="cm-result-icon">${beatTeacher ? '👑' : beatStudentBest ? '🏅' : '🎉'}</div>
+      <div class="cm-result-title">${beatTeacher ? '小林T超え！' : beatStudentBest ? `${cmStudentBestName}超え！` : 'クリア！'}</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
       ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(cmTeacherTime)})を超えた！<br>🌱 ×10 ボーナス！</div>` : ''}
+      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${cmStudentBestName}(${cmFmtTime(cmStudentBestTime)})を超えた！<br>🌱 ×50 ボーナス！</div>` : ''}
       ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
@@ -2418,7 +2423,12 @@ function cmRewardTableHtml() {
       <span class="cmr-time">👑小林T(${cmFmtTime(cmTeacherTime)})超え</span>
       <span class="cmr-peas">🌱×10</span>
     </div>` : '';
-  return `<div class="cmr-table">${teacherRow}${rows}</div>`;
+  const studentRow = cmStudentBestTime != null && cmStudentBestName ? `
+    <div class="cmr-row" style="background:rgba(157,237,98,0.08);border-color:rgba(157,237,98,0.25);">
+      <span class="cmr-time" style="color:#9ded62;">🏅${cmStudentBestName}(${cmFmtTime(cmStudentBestTime)})超え</span>
+      <span class="cmr-peas">🌱×50</span>
+    </div>` : '';
+  return `<div class="cmr-table">${teacherRow}${studentRow}${rows}</div>`;
 }
 
 // ---- 画面描画：メニュー ----
@@ -2496,6 +2506,7 @@ function renderCmSolo() {
           <div class="cm-timer-display">⏱ <span id="cm-timer">0:00</span></div>
           <div class="cm-best-display">自己ベスト&nbsp;${bestStr}</div>
           ${cmTeacherTime != null ? `<div class="cm-teacher-time-disp">👑 小林T&nbsp;${cmFmtTime(cmTeacherTime)}</div>` : ''}
+          ${cmStudentBestTime != null && cmStudentBestName ? `<div class="cm-teacher-time-disp" style="color:#9ded62;">🏅 ${cmStudentBestName}&nbsp;${cmFmtTime(cmStudentBestTime)}</div>` : ''}
         </div>
         <div id="cm-hearts" class="cm-hearts">
           ${'<span class="cm-heart">♥</span>'.repeat(CM_MAX_MISS)}
@@ -2512,6 +2523,7 @@ function renderCmSolo() {
         <span class="cmrb-sep">|</span>
         <span class="cmrb-item">×1&nbsp;<span class="cmrb-t">1:00</span></span>
         ${cmTeacherTime != null ? `<span class="cmrb-sep">|</span><span class="cmrb-item cmrb-teacher">👑×10&nbsp;<span class="cmrb-t">${cmFmtTime(cmTeacherTime)}超</span></span>` : ''}
+        ${cmStudentBestTime != null && cmStudentBestName ? `<span class="cmrb-sep">|</span><span class="cmrb-item" style="color:#9ded62;">🏅×50&nbsp;<span class="cmrb-t">${cmFmtTime(cmStudentBestTime)}超</span></span>` : ''}
       </div>
       <div id="cm-grid" class="cm-grid"></div>
       <div id="cm-overlay" class="cm-overlay"></div>
