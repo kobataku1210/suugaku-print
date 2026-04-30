@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>因数分解シューティング</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 55%, #FFE5B4 100%);
+  }
+  #game { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 2px solid rgba(0,0,0,0.08);
+  }
+  .stat { font-size: 26px; font-weight: bold; color: #e74c3c; min-width: 110px; letter-spacing: 2px; }
+  .stat-group {
+    display: flex;
+    gap: 14px;
+    min-width: 250px;
+  }
+  /* Each pill (SCORE / TIME) */
+  .stat-group .row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 6px 18px;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-width: 110px;
+  }
+  .stat-group .row.score-row { border-top: 4px solid #00b894; }
+  .stat-group .row.time-row  { border-top: 4px solid #74b9ff; }
+  .stat-group .lbl {
+    font-size: 11px; color: #636e72;
+    font-weight: 800; letter-spacing: 2px;
+    line-height: 1.1;
+  }
+  .stat-group .val {
+    font-size: 34px; font-weight: 900; color: #2d3436;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+  .stat-group .val.warn {
+    color: #d63031;
+    animation: warnPulse 0.45s infinite alternate;
+  }
+  .stat-group .val.score-bump { animation: scoreBump 0.35s ease-out; }
+  .stat-group .row.time-row.warn-row {
+    border-top-color: #d63031;
+    animation: timeBoxFlash 0.45s infinite alternate;
+  }
+  @keyframes warnPulse {
+    from { transform: scale(1); }
+    to   { transform: scale(1.18); }
+  }
+  @keyframes scoreBump {
+    0%   { transform: scale(1); color: #2d3436; }
+    40%  { transform: scale(1.3); color: #fdcb6e; }
+    100% { transform: scale(1); color: #2d3436; }
+  }
+  @keyframes timeBoxFlash {
+    from { background: white; }
+    to   { background: #ffe5e5; }
+  }
+
+  /* Time bar (anchored to the HUD's bottom edge) */
+  #timeBar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 12px;
+    background: rgba(0,0,0,0.12);
+    z-index: 9;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+  }
+  #timeBarFill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #00b894, #fdcb6e);
+    transition: background 0.2s;
+    transform-origin: left center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  #timeBarFill.warn {
+    background: linear-gradient(90deg, #ff7675, #d63031);
+    animation: timePulse 0.35s infinite alternate;
+  }
+  @keyframes timePulse {
+    from { opacity: 1;  filter: brightness(1); }
+    to   { opacity: 0.7; filter: brightness(1.3); }
+  }
+
+  #problem { text-align: center; flex: 1; }
+  #problem .label { font-size: 13px; color: #636e72; margin-bottom: 2px; }
+  #problem .values { font-size: 26px; font-weight: bold; color: #d63031; }
+  #problem .values .num {
+    display: inline-block; min-width: 38px;
+    background: #fff; padding: 2px 14px; border-radius: 20px; margin: 0 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  #lives { font-size: 22px; text-align: right; letter-spacing: 3px; color: #e74c3c; }
+
+  /* Combo */
+  #combo {
+    position: absolute;
+    top: 92px; left: 50%;
+    transform: translateX(-50%) scale(0.5);
+    font-size: 38px; font-weight: bold; color: #ff6b6b;
+    text-shadow: 2px 2px 0 #fff, 4px 4px 8px rgba(0,0,0,0.3);
+    z-index: 5; pointer-events: none; opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #combo.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  /* Factorization banner */
+  #factBanner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(255,255,255,0.96);
+    border: 3px solid #27ae60;
+    border-radius: 16px;
+    padding: 14px 28px;
+    font-size: 24px; font-weight: bold; color: #2d3436;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    z-index: 8; pointer-events: none; opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    white-space: nowrap;
+  }
+  #factBanner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+  /* Balloons */
+  .balloon {
+    position: absolute;
+    width: 64px; height: 74px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: bold; color: white;
+    cursor: pointer;
+    box-shadow: inset -8px -10px 15px rgba(0,0,0,0.2), 2px 4px 8px rgba(0,0,0,0.18);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    will-change: left, top;
+  }
+  .balloon::after {
+    content: ''; position: absolute;
+    bottom: -16px; left: 50%;
+    width: 1px; height: 16px;
+    background: rgba(0,0,0,0.4);
+  }
+  .balloon.selected {
+    box-shadow: inset -8px -10px 15px rgba(0,0,0,0.2), 0 0 0 4px #fff, 0 0 24px 6px #ffd700;
+    animation: pulse 0.55s infinite alternate;
+  }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+  .balloon.popping { animation: pop 0.4s forwards; }
+  .balloon.wrong { animation: shake 0.4s; }
+  @keyframes pop {
+    0%   { transform: scale(1); opacity: 1; }
+    50%  { transform: scale(1.6); opacity: 0.7; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-8px); }
+    40%     { transform: translateX(8px); }
+    60%     { transform: translateX(-6px); }
+    80%     { transform: translateX(6px); }
+  }
+
+  /* Burst particles when a balloon pops */
+  .particle {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 40;
+    transform: translate(-50%, -50%);
+    animation: burst 0.65s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
+  }
+  @keyframes burst {
+    0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    60%  { opacity: 1; }
+    100% {
+      transform:
+        translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+        scale(0.15) rotate(180deg);
+      opacity: 0;
+    }
+  }
+  /* White flash ring centered on the burst */
+  .shockwave {
+    position: absolute;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 39;
+    transform: translate(-50%, -50%);
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    animation: shockwave 0.45s ease-out forwards;
+  }
+  @keyframes shockwave {
+    0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+  }
+
+  /* Whole-screen shake on wrong */
+  @keyframes screen-shake {
+    0%, 100% { transform: translate(0, 0); }
+    8%   { transform: translate(-10px,  6px); }
+    16%  { transform: translate( 12px, -4px); }
+    24%  { transform: translate( -8px, -6px); }
+    32%  { transform: translate(  9px,  5px); }
+    40%  { transform: translate( -7px,  3px); }
+    50%  { transform: translate(  6px, -3px); }
+    60%  { transform: translate( -4px,  2px); }
+    72%  { transform: translate(  3px, -1px); }
+    84%  { transform: translate( -2px,  1px); }
+  }
+  #game.screen-shake { animation: screen-shake 0.45s; }
+  /* Red vignette flash on wrong */
+  #redFlash {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 6;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(220,30,30,0.55) 100%);
+    opacity: 0;
+    transition: opacity 0.08s;
+  }
+  #redFlash.show { opacity: 1; transition: opacity 0.08s; }
+
+  /* Float text */
+  .float-text {
+    position: absolute;
+    font-size: 22px; font-weight: bold;
+    pointer-events: none; z-index: 50;
+    text-shadow: 2px 2px 0 #fff;
+    animation: floatUp 1s forwards;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-70px); opacity: 0; }
+  }
+
+  /* Screens */
+  #startScreen, #gameOver {
+    position: absolute; inset: 0;
+    background: rgba(255, 250, 240, 0.97);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    z-index: 100; text-align: center; padding: 24px 20px 40px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  h1 { font-size: 36px; margin-bottom: 12px; color: #2d3436; }
+  .subtitle {
+    font-size: 17px; color: #636e72; margin-bottom: 24px;
+    max-width: 540px; line-height: 1.7;
+    background: white; padding: 16px 24px; border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .formula { font-size: 20px; color: #d63031; font-weight: bold; }
+  button {
+    font-size: 22px; padding: 14px 44px;
+    border: none; border-radius: 30px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white; cursor: pointer; font-weight: bold;
+    box-shadow: 0 4px 15px rgba(238,90,82,0.4);
+    transition: transform 0.1s; font-family: inherit;
+  }
+  button:active { transform: scale(0.95); }
+  .level-buttons {
+    display: flex; gap: 10px; margin-bottom: 24px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .level-buttons button {
+    font-size: 14px; padding: 10px 20px;
+    background: #dfe6e9; color: #2d3436; line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .level-buttons button { position: relative; }
+  .level-buttons button.active {
+    background: linear-gradient(135deg, #fdcb6e, #e17055);
+    color: white;
+  }
+  .level-buttons button small { font-size: 11px; opacity: 0.85; }
+  .level-buttons button:disabled,
+  .level-buttons button.locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: #b2bec3 !important;
+    color: #636e72 !important;
+  }
+  .lock-mark, .clear-mark { display: none; position: absolute; }
+  .lock-mark {
+    top: 4px; right: 6px; font-size: 14px;
+  }
+  .clear-mark {
+    top: -8px; right: -10px;
+    background: #00b894; color: white;
+    font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .level-buttons button.locked .lock-mark { display: block; }
+  .level-buttons button.cleared .clear-mark { display: block; }
+  .level-buttons button.cleared { outline: 2px solid #00b894; outline-offset: 2px; }
+
+  /* Lv1 hint row inside problem area */
+  #hintRow {
+    font-size: 13px;
+    color: #2d3436;
+    margin-top: 4px;
+    display: none;
+  }
+  #hintRow.show { display: block; }
+  #hintRow .hint-num {
+    display: inline-block;
+    background: linear-gradient(135deg, #fdcb6e, #ffeaa7);
+    padding: 2px 14px;
+    border-radius: 16px;
+    font-weight: bold;
+    margin: 0 4px;
+    font-size: 18px;
+    color: #2d3436;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  #hintRow .hint-q {
+    display: inline-block;
+    background: white;
+    padding: 2px 14px;
+    border-radius: 16px;
+    font-weight: bold;
+    margin: 0 4px;
+    font-size: 18px;
+    color: #d63031;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
+  /* Cleared celebration on game over */
+  #clearBanner {
+    display: none;
+    font-size: 20px;
+    font-weight: bold;
+    color: #d63031;
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    padding: 10px 24px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  #clearBanner.show { display: block; }
+  #nextLevelBtn {
+    display: none;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #00b894, #00cec9);
+  }
+  #nextLevelBtn.show { display: inline-block; }
+  #finalScore {
+    font-size: 64px; font-weight: bold; color: #d63031; margin: 16px 0;
+    text-shadow: 3px 3px 0 #fff, 5px 5px 10px rgba(0,0,0,0.2);
+  }
+  .stats-row {
+    display: flex; gap: 30px; margin-bottom: 24px;
+    color: #636e72; font-size: 16px;
+  }
+  .stats-row b { color: #2d3436; font-size: 20px; }
+
+  /* Mode select on start screen */
+  .mode-select { display: flex; gap: 10px; margin-bottom: 14px; justify-content: center; }
+  .mode-select button {
+    font-size: 16px; padding: 12px 28px;
+    background: #dfe6e9; color: #2d3436;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .mode-select button.active {
+    background: linear-gradient(135deg, #74b9ff, #0984e3); color: white;
+  }
+  #relayConfig {
+    display: none;
+    flex-direction: column; align-items: center; gap: 8px;
+    margin-bottom: 18px;
+  }
+  #relayConfig.show { display: flex; }
+  .member-buttons { display: flex; gap: 6px; }
+  .member-buttons button {
+    font-size: 17px; padding: 8px 16px; min-width: 46px;
+    background: #dfe6e9; color: #2d3436;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .member-buttons button.active {
+    background: linear-gradient(135deg, #fdcb6e, #e17055); color: white;
+  }
+
+  /* Relay HUD indicator */
+  #relayIndicator {
+    position: absolute;
+    top: 78px; left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #fdcb6e, #e17055);
+    color: white;
+    padding: 6px 22px; border-radius: 22px;
+    font-weight: bold; font-size: 18px;
+    z-index: 8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    display: none; white-space: nowrap;
+  }
+  #relayIndicator.show { display: block; }
+  #relayIndicator b { font-size: 22px; }
+
+  /* Member transition overlay */
+  #relayTransition {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.6) rotate(-3deg);
+    background: linear-gradient(135deg, #fff, #ffeaa7);
+    border: 4px solid #fdcb6e;
+    border-radius: 20px;
+    padding: 22px 50px;
+    font-size: 32px; font-weight: bold; color: #2d3436;
+    z-index: 90; pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    white-space: nowrap;
+  }
+  #relayTransition.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-3deg);
+  }
+  #relayTransition b { color: #d63031; font-size: 44px; }
+
+  /* Bonus stage visuals */
+  #bonusOverlay {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 4;
+    background: radial-gradient(ellipse at center, rgba(255,215,0,0) 30%, rgba(255,165,0,0.55) 100%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #bonusOverlay.active {
+    opacity: 1;
+    animation: bonusPulse 0.8s infinite alternate;
+  }
+  @keyframes bonusPulse {
+    from { filter: brightness(1) saturate(1); }
+    to   { filter: brightness(1.15) saturate(1.35); }
+  }
+  #game.bonus-active .balloon {
+    background: radial-gradient(circle at 30% 30%, #fff5d6, #ffd700) !important;
+    box-shadow:
+      inset -8px -10px 15px rgba(180,140,0,0.4),
+      0 0 18px 4px gold !important;
+    color: #b8860b !important;
+    text-shadow: 1px 1px 0 #fff !important;
+  }
+  /* During bonus, the selected balloon turns hot pink/red so it pops out
+     against the gold sea. Uses higher specificity + !important to win
+     over the gold balloon rule above. */
+  #game.bonus-active .balloon.selected {
+    background: radial-gradient(circle at 30% 30%, #ff7eb3, #c0392b) !important;
+    box-shadow:
+      inset -8px -10px 15px rgba(0,0,0,0.3),
+      0 0 0 6px #fff,
+      0 0 30px 10px #ff3855 !important;
+    color: #fff !important;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.55) !important;
+    z-index: 5;
+  }
+  #bonusBanner {
+    position: absolute;
+    top: 88px; left: 50%;
+    transform: translateX(-50%) scale(0.5);
+    font-size: 42px; font-weight: bold; color: gold;
+    text-shadow:
+      2px 2px 0 #fff,
+      4px 4px 0 #d63031,
+      6px 6px 14px rgba(0,0,0,0.4);
+    z-index: 8; pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    white-space: nowrap;
+  }
+  #bonusBanner.show {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+    animation: bonusBounce 0.6s infinite alternate;
+  }
+  @keyframes bonusBounce {
+    from { transform: translateX(-50%) scale(1); }
+    to   { transform: translateX(-50%) scale(1.08); }
+  }
+
+  /* Per-member breakdown on game over */
+  #memberBreakdown { display: none; margin-bottom: 20px; max-width: 480px; width: 100%; }
+  #memberBreakdown.show { display: block; }
+  #memberBreakdown h3 { font-size: 15px; color: #636e72; margin-bottom: 8px; font-weight: 700; }
+  .mb-row {
+    display: flex; align-items: center; gap: 10px;
+    background: white; padding: 8px 14px; border-radius: 10px;
+    margin-bottom: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .mb-row .mb-name { font-weight: bold; min-width: 75px; color: #2d3436; }
+  .mb-row .mb-bar { flex: 1; height: 14px; background: #ecf0f1; border-radius: 7px; overflow: hidden; }
+  .mb-row .mb-bar > div { height: 100%; background: linear-gradient(90deg, #74b9ff, #0984e3); }
+  .mb-row .mb-count { font-weight: bold; color: #2d3436; min-width: 60px; text-align: right; }
+  .mb-row.mvp { background: linear-gradient(135deg, #fff, #ffeaa7); }
+  .mb-row.mvp .mb-name::after { content: ' 🏆'; }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <div class="stat-group">
+      <div class="row score-row"><span class="lbl">SCORE</span><span class="val" id="score">0</span></div>
+      <div class="row time-row" id="timeRow"><span class="lbl">TIME</span><span class="val" id="timeText">60</span></div>
+    </div>
+    <div id="problem">
+      <div class="label" id="problemLabel">同じお題に合う2つの数を順にタップ！</div>
+      <div class="values">
+        和 <span class="num" id="sumVal">−</span>
+        積 <span class="num" id="prodVal">−</span>
+      </div>
+      <div id="hintRow">
+        1つは <span class="hint-num" id="hintNumVal">−</span>! もう1つは <span class="hint-q">?</span>
+      </div>
+    </div>
+    <div class="stat" id="lives">♥♥♥</div>
+    <div id="timeBar"><div id="timeBarFill"></div></div>
+  </div>
+
+  <div id="combo"></div>
+  <div id="factBanner"></div>
+  <div id="redFlash"></div>
+  <div id="bonusOverlay"></div>
+  <div id="relayIndicator">今は <b>1</b> 人目</div>
+  <div id="bonusBanner">⭐ BONUS! ⭐</div>
+  <div id="relayTransition"></div>
+
+  <div id="startScreen">
+    <h1>🎈 因数分解シューティング</h1>
+    <p class="subtitle">
+      画面に表示される<b>「和」</b>と<b>「積」</b>を満たす2つの数を、<br>
+      風船をタップして撃ち落とそう！<br><br>
+      <span class="formula">x² + 5x + 6 = (x+2)(x+3)</span><br>
+      ↑ 和が <b>5</b>・積が <b>6</b> の数字 = <b>2 と 3</b>
+    </p>
+    <p style="margin-bottom:10px;color:#636e72;font-weight:bold;">プレイモード</p>
+    <div class="mode-select">
+      <button class="active" data-mode="solo">🎯 ソロ</button>
+      <button data-mode="relay">🤝 班リレー</button>
+    </div>
+    <div id="relayConfig">
+      <div style="font-size:13px;color:#636e72;font-weight:bold;">班員の人数</div>
+      <div class="member-buttons">
+        <button data-m="2">2</button>
+        <button data-m="3">3</button>
+        <button class="active" data-m="4">4</button>
+        <button data-m="5">5</button>
+        <button data-m="6">6</button>
+      </div>
+      <div style="font-size:12px;color:#636e72;line-height:1.5;text-align:center;max-width:380px;">
+        1問正解するごとに「次は◯人目！」と表示<br>
+        端末を順番に回しながら全員でクリアを目指そう
+      </div>
+    </div>
+    <p style="margin-bottom:12px;color:#636e72;font-weight:bold;">レベルを選ぼう</p>
+    <p style="font-size:12px;color:#636e72;margin-bottom:6px;">🎯 1つだけ答える（ヒント付き）</p>
+    <div class="level-buttons">
+      <button data-lv="1" class="active">Lv1 やさしい<br><small>正の数のみ</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+      <button data-lv="2">Lv2 ふつう<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+      <button data-lv="3">Lv3 むずかしい<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+    </div>
+    <p style="font-size:12px;color:#636e72;margin:8px 0 6px;">🎯🎯 2つペアで答える</p>
+    <div class="level-buttons">
+      <button data-lv="4">Lv4 ペア入門<br><small>正の数のみ</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+      <button data-lv="5">Lv5 ペア応用<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+      <button data-lv="6">Lv6 ペア最難関<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
+    </div>
+    <button id="startBtn">スタート！</button>
+  </div>
+
+  <div id="gameOver" style="display:none;">
+    <h1>ゲームオーバー</h1>
+    <div id="clearBanner"></div>
+    <div style="color:#636e72;">最終スコア</div>
+    <div id="finalScore">0</div>
+    <div class="stats-row">
+      <div>最大コンボ <b id="maxCombo">0</b></div>
+      <div>正解数 <b id="correctCount">0</b></div>
+    </div>
+    <div id="memberBreakdown">
+      <h3>班員ごとの貢献</h3>
+      <div id="memberBreakdownRows"></div>
+    </div>
+    <button id="nextLevelBtn">次のレベルへ →</button>
+    <button id="retryBtn">もう一度</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const game = document.getElementById('game');
+  const scoreEl = document.getElementById('score');
+  const timeTextEl = document.getElementById('timeText');
+  const timeRowEl = document.getElementById('timeRow');
+  const timeBarFillEl = document.getElementById('timeBarFill');
+  const livesEl = document.getElementById('lives');
+  const relayIndicatorEl = document.getElementById('relayIndicator');
+  const relayTransitionEl = document.getElementById('relayTransition');
+  const bonusBannerEl = document.getElementById('bonusBanner');
+  const bonusOverlayEl = document.getElementById('bonusOverlay');
+  const memberBreakdownEl = document.getElementById('memberBreakdown');
+  const memberBreakdownRowsEl = document.getElementById('memberBreakdownRows');
+  const relayConfigEl = document.getElementById('relayConfig');
+  const hintRowEl = document.getElementById('hintRow');
+  const hintNumValEl = document.getElementById('hintNumVal');
+  const problemLabelEl = document.getElementById('problemLabel');
+  const clearBannerEl = document.getElementById('clearBanner');
+  const nextLevelBtnEl = document.getElementById('nextLevelBtn');
+  const sumEl = document.getElementById('sumVal');
+  const prodEl = document.getElementById('prodVal');
+  const comboEl = document.getElementById('combo');
+  const factBanner = document.getElementById('factBanner');
+  const startScreen = document.getElementById('startScreen');
+  const gameOverScreen = document.getElementById('gameOver');
+  const finalScoreEl = document.getElementById('finalScore');
+  const maxComboEl = document.getElementById('maxCombo');
+  const correctCountEl = document.getElementById('correctCount');
+
+  const balloonColors = ['#ff7675','#fd79a8','#fdcb6e','#55efc4','#74b9ff','#a29bfe','#81ecec','#ffeaa7','#fab1a0'];
+
+  // ---------- Audio (Web Audio synth) ----------
+  let audioCtx = null;
+  let masterBus = null;       // compressor → destination
+  let distortShaper = null;   // soft-clip waveshaper for the buzzer
+  function makeDistortionCurve(amount) {
+    const n = 1024;
+    const curve = new Float32Array(n);
+    const k = amount;
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+    }
+    return curve;
+  }
+  function ensureAudio() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const comp = audioCtx.createDynamicsCompressor();
+        comp.threshold.value = -10;
+        comp.knee.value = 8;
+        comp.ratio.value = 5;
+        comp.attack.value = 0.002;
+        comp.release.value = 0.12;
+        const finalGain = audioCtx.createGain();
+        finalGain.gain.value = 1.4;
+        comp.connect(finalGain);
+        finalGain.connect(audioCtx.destination);
+        masterBus = comp;
+
+        distortShaper = audioCtx.createWaveShaper();
+        distortShaper.curve = makeDistortionCurve(28);
+        distortShaper.oversample = '4x';
+        distortShaper.connect(masterBus);
+      } catch(e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function dst() { return masterBus || audioCtx.destination; }
+
+  // Simple beep helper (used for selection click)
+  function beep(freqStart, freqEnd, dur, type = 'sine', vol = 0.2) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freqStart, t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(g); g.connect(dst());
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  const playSelect = () => beep(680, 680, 0.06, 'sine', 0.10);
+
+  // Pop sound: 4-layer punch
+  //   1) High-pass click  = sharp "snap"
+  //   2) Band-pass noise  = balloon body burst
+  //   3) Sub-bass sweep   = boom under it
+  //   4) Square chirp     = cartoon "splat" character
+  function playPop() {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const out = dst();
+
+    // 1) Sharp click
+    const cLen = Math.floor(audioCtx.sampleRate * 0.04);
+    const cBuf = audioCtx.createBuffer(1, cLen, audioCtx.sampleRate);
+    const cd = cBuf.getChannelData(0);
+    for (let i = 0; i < cLen; i++) {
+      cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cLen, 4);
+    }
+    const click = audioCtx.createBufferSource();
+    click.buffer = cBuf;
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 3200;
+    const cg = audioCtx.createGain();
+    cg.gain.setValueAtTime(0.55, t0);
+    cg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    click.connect(hp); hp.connect(cg); cg.connect(out);
+    click.start(t0); click.stop(t0 + 0.06);
+
+    // 2) Mid-range body burst
+    const bLen = Math.floor(audioCtx.sampleRate * 0.18);
+    const bBuf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+    const bd = bBuf.getChannelData(0);
+    for (let i = 0; i < bLen; i++) {
+      const decay = Math.pow(1 - i / bLen, 2);
+      bd[i] = (Math.random() * 2 - 1) * decay;
+    }
+    const body = audioCtx.createBufferSource();
+    body.buffer = bBuf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1800, t0);
+    bp.frequency.exponentialRampToValueAtTime(380, t0 + 0.16);
+    bp.Q.value = 1.4;
+    const bg = audioCtx.createGain();
+    bg.gain.setValueAtTime(0.7, t0);
+    bg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+    body.connect(bp); bp.connect(bg); bg.connect(out);
+    body.start(t0); body.stop(t0 + 0.2);
+
+    // 3) Sub-bass BOOM
+    const sub = audioCtx.createOscillator();
+    const sg  = audioCtx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(220, t0);
+    sub.frequency.exponentialRampToValueAtTime(36, t0 + 0.13);
+    sg.gain.setValueAtTime(0.55, t0);
+    sg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+    sub.connect(sg); sg.connect(out);
+    sub.start(t0); sub.stop(t0 + 0.2);
+
+    // 4) Square chirp for cartoon punch
+    const ch = audioCtx.createOscillator();
+    const chg = audioCtx.createGain();
+    ch.type = 'square';
+    ch.frequency.setValueAtTime(900, t0);
+    ch.frequency.exponentialRampToValueAtTime(80, t0 + 0.07);
+    chg.gain.setValueAtTime(0.22, t0);
+    chg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+    ch.connect(chg); chg.connect(out);
+    ch.start(t0); ch.stop(t0 + 0.1);
+  }
+
+  // Wrong sound: distorted buzzer + low rumble
+  //   3 dissonant square waves through WaveShaper distortion
+  //   + low-pass filtered noise rumble for menace
+  function playWrong() {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const out = dst();
+    const dist = distortShaper || out;
+
+    // 3 detuned square waves (minor 2nd dissonance + sub octave)
+    [165, 156, 82].forEach((freq, idx) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(freq, t0);
+      o.frequency.linearRampToValueAtTime(freq * 0.78, t0 + 0.42);
+      const peak = (idx === 2) ? 0.18 : 0.13;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(peak, t0 + 0.008);
+      g.gain.setValueAtTime(peak, t0 + 0.36);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.46);
+      o.connect(g); g.connect(dist);
+      o.start(t0); o.stop(t0 + 0.48);
+    });
+
+    // Low rumble noise — adds dread under the buzzer
+    const rLen = Math.floor(audioCtx.sampleRate * 0.45);
+    const rBuf = audioCtx.createBuffer(1, rLen, audioCtx.sampleRate);
+    const rd = rBuf.getChannelData(0);
+    for (let i = 0; i < rLen; i++) {
+      rd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / rLen, 1.4);
+    }
+    const rum = audioCtx.createBufferSource();
+    rum.buffer = rBuf;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 220;
+    const rg = audioCtx.createGain();
+    rg.gain.setValueAtTime(0.4, t0);
+    rg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.48);
+    rum.connect(lp); lp.connect(rg); rg.connect(out);
+    rum.start(t0); rum.stop(t0 + 0.48);
+  }
+
+  // ---------- State ----------
+  let level = 1;
+  let state = {};
+
+  const TIME_LIMIT = 60;        // seconds
+  const BONUS_DURATION = 15;    // seconds
+  const BONUS_EVERY = 5;        // trigger bonus every N correct answers
+  const BONUS_MULT = 3;         // score multiplier during bonus
+  // Lv 1-3 = hint mode (single tap), Lv 4-6 = pair mode (two taps).
+  // Number difficulty: pos / same-sign / any-sign repeats across the two play modes.
+  const CLEAR_THRESHOLDS = { 1: 10, 2: 8, 3: 6, 4: 8, 5: 6, 6: 5 };
+  const PROGRESS_KEY = 'factShootingClearedLevels';
+  function isHintMode(lv) { return lv >= 1 && lv <= 3; }
+  function getLevelConfig(lv) {
+    // numKey: 'pos' (positive), 'same' (same sign so product positive), 'any' (mixed)
+    const numKey = (lv === 1 || lv === 4) ? 'pos'
+                 : (lv === 2 || lv === 5) ? 'same'
+                 : 'any';
+    return { numKey, play: isHintMode(lv) ? 'single' : 'pair' };
+  }
+  let mode = 'solo';            // 'solo' | 'relay'
+  let memberCount = 4;
+  // ----- Level progression (persisted in localStorage) -----
+  function loadProgress() {
+    try {
+      const v = localStorage.getItem(PROGRESS_KEY);
+      const arr = v ? JSON.parse(v) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function saveProgress(arr) {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(arr)); } catch {}
+  }
+  let cleared = loadProgress(); // e.g. [1] means Lv1 already cleared
+  function resetState() {
+    state = {
+      score: 0, lives: 3, combo: 0, maxCombo: 0, correctCount: 0,
+      target: null, balloons: [], selected: null,
+      running: false, spawnTimer: 0, spawnInterval: 220,
+      activeElapsed: 0, remaining: TIME_LIMIT, speedMul: 1.0,
+      endReason: null, // 'time' | 'lives'
+      // Relay
+      mode, members: memberCount,
+      currentMember: 1,
+      memberCorrect: Array(memberCount).fill(0),
+      // Bonus
+      inBonus: false, bonusUntil: 0, nextBonusAt: BONUS_EVERY,
+    };
+  }
+
+  function fmt(n) { return n >= 0 ? String(n) : `−${Math.abs(n)}`; }
+  function randInt(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+
+  function updateHud() {
+    scoreEl.textContent = state.score;
+    livesEl.textContent = '♥'.repeat(state.lives) + '♡'.repeat(Math.max(0, 3 - state.lives));
+  }
+
+  // ---------- Problem generation ----------
+  function generateProblem() {
+    const { numKey } = getLevelConfig(level);
+    let a, b;
+    if (numKey === 'pos') {
+      a = randInt(1, 9); b = randInt(1, 9);
+    } else if (numKey === 'same') {
+      const sign = Math.random() < 0.5 ? 1 : -1;
+      a = sign * randInt(1, 9); b = sign * randInt(1, 9);
+    } else { // 'any'
+      a = (Math.random() < 0.5 ? 1 : -1) * randInt(1, 9);
+      b = (Math.random() < 0.5 ? 1 : -1) * randInt(1, 9);
+    }
+    const t = { sum: a + b, prod: a * b, pair: [a, b] };
+    // Hint mode (Lv1-3): pre-pick which is the hint and which is the answer
+    if (isHintMode(level)) {
+      const i = Math.random() < 0.5 ? 0 : 1;
+      t.hintNum = [a, b][i];
+      t.answerNum = [a, b][1 - i];
+    }
+    return t;
+  }
+
+  function setNewProblem() {
+    state.target = generateProblem();
+    sumEl.textContent = fmt(state.target.sum);
+    prodEl.textContent = fmt(state.target.prod);
+    if (isHintMode(level)) {
+      hintNumValEl.textContent = fmt(state.target.hintNum);
+      hintRowEl.classList.add('show');
+      problemLabelEl.textContent = 'もう1つの数字をタップ！';
+    } else {
+      hintRowEl.classList.remove('show');
+      problemLabelEl.textContent = '同じお題に合う2つの数を順にタップ！';
+    }
+    ensureCorrectPairExists();
+  }
+
+  function ensureCorrectPairExists() {
+    if (!state.target) return;
+    const countOf = (n) => state.balloons.filter(bl => bl.value === n && bl.alive).length;
+    // Hint mode: keep at least 3 copies of the answer number on screen
+    if (isHintMode(level)) {
+      const ans = state.target.answerNum;
+      const targetCount = 3;
+      const spawnAt = [120, 450, 900];
+      spawnAt.forEach((delay) => {
+        setTimeout(() => {
+          if (!state.running || !state.target) return;
+          if (countOf(ans) < targetCount) spawnBalloon(ans);
+        }, delay);
+      });
+      return;
+    }
+    // Pair mode: keep at least 2 copies of each number in the pair
+    const [a, b] = state.target.pair;
+    const targetCount = 2;
+    [120, 450].forEach((delay) => {
+      setTimeout(() => {
+        if (!state.running || !state.target) return;
+        if (countOf(a) < targetCount) spawnBalloon(a);
+      }, delay);
+    });
+    [300, 750].forEach((delay) => {
+      setTimeout(() => {
+        if (!state.running || !state.target) return;
+        const need = (a === b) ? targetCount * 2 : targetCount;
+        if (countOf(b) < need) spawnBalloon(b);
+      }, delay);
+    });
+  }
+
+  // ---------- Balloons ----------
+  function spawnBalloon(forcedValue = null) {
+    let value;
+    if (forcedValue !== null) {
+      value = forcedValue;
+    } else {
+      const sign = (getLevelConfig(level).numKey === 'pos') ? 1 : (Math.random() < 0.5 ? 1 : -1);
+      value = sign * randInt(1, 9);
+    }
+
+    const w = game.clientWidth;
+    const h = game.clientHeight;
+    const balloonW = 64;
+    const x = randInt(20, Math.max(40, w - balloonW - 20));
+    const speed = 28 + Math.random() * 32;
+    const sway = Math.random() * Math.PI * 2;
+    const swayAmp = 12 + Math.random() * 22;
+
+    const el = document.createElement('div');
+    el.className = 'balloon';
+    el.textContent = fmt(value);
+    const c1 = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+    const c2 = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+    el.style.background = `radial-gradient(circle at 30% 30%, ${c1}, ${c2})`;
+    el.style.left = x + 'px';
+    el.style.top = (h + 50) + 'px';
+    game.appendChild(el);
+
+    const balloon = { el, value, x, y: h + 50, baseX: x, sway, swayAmp, speed, alive: true };
+    state.balloons.push(balloon);
+
+    let handled = false;
+    const onTouch = (e) => { e.preventDefault(); handled = true; onBalloonTap(balloon); };
+    const onClick = () => { if (!handled) onBalloonTap(balloon); handled = false; };
+    el.addEventListener('touchstart', onTouch, { passive: false });
+    el.addEventListener('click', onClick);
+  }
+
+  // Shared "correct answer" celebration + flow advance
+  function handleCorrectAnswer(popX, popY, target) {
+    playPop();
+    state.combo++;
+    state.correctCount++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    const baseGain = 100 * state.combo;
+    const mult = state.inBonus ? BONUS_MULT : 1;
+    const gain = baseGain * mult;
+    state.score += gain;
+    const gainColor = state.inBonus ? '#ff9500' : '#27ae60';
+    const gainText = state.inBonus ? `+${gain} ⭐x${mult}` : `+${gain}`;
+    showFloat(gainText, popX, popY, gainColor);
+    // Trigger score bump animation
+    scoreEl.classList.remove('score-bump');
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add('score-bump');
+    if (state.combo >= 2) showCombo(state.combo);
+    showFactorization(target);
+
+    // Bonus reward: +1 second to the timer per correct answer
+    if (state.inBonus) {
+      state.activeElapsed = Math.max(0, state.activeElapsed - 1);
+      showFloat('+1秒 ⏱', popX + 30, popY - 28, '#0984e3');
+      // Brief flash on the time number to signal the gain
+      timeTextEl.classList.remove('score-bump');
+      void timeTextEl.offsetWidth;
+      timeTextEl.classList.add('score-bump');
+    }
+
+    if (state.mode === 'relay') {
+      state.memberCorrect[state.currentMember - 1]++;
+      if (!state.inBonus) {
+        const next = (state.currentMember % state.members) + 1;
+        showRelayTransition(next);
+        state.currentMember = next;
+        updateRelayIndicator();
+      }
+    }
+    updateHud();
+    state.target = null; // freeze respawn during interlude
+
+    const triggerBonus = !state.inBonus && state.correctCount >= state.nextBonusAt;
+    if (triggerBonus) {
+      state.nextBonusAt += BONUS_EVERY;
+      setTimeout(() => { if (state.running) enterBonus(); }, 500);
+    } else {
+      const delay = state.mode === 'relay' ? 900 : 700;
+      setTimeout(() => { if (state.running) setNewProblem(); }, delay);
+    }
+  }
+  function handleWrongAnswer() {
+    state.combo = 0;
+    playWrong();
+    loseLife();
+  }
+
+  function onBalloonTap(balloon) {
+    if (!balloon.alive || !state.running) return;
+
+    // ----- Hint mode (Lv1-3): single-tap with one number given -----
+    if (isHintMode(level)) {
+      if (!state.target) return;
+      if (balloon.value === state.target.answerNum) {
+        const popX = balloon.x + 32;
+        const popY = balloon.y;
+        popBalloon(balloon);
+        handleCorrectAnswer(popX, popY, state.target);
+      } else {
+        balloon.el.classList.add('wrong');
+        setTimeout(() => balloon.el.classList.remove('wrong'), 400);
+        handleWrongAnswer();
+      }
+      return;
+    }
+
+    // ----- Lv2/3: two-tap pair selection -----
+    if (state.selected === null) {
+      state.selected = balloon;
+      balloon.el.classList.add('selected');
+      playSelect();
+      return;
+    }
+    if (state.selected === balloon) {
+      balloon.el.classList.remove('selected');
+      state.selected = null;
+      return;
+    }
+    if (!state.target) {
+      state.selected.el.classList.remove('selected');
+      state.selected = null;
+      return;
+    }
+    const a = state.selected.value;
+    const b = balloon.value;
+    if (a + b === state.target.sum && a * b === state.target.prod) {
+      const sel = state.selected;
+      state.selected = null;
+      const popX = (sel.x + balloon.x) / 2 + 32;
+      const popY = (sel.y + balloon.y) / 2;
+      popBalloon(sel);
+      popBalloon(balloon);
+      handleCorrectAnswer(popX, popY, state.target);
+    } else {
+      const sel = state.selected;
+      state.selected = null;
+      sel.el.classList.remove('selected');
+      sel.el.classList.add('wrong');
+      balloon.el.classList.add('wrong');
+      setTimeout(() => {
+        sel.el.classList.remove('wrong');
+        balloon.el.classList.remove('wrong');
+      }, 400);
+      handleWrongAnswer();
+    }
+  }
+
+  function popBalloon(balloon) {
+    balloon.alive = false;
+    balloon.el.classList.remove('selected');
+    balloon.el.classList.add('popping');
+    spawnBurst(balloon.x + 32, balloon.y + 37);
+    setTimeout(() => balloon.el.remove(), 400);
+  }
+
+  // Visual: colorful debris + white shockwave ring at (x, y)
+  function spawnBurst(x, y) {
+    // Shockwave ring
+    const ring = document.createElement('div');
+    ring.className = 'shockwave';
+    ring.style.left = x + 'px';
+    ring.style.top  = y + 'px';
+    game.appendChild(ring);
+    setTimeout(() => ring.remove(), 500);
+
+    // Particles
+    const N = 14;
+    for (let i = 0; i < N; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const angle = (i / N) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      const dist = 70 + Math.random() * 90;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      p.style.left = x + 'px';
+      p.style.top  = y + 'px';
+      p.style.background = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+      p.style.setProperty('--dx', dx + 'px');
+      p.style.setProperty('--dy', dy + 'px');
+      const size = 8 + Math.random() * 10;
+      p.style.width  = size + 'px';
+      p.style.height = size + 'px';
+      game.appendChild(p);
+      setTimeout(() => p.remove(), 700);
+    }
+  }
+
+  const redFlashEl = document.getElementById('redFlash');
+  function loseLife() {
+    state.lives--;
+    updateHud();
+    // Screen shake
+    game.classList.remove('screen-shake');
+    void game.offsetWidth;
+    game.classList.add('screen-shake');
+    setTimeout(() => game.classList.remove('screen-shake'), 460);
+    // Red vignette flash
+    redFlashEl.classList.add('show');
+    setTimeout(() => redFlashEl.classList.remove('show'), 120);
+    if (state.lives <= 0) endGame();
+  }
+
+  function showCombo(n) {
+    comboEl.textContent = `${n} COMBO!`;
+    comboEl.classList.remove('show');
+    void comboEl.offsetWidth;
+    comboEl.classList.add('show');
+    clearTimeout(showCombo._t);
+    showCombo._t = setTimeout(() => comboEl.classList.remove('show'), 900);
+  }
+
+  function showFloat(text, x, y, color) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.color = color;
+    game.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function showFactorization(target) {
+    const { sum, prod, pair } = target;
+    let xPart = '';
+    if (sum !== 0) {
+      const abs = Math.abs(sum);
+      const sign = sum > 0 ? ' + ' : ' − ';
+      const coef = abs === 1 ? '' : abs;
+      xPart = `${sign}${coef}x`;
+    }
+    let cPart = '';
+    if (prod !== 0) {
+      const abs = Math.abs(prod);
+      cPart = prod > 0 ? ` + ${abs}` : ` − ${abs}`;
+    }
+    const factor = (n) => n >= 0 ? `(x + ${n})` : `(x − ${Math.abs(n)})`;
+    const [a, b] = pair;
+    factBanner.textContent = `x²${xPart}${cPart} = ${factor(a)}${factor(b)}`;
+    factBanner.classList.remove('show');
+    void factBanner.offsetWidth;
+    factBanner.classList.add('show');
+    clearTimeout(showFactorization._t);
+    showFactorization._t = setTimeout(() => factBanner.classList.remove('show'), 1200);
+  }
+
+  // ---------- Relay helpers ----------
+  function updateRelayIndicator() {
+    if (state.mode !== 'relay') {
+      relayIndicatorEl.classList.remove('show');
+      return;
+    }
+    relayIndicatorEl.innerHTML = `今は <b>${state.currentMember}</b> 人目`;
+    relayIndicatorEl.classList.add('show');
+  }
+  function showRelayTransition(nextMember) {
+    relayTransitionEl.innerHTML = `→ 次は <b>${nextMember}</b> 人目！`;
+    relayTransitionEl.classList.remove('show');
+    void relayTransitionEl.offsetWidth;
+    relayTransitionEl.classList.add('show');
+    clearTimeout(showRelayTransition._t);
+    showRelayTransition._t = setTimeout(() => relayTransitionEl.classList.remove('show'), 800);
+  }
+
+  // ---------- Bonus stage ----------
+  function enterBonus() {
+    state.inBonus = true;
+    state.bonusUntil = performance.now() + BONUS_DURATION * 1000;
+    game.classList.add('bonus-active');
+    bonusOverlayEl.classList.add('active');
+    bonusBannerEl.textContent = `⭐ BONUS x${BONUS_MULT} ! ⭐`;
+    bonusBannerEl.classList.add('show');
+    playFanfare();
+    setNewProblem();
+    // Pre-spawn extra balloons for the burst
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => state.running && state.inBonus && spawnBalloon(), i * 150);
+    }
+  }
+  function exitBonus() {
+    state.inBonus = false;
+    game.classList.remove('bonus-active');
+    bonusOverlayEl.classList.remove('active');
+    bonusBannerEl.classList.remove('show');
+    // If correctCount over-shot during bonus, push next trigger out so the
+    // very next answer doesn't immediately re-enter bonus.
+    if (state.correctCount >= state.nextBonusAt) {
+      state.nextBonusAt = state.correctCount + BONUS_EVERY;
+    }
+    playChime();
+    setNewProblem();
+  }
+
+  // Fanfare for bonus entry, chime for exit
+  function playFanfare() {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(freq, t0 + i * 0.07);
+      g.gain.setValueAtTime(0, t0 + i * 0.07);
+      g.gain.linearRampToValueAtTime(0.22, t0 + i * 0.07 + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + i * 0.07 + 0.45);
+      o.connect(g); g.connect(dst());
+      o.start(t0 + i * 0.07); o.stop(t0 + i * 0.07 + 0.46);
+    });
+  }
+  function playChime() {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    [1047, 1568].forEach((freq, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, t0 + i * 0.06);
+      g.gain.setValueAtTime(0.18, t0 + i * 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + i * 0.06 + 0.5);
+      o.connect(g); g.connect(dst());
+      o.start(t0 + i * 0.06); o.stop(t0 + i * 0.06 + 0.52);
+    });
+  }
+
+  // ---------- Main loop ----------
+  let lastTime = 0;
+  function loop(t) {
+    if (!state.running) return;
+    const dt = lastTime ? Math.min(0.05, (t - lastTime) / 1000) : 0;
+    lastTime = t;
+
+    // --- Time / difficulty ramp ---
+    // Timer ALWAYS advances. Bonus rewards extra seconds per correct answer.
+    state.activeElapsed += dt;
+    state.remaining = Math.max(0, TIME_LIMIT - state.activeElapsed);
+    const progress = Math.min(1, state.activeElapsed / TIME_LIMIT);
+    // Bonus boosts: speed up + spawn faster while bonus is active
+    const bonusBoost = state.inBonus ? 1.4 : 1.0;
+    state.speedMul = (1 + progress * 0.7) * bonusBoost;
+    state.spawnInterval = (220 - progress * 100) / (state.inBonus ? 1.8 : 1);
+
+    // Update HUD: time text + bar
+    const remInt = Math.ceil(state.remaining);
+    timeTextEl.textContent = remInt;
+    const fillPct = (state.remaining / TIME_LIMIT) * 100;
+    timeBarFillEl.style.width = fillPct + '%';
+    if (state.remaining <= 10 && !state.inBonus) {
+      timeTextEl.classList.add('warn');
+      timeBarFillEl.classList.add('warn');
+      timeRowEl.classList.add('warn-row');
+    } else {
+      timeTextEl.classList.remove('warn');
+      timeBarFillEl.classList.remove('warn');
+      timeRowEl.classList.remove('warn-row');
+    }
+
+    // Bonus stage end check
+    if (state.inBonus && performance.now() >= state.bonusUntil) {
+      exitBonus();
+    }
+
+    // Time-up? (works during bonus too, since timer always advances now)
+    if (state.remaining <= 0) {
+      state.endReason = 'time';
+      endGame();
+      return;
+    }
+
+    let needRespawnPair = false;
+    for (const b of state.balloons) {
+      if (!b.alive) continue;
+      b.y -= b.speed * state.speedMul * dt;
+      const swayPhase = b.sway + t * 0.001;
+      b.x = b.baseX + Math.sin(swayPhase) * b.swayAmp;
+      b.el.style.left = b.x + 'px';
+      b.el.style.top  = b.y + 'px';
+
+      if (b.y < -100) {
+        b.alive = false;
+        if (state.selected === b) state.selected = null;
+        b.el.remove();
+        if (state.target) {
+          const [pa, pb] = state.target.pair;
+          if (b.value === pa || b.value === pb) needRespawnPair = true;
+        }
+      }
+    }
+    state.balloons = state.balloons.filter(b => b.alive);
+
+    if (needRespawnPair) ensureCorrectPairExists();
+
+    state.spawnTimer += dt * 1000;
+    if (state.spawnTimer > state.spawnInterval) {
+      state.spawnTimer = 0;
+      if (state.balloons.length < 55) spawnBalloon();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Flow ----------
+  function startGame() {
+    ensureAudio();
+    resetState();
+    Array.from(game.querySelectorAll('.balloon, .float-text, .particle, .shockwave')).forEach(el => el.remove());
+    startScreen.style.display = 'none';
+    gameOverScreen.style.display = 'none';
+    state.running = true;
+    timeTextEl.textContent = TIME_LIMIT;
+    timeTextEl.classList.remove('warn');
+    timeBarFillEl.style.width = '100%';
+    timeBarFillEl.classList.remove('warn');
+    timeRowEl.classList.remove('warn-row');
+    // Bonus / relay UI reset
+    game.classList.remove('bonus-active');
+    bonusOverlayEl.classList.remove('active');
+    bonusBannerEl.classList.remove('show');
+    updateRelayIndicator();
+    updateHud();
+    setNewProblem();
+    for (let i = 0; i < 18; i++) {
+      setTimeout(() => state.running && spawnBalloon(), i * 80);
+    }
+    lastTime = 0;
+    requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    if (!state.running) return;
+    state.running = false;
+    if (!state.endReason) state.endReason = 'lives';
+    // Cleanup bonus visuals if game ended mid-bonus
+    game.classList.remove('bonus-active');
+    bonusOverlayEl.classList.remove('active');
+    bonusBannerEl.classList.remove('show');
+    relayIndicatorEl.classList.remove('show');
+
+    finalScoreEl.textContent = state.score;
+    maxComboEl.textContent = state.maxCombo;
+    correctCountEl.textContent = state.correctCount;
+    const title = gameOverScreen.querySelector('h1');
+
+    // ----- Clear detection -----
+    const threshold = CLEAR_THRESHOLDS[level];
+    const justCleared = state.correctCount >= threshold;
+    let unlocked = null;
+    if (justCleared) {
+      if (!cleared.includes(level)) {
+        cleared.push(level);
+        saveProgress(cleared);
+        if (CLEAR_THRESHOLDS[level + 1]) unlocked = level + 1;
+        updateLevelButtons();
+      }
+    }
+    if (justCleared) {
+      if (title) title.textContent = `🎉 Lv${level} クリア！`;
+      if (level === 6) {
+        clearBannerEl.textContent = '🏆 オールクリア！すべてのレベルを制覇！';
+      } else if (unlocked) {
+        clearBannerEl.textContent = `🔓 Lv${unlocked} が解放されました！`;
+      } else {
+        clearBannerEl.textContent = `クリア済み (${state.correctCount}問正解)`;
+      }
+      clearBannerEl.classList.add('show');
+      if (CLEAR_THRESHOLDS[level + 1]) {
+        nextLevelBtnEl.classList.add('show');
+      } else {
+        nextLevelBtnEl.classList.remove('show');
+      }
+    } else {
+      if (title) title.textContent = state.endReason === 'time' ? '⏱ タイムアップ！' : '💥 ゲームオーバー';
+      clearBannerEl.classList.remove('show');
+      nextLevelBtnEl.classList.remove('show');
+      // Hint for the player on what's needed to clear
+      const remaining = threshold - state.correctCount;
+      if (remaining > 0) {
+        clearBannerEl.textContent = `あと ${remaining}問でクリア！(目標 ${threshold}問)`;
+        clearBannerEl.classList.add('show');
+      }
+    }
+
+    // Per-member breakdown (relay mode only)
+    if (state.mode === 'relay') {
+      memberBreakdownEl.classList.add('show');
+      const max = Math.max(1, ...state.memberCorrect);
+      const mvpIdx = state.memberCorrect.indexOf(max);
+      memberBreakdownRowsEl.innerHTML = state.memberCorrect.map((c, i) => {
+        const isMvp = (c === max && c > 0 && i === mvpIdx);
+        const pct = (c / max) * 100;
+        return `<div class="mb-row${isMvp ? ' mvp' : ''}">
+          <div class="mb-name">${i+1}人目</div>
+          <div class="mb-bar"><div style="width:${pct}%"></div></div>
+          <div class="mb-count">${c} 問</div>
+        </div>`;
+      }).join('');
+    } else {
+      memberBreakdownEl.classList.remove('show');
+    }
+
+    gameOverScreen.style.display = 'flex';
+  }
+
+  // Apply locked / cleared state to level buttons based on saved progress
+  function updateLevelButtons() {
+    // Relay mode: all levels selectable from the start (group play unrestricted).
+    // Solo mode: standard progressive unlock based on cleared levels.
+    const allUnlocked = (mode === 'relay');
+    document.querySelectorAll('.level-buttons button').forEach(btn => {
+      const lv = parseInt(btn.dataset.lv);
+      const unlocked = allUnlocked || lv === 1 || cleared.includes(lv - 1);
+      btn.disabled = !unlocked;
+      btn.classList.toggle('locked', !unlocked);
+      btn.classList.toggle('cleared', cleared.includes(lv));
+    });
+  }
+  updateLevelButtons();
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+  });
+  nextLevelBtnEl.addEventListener('click', () => {
+    const nextLv = level + 1;
+    if (!CLEAR_THRESHOLDS[nextLv]) return;
+    level = nextLv;
+    document.querySelectorAll('.level-buttons button').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.lv) === level);
+    });
+    gameOverScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+  });
+  document.querySelectorAll('.level-buttons button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      document.querySelectorAll('.level-buttons button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      level = parseInt(btn.dataset.lv);
+    });
+  });
+  // Mode select (solo / relay)
+  document.querySelectorAll('.mode-select button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-select button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      relayConfigEl.classList.toggle('show', mode === 'relay');
+      updateLevelButtons(); // relay = unlock all, solo = progressive
+    });
+  });
+  // Member count select
+  document.querySelectorAll('.member-buttons button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.member-buttons button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      memberCount = parseInt(btn.dataset.m);
+    });
+  });
+})();
+</script>
+</body>
+</html>

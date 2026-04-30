@@ -1569,6 +1569,36 @@ body {
 .mt-extra-timeattack .mt-extra-title { color: #00d2ff; }
 .mt-btn-timeattack { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #0d0d2b; }
 
+/* 因数分解シューティング ゲームカード（ピンク〜オレンジ系） */
+.mt-extra-game {
+  background: linear-gradient(135deg, rgba(255,107,107,0.10), rgba(253,203,110,0.06));
+  border: 2px solid rgba(255,107,107,0.4);
+}
+.mt-extra-game:hover {
+  border-color: rgba(255,107,107,0.8);
+  background: linear-gradient(135deg, rgba(255,107,107,0.18), rgba(253,203,110,0.10));
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(255,107,107,0.18);
+}
+.mt-extra-game .mt-extra-title { color: #ff6b6b; display: inline-flex; align-items: center; gap: 8px; }
+.mt-btn-game { background: linear-gradient(135deg, #ff6b6b, #fdcb6e); color: #0d0d2b; font-weight: bold; }
+.game-new-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ee5a52, #ff6b6b);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 6px rgba(238,90,82,0.4);
+  animation: gameNewPulse 1.6s ease-in-out infinite;
+}
+@keyframes gameNewPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
 /* 難易度カードのミニバッジ */
 .ta-tier-badges-sm {
   display: flex;

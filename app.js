@@ -1002,6 +1002,29 @@ function renderDifficulty() {
       </div>
     </div>`;
 
+  // ===== 因数分解ゲームカード（該当セクションのみ） =====
+  // 短い表記(因数分解②)と長い表記(因数分解（展開の公式）)の両方に対応
+  const gameSections = [
+    '因数分解（展開の公式）', '因数分解②',
+    'いろいろな因数分解',
+  ];
+  const showGameCard = gameSections.includes(sec.title);
+  const gameCard = showGameCard ? `
+    <div class="mt-extra-card mt-extra-game fade-in" style="animation-delay:0.52s"
+         onclick="window.open('games/因数分解シューティング.html', '_blank')">
+      <div class="mt-extra-left">
+        <div class="mt-extra-icon">🎈</div>
+        <div>
+          <div class="mt-extra-title">因数分解シューティング <span class="game-new-badge">NEW!</span></div>
+          <div class="mt-extra-desc">和と積を満たす数字の風船を撃ち落とそう！ 班リレー対応</div>
+        </div>
+      </div>
+      <div class="mt-extra-right">
+        <span class="mt-pea-hint">気分転換にどうぞ ✨</span>
+        <button class="mt-extra-btn mt-btn-game">遊ぶ！</button>
+      </div>
+    </div>` : '';
+
   return `
     <button class="back-btn" onclick="navigate('sections')">← 節一覧に戻る</button>
     <div class="section-title">
@@ -1012,6 +1035,7 @@ function renderDifficulty() {
     ${minitestCard}
     ${practiceCard}
     ${timeattackCard}
+    ${gameCard}
     <p class="ta-kobayashi-note">※小林Tの記録を抜いたら小林Tに報告すること。大人げなくまた抜き返します。</p>`;
 }
 
