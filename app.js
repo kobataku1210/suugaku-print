@@ -744,27 +744,54 @@ function renderHome() {
           : `<span class="coming-badge">準備中</span>`}
       </div>`;
   }).join('');
-  // すごろくバナー
-  const sgSave = (typeof getSgSave === 'function') ? getSgSave() : null;
-  const sgPeas = sgSave ? (sgSave.peas || 0) : 0;
+  // すごろくバナー（ステージ1・2対応）
+  const sgSave1 = (typeof getSgSave === 'function') ? getSgSave() : null;
+  const s1Cleared = !!(sgSave1 && sgSave1.cleared);
+  let sgSave2 = null;
+  try { const r = localStorage.getItem('sgSave_v2'); if (r) sgSave2 = JSON.parse(r); } catch(e) {}
+  const s2Cleared = !!(sgSave2 && sgSave2.cleared);
+
+  // 表示対象セーブ：ステージ2が始まっていればS2、そうでなければS1
+  const sgShowS2 = s1Cleared && sgSave2 !== null;
+  const sgActiveSave = sgShowS2 ? sgSave2 : sgSave1;
+  const sgStageLabel = sgShowS2 ? 'ステージ２' : 'ステージ１';
+  const sgMaxPos = sgShowS2 ? 150 : 100;
+  const sgPeas = sgActiveSave ? (sgActiveSave.peas || 0) : 0;
   const sgDice = Math.floor(sgPeas / 10);
-  const sgPos  = sgSave ? (sgSave.pos || 0) : 0;
-  const sgBalls = sgSave ? (sgSave.balls || {}) : {};
-  const sgBallCount = ['red','blue','yellow','green','purple'].filter(c => (sgBalls[c]||0) > 0).length;
+  const sgPos  = sgActiveSave ? (sgActiveSave.pos || 0) : 0;
+  const sgBalls = sgActiveSave ? (sgActiveSave.balls || {}) : {};
   const sgBallIcons = ['🔴','🔵','🟡','🟢','🟣'].map((em, i) => {
     const c = ['red','blue','yellow','green','purple'][i];
     return `<span style="opacity:${(sgBalls[c]||0)>0?1:0.25}">${em}</span>`;
   }).join('');
-  const sgCleared = sgSave && sgSave.cleared;
+
+  // タイトル・アイコン決定
+  let sgBannerIcon, sgBannerTitle, sgBannerSub;
+  if (s2Cleared) {
+    sgBannerIcon  = '👑';
+    sgBannerTitle = '🏆 ステージ２クリア！';
+    sgBannerSub   = `🌱${sgPeas}　🎲${sgDice}回　${sgBallIcons}`;
+  } else if (sgShowS2) {
+    sgBannerIcon  = '⚔️';
+    sgBannerTitle = `ステージ２ 挑戦中！`;
+    sgBannerSub   = `マス ${sgPos}/${sgMaxPos}　🌱${sgPeas}　🎲${sgDice}回　${sgBallIcons}`;
+  } else if (s1Cleared) {
+    sgBannerIcon  = '👑';
+    sgBannerTitle = '🏆 ステージ１クリア！';
+    sgBannerSub   = `ステージ２に挑戦しよう！　🌱${sgPeas}`;
+  } else {
+    sgBannerIcon  = '🎲';
+    sgBannerTitle = 'すごろく冒険';
+    sgBannerSub   = `マス ${sgPos}/${sgMaxPos}　🌱${sgPeas}　🎲${sgDice}回　${sgBallIcons}`;
+  }
+
   const sgBanner = `
     <div class="sg-home-banner" onclick="navigate('sugoroku')">
       <div class="sg-home-banner-left">
-        <span class="sg-home-banner-icon">${sgCleared ? '👑' : '🎲'}</span>
+        <span class="sg-home-banner-icon">${sgBannerIcon}</span>
         <div class="sg-home-banner-text">
-          <div class="sg-home-banner-title">${sgCleared ? '🏆 クリア済み！' : 'すごろく冒険'}</div>
-          <div class="sg-home-banner-sub">
-            マス ${sgPos}/100　🌱${sgPeas}　🎲${sgDice}回　${sgBallIcons}
-          </div>
+          <div class="sg-home-banner-title">${sgBannerTitle}</div>
+          <div class="sg-home-banner-sub">${sgBannerSub}</div>
         </div>
       </div>
       <div class="sg-home-banner-arrow">›</div>

@@ -203,9 +203,12 @@ function _ensureSgInitV2() {
   }
   const save = JSON.parse(raw);
   // 移行
+  let dirty = false;
   ['boss50Cleared','boss100Cleared','boss150Cleared'].forEach(k => {
-    if (save[k] === undefined) { save[k] = false; localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save)); }
+    if (save[k] === undefined) { save[k] = false; dirty = true; }
   });
+  if (save.stage2BonusPaid === undefined) { save.stage2BonusPaid = false; dirty = true; }
+  if (dirty) localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
   return save;
 }
 
@@ -416,14 +419,16 @@ function sgBossSuccess() {
   setSgSave(save);
   if (sgBossSquare === 150) {
     if (hasAllBalls()) {
-      save.cleared = true; save.peas += 50; setSgSave(save);
+      save.cleared = true;
+      if (!save.stage2BonusPaid) { save.peas += 50; save.stage2BonusPaid = true; }
+      setSgSave(save);
       showSpaceOv('🏆','ステージ2クリア！','5色球コンプリート！\n🌱×50プレゼント！', 3500, () => {
-        sgMsg='🏆 ステージ2クリア！おめでとう！🌱×50ゲット！'; sgMsgType='good';
+        sgMsg='🏆 ステージ2クリア！完全制覇！おめでとう！🌱×50ゲット！'; sgMsgType='good';
         sgBossSquare=null; sgPhase='idle'; renderSugoroku();
       });
     } else {
-      showSpaceOv('⚔️','ボスクリア！','ゴール地点到達！\nでも球がまだ揃っていない…', 2500, () => {
-        sgMsg='⚔️ ボスクリア！球を5色集めて再度ゴールへ！'; sgMsgType='info';
+      showSpaceOv('⚔️','ボスクリア！','ゴール地点到達！\nでも球がまだ揃っていない…\n球を5色集めて戻ってきて！', 2500, () => {
+        sgMsg='⚔️ ボス150クリア！球を5色集めれば自動クリア！'; sgMsgType='info';
         sgBossSquare=null; sgPhase='idle'; renderSugoroku();
       });
     }
@@ -1257,8 +1262,29 @@ function renderSugoroku() {
     </div>`;
   }).join('');
 
-  const completeTag = allBalls
-    ? `<div class="sg-ball-complete">✨ 5色揃った！ゴールへ急げ！</div>` : '';
+  // ステージ2：ボス150クリア済み＋5色揃い → 自動クリア
+  if (sgStage === 2 && allBalls && save.boss150Cleared && !save.cleared) {
+    save.cleared = true;
+    if (!save.stage2BonusPaid) { save.peas += 50; save.stage2BonusPaid = true; }
+    setSgSave(save);
+    setTimeout(() => showSpaceOv('🏆','ステージ2クリア！','5色球コンプリート！\n🌱×50プレゼント！', 3500, () => {
+      sgMsg='🏆 ステージ2クリア！完全制覇！おめでとう！🌱×50ゲット！'; sgMsgType='good';
+      renderSugoroku();
+    }), 400);
+  }
+
+  // 球コンプリートメッセージ（ステージ別）
+  let completeTag = '';
+  if (allBalls && !save.cleared) {
+    if (sgStage === 2) {
+      const b150 = save.boss150Cleared;
+      completeTag = b150
+        ? `<div class="sg-ball-complete">✨ 5色揃った！ボス150クリア済み → 自動クリア！</div>`
+        : `<div class="sg-ball-complete">✨ 5色揃った！⚔️ ボスマス150へ急げ！</div>`;
+    } else {
+      completeTag = `<div class="sg-ball-complete">✨ 5色揃った！ゴールへ急げ！</div>`;
+    }
+  }
 
   const msgHtml  = sgMsg ? `<div class="sg-message sg-message-${sgMsgType}">${sgMsg}</div>` : '';
   const skipHtml = save.skipNext ? `<div class="sg-skip-notice">💤 次は1回休み</div>` : '';
@@ -1341,7 +1367,9 @@ function renderSgActionArea(save) {
                  : skip  ? `<button class="sg-roll-btn sg-roll-skip" onclick="sgRoll()">💤 1回休みを解除（🌱×10）</button>`
                  : can   ? `<button class="sg-roll-btn" onclick="sgRoll()">🎲 サイコロを振る（🌱×10）</button>`
                          : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
-      const digAny = save.passedGate1
+      // ステージ2はゲートなし→どこでも掘るは常時開放、ステージ1は門通過後
+      const digAnyUnlocked = sgStage === 2 ? true : !!save.passedGate1;
+      const digAny = digAnyUnlocked
         ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
       const starMenu = sgStarActive ? `
         <div class="sg-star-menu">
