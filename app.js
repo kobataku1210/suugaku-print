@@ -853,20 +853,29 @@ function renderHome() {
 
 // ===== ゲーム選択画面 =====
 // 今後ゲームを追加する場合は GAME_ITEMS に1要素加えるだけ。
+// onclick: 外部HTML → "window.open(...)" / 内部遷移 → "navigate('xxx')"
 const GAME_ITEMS = [
   {
     title: '因数分解シューティング',
     desc: '和と積を満たす数字の風船を撃ち落とそう！ 班リレー対応',
     icon: '🎈',
-    href: 'games/因数分解シューティング.html',
+    onclick: "window.open('games/因数分解シューティング.html', '_blank')",
     gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
     isNew: true,
+  },
+  {
+    title: 'カードマッチ',
+    desc: '展開・因数分解の式と答えをカードでマッチング！自己ベストを目指せ',
+    icon: '🃏',
+    onclick: "navigate('cardmatch')",
+    gradient: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
+    isNew: false,
   },
 ];
 function renderGamesPage() {
   const cards = GAME_ITEMS.map(g => `
     <div class="game-card" style="--gradient:${g.gradient}"
-         onclick="window.open('${g.href}', '_blank')">
+         onclick="${g.onclick}">
       <span class="game-card-icon">${g.icon}</span>
       <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
       <div class="game-card-desc">${g.desc}</div>
