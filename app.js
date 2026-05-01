@@ -802,24 +802,6 @@ function renderHome() {
       <div class="sg-home-banner-arrow">›</div>
     </div>`;
 
-  // 対戦バナー：常に表示（GitHub Pages では IP 入力モーダルへ）
-  const isLocal = window.location.hostname !== 'kobataku1210.github.io';
-  const battleBanner = `
-    <div class="bt-home-banner" id="bt-home-banner" onclick="openBattleMode()">
-      <span class="bt-home-banner-icon">⚔️</span>
-      <div class="bt-home-banner-text">
-        <div class="bt-home-banner-title">対戦モード</div>
-        <div class="bt-home-banner-sub" id="bt-banner-sub">友達と1対1で勝負しよう！勝ったら🌱×3</div>
-      </div>
-      <div class="bt-home-banner-arrow">›</div>
-    </div>
-    ${isLocal ? `<div class="bt-ip-board" id="bt-ip-board">
-      <span class="bt-ip-board-label">📡 生徒はこのアドレスにアクセス</span>
-      <span class="bt-ip-board-addr" id="bt-ip-board-addr">読み込み中…</span>
-      <span class="bt-ip-board-share-label">🔗 このURLを共有すると自動でジャンプ</span>
-      <span class="bt-ip-board-share" id="bt-ip-board-share">読み込み中…</span>
-    </div>` : ''}`;
-
   // カードマッチバナー（ホーム画面では非表示・数学ゲーム画面でのみ表示）
 
   // ===== 数学ゲームバナー =====
@@ -839,7 +821,6 @@ function renderHome() {
       <p>学習したい単元をタップしてね</p>
     </div>
     ${sgBanner}
-    ${battleBanner}
     ${gamesBanner}
     <div class="chapters-grid">${cards}</div>`;
 }
