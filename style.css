@@ -3574,7 +3574,11 @@ body {
 .cm-heart      { font-size: 1.3rem; color: #f87171; }
 .cm-heart-lost { font-size: 1.3rem; color: #333; }
 
-/* cm-mode 時は .main のパディングを除去して cm-screen が画面全体を使えるようにする */
+/* cm-mode 時はヘッダー・フッターを非表示にして cm-screen が画面全体を使えるようにする */
+.cm-mode .header,
+.cm-mode .footer {
+  display: none !important;
+}
 .cm-mode .main {
   padding: 0 !important;
   max-width: 100% !important;
