@@ -223,8 +223,11 @@ function _ensureSgInitV2() {
   });
   if (save.digAnyActive  === undefined) { save.digAnyActive  = false; dirty = true; }
   if (save.stage2BonusPaid === undefined) { save.stage2BonusPaid = false; dirty = true; }
-  // 旧バージョンで peas:0 のまま作られていた場合、ステージ1の値で補正
-  if ((save.peas || 0) < s1Peas) { save.peas = s1Peas; dirty = true; }
+  // 旧バージョンで peas:0 のまま作られていた場合、ステージ1の値で補正（初回のみ）
+  if (!save.s1PeaCarried) {
+    if ((save.peas || 0) < s1Peas) { save.peas = s1Peas; dirty = true; }
+    save.s1PeaCarried = true; dirty = true;
+  }
   if (dirty) localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
   return save;
 }
