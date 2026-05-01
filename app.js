@@ -2512,9 +2512,7 @@ function renderCmSolo() {
         <button class="cm-back-btn" onclick="cmBackToMenu()">← 戻る</button>
         <div class="cm-header-mid">
           <div class="cm-timer-display">⏱ <span id="cm-timer">0:00</span></div>
-          <div class="cm-best-display">自己ベスト&nbsp;${bestStr}</div>
-          ${cmTeacherTime != null ? `<div class="cm-teacher-time-disp">👑 小林T&nbsp;${cmFmtTime(cmTeacherTime)}</div>` : ''}
-          ${cmStudentBestTime != null && cmStudentBestName ? `<div class="cm-teacher-time-disp" style="color:#9ded62;">🏅 ${cmStudentBestName}&nbsp;${cmFmtTime(cmStudentBestTime)}</div>` : ''}
+          <div class="cm-best-display">自己ベスト&nbsp;${bestStr}${cmTeacherTime != null ? `　👑${cmFmtTime(cmTeacherTime)}` : ''}${cmStudentBestTime != null && cmStudentBestName ? `　🏅${cmFmtTime(cmStudentBestTime)}` : ''}</div>
         </div>
         <div id="cm-hearts" class="cm-hearts">
           ${'<span class="cm-heart">♥</span>'.repeat(CM_MAX_MISS)}
