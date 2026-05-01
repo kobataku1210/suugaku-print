@@ -645,14 +645,14 @@
       <button data-lv="2">Lv2 ふつう<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="3">Lv3 むずかしい<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
     </div>
-    <div class="pea-rate-label">🌱 毎回もらえる！　200点ごとに🌱×1個</div>
+    <div class="pea-rate-label">🌱 毎回もらえる！　1000点ごとに🌱×1個</div>
     <p style="font-size:12px;color:#636e72;margin:10px 0 6px;">🎯🎯 2つペアで答える</p>
     <div class="level-buttons">
       <button data-lv="4">Lv4 ペア入門<br><small>正の数のみ</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="5">Lv5 ペア応用<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="6">Lv6 ペア最難関<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
     </div>
-    <div class="pea-rate-label pea-rate-hard">🌱 毎回もらえる！　100点ごとに🌱×1個</div>
+    <div class="pea-rate-label pea-rate-hard">🌱 毎回もらえる！　500点ごとに🌱×1個</div>
     <button id="startBtn">スタート！</button>
   </div>
 
@@ -892,7 +892,7 @@
   const CLEAR_SCORE = 10000; // 全レベル共通クリア条件（スコア）
   // スコアに応じたグリンピース報酬レート（毎回）
   // Lv1-3: 100ptごとに1個 / Lv4-6: 50ptごとに1個
-  function getPeaRate(lv) { return lv <= 3 ? 200 : 100; }
+  function getPeaRate(lv) { return lv <= 3 ? 1000 : 500; }
   function calcPeas(lv, score) { return Math.floor(score / getPeaRate(lv)); }
   const PROGRESS_KEY = 'factShootingClearedLevels';
   function isHintMode(lv) { return lv >= 1 && lv <= 3; }
