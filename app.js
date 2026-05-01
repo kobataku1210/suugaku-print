@@ -1627,7 +1627,7 @@ function renderTimeAttack() {
           <div class="bulk-q-input-wrap">
             <input class="bulk-q-input" id="ta-${i}"
                    type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off"
-                   onkeydown="taInputKeydown(event,${i})"
+                   onkeydown="taInputKeydown(event,${i})">
           </div>
         </div>`;
     }).join('');
