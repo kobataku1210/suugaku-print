@@ -151,6 +151,14 @@
     .student-best-name-input:focus,
     .student-best-time-input:focus { border-color: #9ded62; background: rgba(157,237,98,0.1); }
     .student-best-unit { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+    .student-best-save-btn {
+      background: #9ded62; color: #1a3a0a; border: none; border-radius: 6px;
+      padding: 0.15rem 0.6rem; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; white-space: nowrap;
+    }
+    .student-best-save-btn:hover { background: #7dcc4a; }
+    .student-best-save-btn:disabled { opacity: 0.5; cursor: default; }
+    .student-best-save-status { font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 
     /* ===== 小テストパスワード表示 ===== */
     .minitest-pw-wrap {
@@ -446,6 +454,28 @@ function updateStudentBest(chIdx, si, field, val) {
   }
 }
 
+async function saveStudentBest(chIdx, si, btn) {
+  const sta = document.getElementById(`sb-status-${chIdx}-${si}`);
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+    });
+    const r = await res.json();
+    sta.textContent = r.ok ? '✓ 保存しました' : '❌ 失敗';
+    sta.style.color = r.ok ? '#2ecc71' : '#e74c3c';
+  } catch(e) {
+    sta.textContent = '❌ エラー';
+    sta.style.color = '#e74c3c';
+  }
+  btn.textContent = '更新';
+  btn.disabled = false;
+  setTimeout(() => { sta.textContent = ''; }, 3000);
+}
+
 // パスワード再生成ボタン
 function regenPassword(chIdx, si) {
   const newPw = genPassword();
@@ -582,6 +612,8 @@ function renderSections(chIdx) {
                  onchange="updateStudentBest(${chIdx},${si},'time',this.value)"
                  title="生徒の自己ベストタイム（このタイムを超えると🌱×50）">
           <span class="student-best-unit">秒</span>
+          <button class="student-best-save-btn" onclick="saveStudentBest(${chIdx},${si},this)">更新</button>
+          <span class="student-best-save-status" id="sb-status-${chIdx}-${si}"></span>
         </div>
         <div class="minitest-pw-wrap">
           <span class="minitest-pw-label">小テストPW</span>
