@@ -193,14 +193,16 @@ function setSgSave(data) {
 }
 
 function _ensureSgInitV2() {
+  // ステージ1のグリンピース数を取得（持ち越し用）
+  let s1Peas = 0;
+  try { const s1 = JSON.parse(localStorage.getItem(SG_SAVE_KEY)||'{}'); s1Peas = s1.peas || 0; }
+  catch(e) {}
+
   let raw = localStorage.getItem(SG_SAVE_KEY_V2);
   if (!raw) {
-    // グリンピースはステージ1から引き継ぐ
-    let initPeas = 0;
-    try { const s1 = JSON.parse(localStorage.getItem(SG_SAVE_KEY)||'{}'); initPeas = s1.peas || 0; }
-    catch(e) {}
+    // 初回作成：グリンピースはステージ1から引き継ぐ
     const save = {
-      peas: initPeas, pos: 0, maxPos: 0,
+      peas: s1Peas, pos: 0, maxPos: 0,
       skipNext: false, cleared: false,
       balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
       boss50Cleared: false, boss100Cleared: false, boss150Cleared: false,
@@ -221,6 +223,8 @@ function _ensureSgInitV2() {
   });
   if (save.digAnyActive  === undefined) { save.digAnyActive  = false; dirty = true; }
   if (save.stage2BonusPaid === undefined) { save.stage2BonusPaid = false; dirty = true; }
+  // 旧バージョンで peas:0 のまま作られていた場合、ステージ1の値で補正
+  if ((save.peas || 0) < s1Peas) { save.peas = s1Peas; dirty = true; }
   if (dirty) localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(save));
   return save;
 }
@@ -1377,7 +1381,6 @@ function renderSugoroku() {
           <div class="sg-status-item"><span>🎲</span><strong>${diceCount}</strong><small>回</small></div>
           <div class="sg-status-item"><span>📍</span><strong>${pos}</strong><small>/ ${maxPos}</small></div>
           <div class="sg-status-item sg-status-char"><span>${charIcon}</span></div>
-          <button class="sg-reset-btn" onclick="sgReset()">🔄 最初から</button>
         </div>
         <div class="sg-ball-bar">
           <div class="sg-ball-title">集めた球</div>

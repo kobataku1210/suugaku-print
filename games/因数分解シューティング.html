@@ -319,6 +319,47 @@
   .level-buttons button.locked .lock-mark { display: block; }
   .level-buttons button.cleared .clear-mark { display: block; }
   .level-buttons button.cleared { outline: 2px solid #00b894; outline-offset: 2px; }
+  /* 報酬マーク */
+  .reward-mark {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #27ae60;
+    background: #e8f8f0;
+    border: 1px solid #a8e6c4;
+    border-radius: 8px;
+    padding: 1px 6px;
+    line-height: 1.4;
+  }
+  .level-buttons button.cleared .reward-mark {
+    color: #b2bec3;
+    background: #f0f0f0;
+    border-color: #ddd;
+  }
+
+  /* Pea rate labels below level button groups */
+  .pea-rate-label {
+    display: block;
+    margin: 6px auto 12px;
+    padding: 7px 18px;
+    background: linear-gradient(135deg, #d4f5d4, #b8edcc);
+    border: 2px solid #27ae60;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #1a6e3a;
+    text-align: center;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(39,174,96,0.2);
+    max-width: 380px;
+  }
+  .pea-rate-hard {
+    background: linear-gradient(135deg, #fff3cd, #ffe08a);
+    border-color: #e67e22;
+    color: #7d3c00;
+    box-shadow: 0 2px 8px rgba(230,126,34,0.2);
+  }
 
   /* Lv1 hint row inside problem area */
   #hintRow {
@@ -597,19 +638,21 @@
         端末を順番に回しながら全員でクリアを目指そう
       </div>
     </div>
-    <p style="margin-bottom:12px;color:#636e72;font-weight:bold;">レベルを選ぼう</p>
+    <p style="margin-bottom:10px;color:#636e72;font-weight:bold;">レベルを選ぼう</p>
     <p style="font-size:12px;color:#636e72;margin-bottom:6px;">🎯 1つだけ答える（ヒント付き）</p>
     <div class="level-buttons">
       <button data-lv="1" class="active">Lv1 やさしい<br><small>正の数のみ</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="2">Lv2 ふつう<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="3">Lv3 むずかしい<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
     </div>
-    <p style="font-size:12px;color:#636e72;margin:8px 0 6px;">🎯🎯 2つペアで答える</p>
+    <div class="pea-rate-label">🌱 毎回もらえる！　100点ごとに🌱×1個</div>
+    <p style="font-size:12px;color:#636e72;margin:10px 0 6px;">🎯🎯 2つペアで答える</p>
     <div class="level-buttons">
       <button data-lv="4">Lv4 ペア入門<br><small>正の数のみ</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="5">Lv5 ペア応用<br><small>負あり (積は正)</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
       <button data-lv="6">Lv6 ペア最難関<br><small>積も負になる</small><span class="lock-mark">🔒</span><span class="clear-mark">✅ クリア</span></button>
     </div>
+    <div class="pea-rate-label pea-rate-hard">🌱 毎回もらえる！　50点ごとに🌱×1個</div>
     <button id="startBtn">スタート！</button>
   </div>
 
@@ -846,9 +889,11 @@
   const BONUS_MULT = 3;         // score multiplier during bonus
   // Lv 1-3 = hint mode (single tap), Lv 4-6 = pair mode (two taps).
   // Number difficulty: pos / same-sign / any-sign repeats across the two play modes.
-  const CLEAR_THRESHOLDS = { 1: 10, 2: 8, 3: 6, 4: 8, 5: 6, 6: 5 };
-  // 初回クリア報酬（🌱の個数）
-  const PEA_REWARDS     = { 1:  5, 2:  8, 3: 10, 4: 10, 5: 12, 6: 15 };
+  const CLEAR_SCORE = 10000; // 全レベル共通クリア条件（スコア）
+  // スコアに応じたグリンピース報酬レート（毎回）
+  // Lv1-3: 100ptごとに1個 / Lv4-6: 50ptごとに1個
+  function getPeaRate(lv) { return lv <= 3 ? 100 : 50; }
+  function calcPeas(lv, score) { return Math.floor(score / getPeaRate(lv)); }
   const PROGRESS_KEY = 'factShootingClearedLevels';
   function isHintMode(lv) { return lv >= 1 && lv <= 3; }
   function getLevelConfig(lv) {
@@ -1266,7 +1311,7 @@
       state.nextBonusAt = state.correctCount + BONUS_EVERY;
     }
     playChime();
-    setNewProblem();
+    // 問題はそのまま継続（ボーナス終了時に問題を変えない）
   }
 
   // Fanfare for bonus entry, chime for exit
@@ -1419,46 +1464,52 @@
     const title = gameOverScreen.querySelector('h1');
 
     // ----- Clear detection -----
-    const threshold = CLEAR_THRESHOLDS[level];
-    const justCleared = state.correctCount >= threshold;
+    const justCleared = state.score >= CLEAR_SCORE;
     let unlocked = null;
     let earnedPeas = 0;
     const peaRewardEl = document.getElementById('peaReward');
     peaRewardEl.classList.remove('show');
 
+    // スコアに応じたグリンピース報酬（毎回・クリア不問）
+    earnedPeas = calcPeas(level, state.score);
+    if (earnedPeas > 0) {
+      try {
+        // ① お椀ウィジェット用（mathPrint_v2）
+        const bowlKey = 'mathPrint_v2';
+        const bowlSave = JSON.parse(localStorage.getItem(bowlKey) || '{}');
+        let cur  = bowlSave.peaCount    || 0;
+        let cups = bowlSave.peaCupCount || 0;
+        cur += earnedPeas;
+        while (cur >= 45) { cur -= 45; cups += 1; }
+        bowlSave.peaCount    = cur;
+        bowlSave.peaCupCount = cups;
+        localStorage.setItem(bowlKey, JSON.stringify(bowlSave));
+
+        // ② すごろく用（sgSave_v1 または sgSave_v2）
+        const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+        const sgKey = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+        const sgSave = JSON.parse(localStorage.getItem(sgKey) || '{}');
+        sgSave.peas = (sgSave.peas || 0) + earnedPeas;
+        localStorage.setItem(sgKey, JSON.stringify(sgSave));
+      } catch(e) {}
+    }
+
     if (justCleared) {
       if (!cleared.includes(level)) {
-        // 初回クリア → グリンピース付与（お椀＋すごろく両方に反映）
-        earnedPeas = PEA_REWARDS[level] || 5;
-        try {
-          // ① お椀ウィジェット用（mathPrint_v2）
-          const bowlKey = 'mathPrint_v2';
-          const bowlSave = JSON.parse(localStorage.getItem(bowlKey) || '{}');
-          let cur  = bowlSave.peaCount    || 0;
-          let cups = bowlSave.peaCupCount || 0;
-          cur += earnedPeas;
-          while (cur >= 45) { cur -= 45; cups += 1; }
-          bowlSave.peaCount    = cur;
-          bowlSave.peaCupCount = cups;
-          localStorage.setItem(bowlKey, JSON.stringify(bowlSave));
-
-          // ② すごろく用（sgSave_v1 または sgSave_v2）
-          const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
-          const sgKey = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
-          const sgSave = JSON.parse(localStorage.getItem(sgKey) || '{}');
-          sgSave.peas = (sgSave.peas || 0) + earnedPeas;
-          localStorage.setItem(sgKey, JSON.stringify(sgSave));
-        } catch(e) {}
         cleared.push(level);
         saveProgress(cleared);
-        if (CLEAR_THRESHOLDS[level + 1]) unlocked = level + 1;
+        if (level + 1 <= 6) unlocked = level + 1;
         updateLevelButtons();
       }
     }
 
     // 🌱 報酬バナー表示
+    const peaRate = getPeaRate(level);
     if (earnedPeas > 0) {
-      peaRewardEl.textContent = `🌱 ×${earnedPeas} ゲット！すごろくに反映されました！`;
+      peaRewardEl.textContent = `🌱 ×${earnedPeas} ゲット！（${state.score}pt ÷ ${peaRate} = ${earnedPeas}個）すごろくに反映！`;
+      peaRewardEl.classList.add('show');
+    } else {
+      peaRewardEl.textContent = `（${peaRate}pt以上でグリンピースがもらえるよ！）`;
       peaRewardEl.classList.add('show');
     }
 
@@ -1472,7 +1523,7 @@
         clearBannerEl.textContent = `クリア済み (${state.correctCount}問正解)`;
       }
       clearBannerEl.classList.add('show');
-      if (CLEAR_THRESHOLDS[level + 1]) {
+      if (level + 1 <= 6) {
         nextLevelBtnEl.classList.add('show');
       } else {
         nextLevelBtnEl.classList.remove('show');
@@ -1482,9 +1533,9 @@
       clearBannerEl.classList.remove('show');
       nextLevelBtnEl.classList.remove('show');
       // Hint for the player on what's needed to clear
-      const remaining = threshold - state.correctCount;
+      const remaining = CLEAR_SCORE - state.score;
       if (remaining > 0) {
-        clearBannerEl.textContent = `あと ${remaining}問でクリア！(目標 ${threshold}問)`;
+        clearBannerEl.textContent = `あと ${remaining.toLocaleString()}点でクリア！(目標 10,000点)`;
         clearBannerEl.classList.add('show');
       }
     }
@@ -1533,7 +1584,7 @@
   });
   nextLevelBtnEl.addEventListener('click', () => {
     const nextLv = level + 1;
-    if (!CLEAR_THRESHOLDS[nextLv]) return;
+    if (nextLv > 6) return;
     level = nextLv;
     document.querySelectorAll('.level-buttons button').forEach(b => {
       b.classList.toggle('active', parseInt(b.dataset.lv) === level);
