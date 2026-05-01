@@ -1803,8 +1803,11 @@ function taInputKeydown(e, i) {
   const next = document.getElementById(`ta-${i + 1}`);
   if (next) {
     next.focus();
-    const row = next.closest('.bulk-q-row');
-    (row || next).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const row = next.closest('.bulk-q-row') || next;
+    // 問題カードの上端が画面中央より少し上（画面の35%）に来るようスクロール
+    const rowTop = row.getBoundingClientRect().top + window.scrollY;
+    const targetScroll = rowTop - window.innerHeight * 0.35;
+    window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
   } else {
     // 最終問題 → 採点ボタンへ
     const btn = document.querySelector('.ta-submit-btn');
