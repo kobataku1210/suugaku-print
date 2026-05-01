@@ -1652,7 +1652,7 @@ function renderTimeAttack() {
         <h2>${sec.title}</h2>
         <span class="quiz-level-badge" style="--lv-color:#00d2ff">⏱ タイムアタック</span>
       </div>
-      <div class="ta-timer-wrap">
+      <div class="ta-timer-wrap" id="ta-timer-wrap">
         <div class="ta-live-timer" id="ta-live-timer">0.0秒</div>
         <div class="ta-timer-label">タイマー計測中…</div>
         ${targetHtml}
