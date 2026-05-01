@@ -1460,8 +1460,8 @@ function renderSgActionArea(save) {
                  : skip  ? `<button class="sg-roll-btn sg-roll-skip" onclick="sgRoll()">💤 1回休みを解除（🌱×10）</button>`
                  : can   ? `<button class="sg-roll-btn" onclick="sgRoll()">🎲 サイコロを振る（🌱×10）</button>`
                          : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
-      // どこでも掘る：ステージ2は digAnyActive フラグで管理、ステージ1は門通過後
-      const digAnyUnlocked = sgStage === 2 ? !!save.digAnyActive : !!save.passedGate1;
+      // どこでも掘る：ステージ2はマス150に一度でも到達したら解放、ステージ1は門通過後
+      const digAnyUnlocked = sgStage === 2 ? (save.maxPos >= 150) : !!save.passedGate1;
       const digAny = digAnyUnlocked
         ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
       const starMenu = sgStarActive ? `
