@@ -973,7 +973,9 @@
               "b": "1"
             }
           ],
-          "miniTestPassword": "9186"
+          "miniTestPassword": "9186",
+          "studentBestName": "8組　K君",
+          "studentBestTime": 7.7
         },
         {
           "title": "因数分解②",
