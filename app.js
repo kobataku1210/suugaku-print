@@ -1687,6 +1687,7 @@ function renderTimeAttackResult(sec) {
           <span class="bulk-q-level" style="color:${lv.color}">${lv.stars} ${lv.label}</span>
         </div>
         <div class="bulk-q-text">${formatQuestion(q.q)}</div>
+        ${getBlankHint(q) ? `<div class="bulk-q-hint"><span class="bulk-q-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
         ${isWrong
           ? `<div class="bulk-result-wrong">
                あなたの答え：<span class="bulk-ans-entered">${escHtml(entered) || '（未入力）'}</span>
