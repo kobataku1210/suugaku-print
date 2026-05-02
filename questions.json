@@ -333,7 +333,7 @@
         },
         {
           "title": "式の展開",
-          "teacherTime": 14.4,
+          "teacherTime": 10.5,
           "basic": [
             {
               "q": "(a+b)(c-d)",
@@ -494,7 +494,7 @@
         },
         {
           "title": "乗法の公式",
-          "teacherTime": 15,
+          "teacherTime": 9.9,
           "basic": [
             {
               "q": "(x+2)(x+3)",
@@ -655,7 +655,7 @@
         },
         {
           "title": "いろいろな式の計算",
-          "teacherTime": 18.8,
+          "teacherTime": 17.7,
           "basic": [
             {
               "q": "(x-3)²+(x-1)(x+7)",
@@ -1142,7 +1142,7 @@
         },
         {
           "title": "いろいろな因数分解",
-          "teacherTime": 22.5,
+          "teacherTime": 9.2,
           "basic": [
             {
               "q": "5x²-45",
@@ -1303,7 +1303,7 @@
         },
         {
           "title": "式の計算の利用",
-          "teacherTime": 18.1,
+          "teacherTime": 11.2,
           "basic": [
             {
               "q": "45²-35²",
