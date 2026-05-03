@@ -294,6 +294,68 @@
       background: rgba(255,255,255,0.08); border-radius: 4px;
       padding: 0.05rem 0.35rem; color: rgba(255,255,255,0.6);
     }
+
+    /* ===== 共通因数ウォール 問題管理 ===== */
+    .wall-section {
+      background: rgba(255,138,42,0.06);
+      border-bottom: 1px solid rgba(255,138,42,0.2);
+    }
+    .wall-section-header {
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      padding: 0.55rem 2rem; cursor: pointer; user-select: none;
+      font-size: 0.88rem;
+    }
+    .wall-section-label { color: #ff8a2a; font-weight: 700; white-space: nowrap; }
+    .wall-section-count { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+    .wall-section-toggle { color: rgba(255,255,255,0.35); font-size: 0.8rem; margin-left: auto; }
+    .wall-section-body { padding: 0.6rem 2rem 1rem; overflow-x: auto; }
+    .wall-table { border-collapse: collapse; font-size: 0.85rem; }
+    .wall-table th {
+      padding: 0.3rem 0.6rem; color: rgba(255,255,255,0.4);
+      font-size: 0.78rem; font-weight: 500;
+      border-bottom: 1px solid rgba(255,138,42,0.2); text-align: left;
+    }
+    .wall-table td { padding: 0.3rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+    .wall-num { font-size: 0.75rem; color: rgba(255,255,255,0.35); width: 2rem; text-align: center; padding: 0.3rem; }
+    .wall-term-input {
+      width: 88px; padding: 0.3rem 0.5rem;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,138,42,0.3);
+      border-radius: 6px; color: white; font-size: 0.85rem;
+      font-family: 'Consolas', monospace; outline: none;
+    }
+    .wall-term-input:focus { border-color: #ff8a2a; background: rgba(255,138,42,0.1); }
+    .wall-toggle-btn {
+      padding: 0.18rem 0.5rem; background: rgba(255,138,42,0.12);
+      border: 1px solid rgba(255,138,42,0.3); color: #ff8a2a;
+      border-radius: 5px; font-size: 0.76rem; cursor: pointer;
+      font-family: inherit; margin-left: 4px;
+    }
+    .wall-toggle-btn:hover { background: rgba(255,138,42,0.28); }
+    .wall-del-cell { text-align: center; width: 2rem; padding: 0.3rem 0.2rem !important; }
+    .wall-del-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.4rem; height: 1.4rem; border-radius: 50%;
+      background: rgba(255,80,80,0.12); border: 1px solid rgba(255,80,80,0.25);
+      color: rgba(255,100,100,0.6); font-size: 0.82rem; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .wall-del-btn:hover { background: rgba(255,80,80,0.3); color: #ff6b6b; }
+    .wall-save-inline {
+      padding: 0.22rem 0.9rem; background: rgba(255,138,42,0.2);
+      border: 1px solid rgba(255,138,42,0.5); color: #ff8a2a;
+      border-radius: 6px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .wall-save-inline:hover { background: rgba(255,138,42,0.38); }
+    .wall-save-inline:disabled { opacity: 0.5; cursor: default; }
+    .wall-save-status { font-size: 0.8rem; white-space: nowrap; }
+    .wall-add-btn {
+      display: inline-block; margin-top: 0.5rem;
+      padding: 0.33rem 1rem; background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,138,42,0.35); color: rgba(255,255,255,0.45);
+      border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
+    }
+    .wall-add-btn:hover { background: rgba(255,138,42,0.1); color: #ff8a2a; }
   </style>
 </head>
 <body>
@@ -321,6 +383,25 @@
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
+  <!-- 共通因数ウォール 問題管理 -->
+  <div class="wall-section">
+    <div class="wall-section-header" onclick="toggleWallSection()">
+      <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
+      <span id="wall-count" class="wall-section-count">（読み込み中）</span>
+      <button class="wall-save-inline" id="wall-save-btn"
+              onclick="event.stopPropagation();saveWallProblems(this)">💾 保存</button>
+      <span class="wall-save-status" id="wall-save-status"></span>
+      <span class="wall-section-toggle" id="wall-toggle">▼ 開く</span>
+    </div>
+    <div class="wall-section-body" id="wall-body" style="display:none">
+      <div id="wall-table-wrap"></div>
+      <button class="wall-add-btn" onclick="addWallProblem()">＋ 問題を追加</button>
+      <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.3)">
+        使える文字: a b c x y　係数: 1〜7　指数: a^2 または a²　例: 6a^2b, 4ab
+      </div>
+    </div>
+  </div>
+
   <!-- カードマッチ 小林Tタイム設定 -->
   <div class="cm-teacher-setting">
     <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
@@ -517,6 +598,7 @@ async function loadQuestions() {
   if (st && questionsData.cardMatchStudentBestTime != null) st.value = questionsData.cardMatchStudentBestTime;
   renderChapterTabs();
   renderSections(0);
+  renderWallProblems();
 }
 
 async function saveCmTeacherTime() {
@@ -874,6 +956,133 @@ async function saveAndPush() {
 
   btn.textContent = '🚀 GitHubに反映';
   btn.disabled = false;
+}
+
+// ===== 共通因数ウォール 問題管理 =====
+let wallSectionOpen = false;
+
+function toggleWallSection() {
+  wallSectionOpen = !wallSectionOpen;
+  document.getElementById('wall-body').style.display = wallSectionOpen ? 'block' : 'none';
+  document.getElementById('wall-toggle').textContent = wallSectionOpen ? '▲ 閉じる' : '▼ 開く';
+}
+
+function renderWallProblems() {
+  if (!questionsData) return;
+  const probs = questionsData.wallProblems || [];
+  document.getElementById('wall-count').textContent = `${probs.length}問`;
+  const wrap = document.getElementById('wall-table-wrap');
+  if (probs.length === 0) {
+    wrap.innerHTML = '<p style="color:rgba(255,255,255,0.4);padding:0.4rem 0;font-size:0.85rem">問題がありません。「＋ 問題を追加」で追加してください。</p>';
+    return;
+  }
+  const rows = probs.map((p, i) => {
+    const terms = p.terms || [];
+    const has3 = terms.length >= 3;
+    const t1 = escHtml(terms[0] || '');
+    const t2 = escHtml(terms[1] || '');
+    const t3 = has3 ? escHtml(terms[2] || '') : '';
+    return `<tr>
+      <td class="wall-num">${i + 1}</td>
+      <td><input class="wall-term-input" type="text" value="${t1}"
+                 placeholder="例: 6ab"
+                 onchange="updateWallTerm(${i},0,this.value)"></td>
+      <td style="color:rgba(255,255,255,0.25);padding:0 0.15rem;font-size:0.85rem">，</td>
+      <td><input class="wall-term-input" type="text" value="${t2}"
+                 placeholder="例: 4ac"
+                 onchange="updateWallTerm(${i},1,this.value)"></td>
+      <td style="padding:0 0.2rem;">
+        ${has3
+          ? `<input class="wall-term-input" type="text" value="${t3}"
+                    placeholder="例: 8bc"
+                    onchange="updateWallTerm(${i},2,this.value)">`
+          : ''}
+        ${has3
+          ? `<button class="wall-toggle-btn" onclick="removeWallTerm(${i})">−項</button>`
+          : `<button class="wall-toggle-btn" onclick="addWallTerm(${i})">+項</button>`}
+      </td>
+      <td class="wall-del-cell">
+        <button class="wall-del-btn" title="削除" onclick="deleteWallProblem(${i})">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="wall-table">
+    <thead>
+      <tr>
+        <th class="wall-num">#</th>
+        <th>項1</th>
+        <th></th>
+        <th>項2</th>
+        <th>項3（任意）</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function updateWallTerm(idx, ti, val) {
+  if (!questionsData.wallProblems) questionsData.wallProblems = [];
+  const p = questionsData.wallProblems[idx];
+  if (!p) return;
+  while (p.terms.length <= ti) p.terms.push('');
+  p.terms[ti] = val.trim();
+}
+
+function addWallTerm(idx) {
+  if (!questionsData.wallProblems) return;
+  const p = questionsData.wallProblems[idx];
+  if (!p || p.terms.length >= 3) return;
+  p.terms.push('');
+  renderWallProblems();
+}
+
+function removeWallTerm(idx) {
+  if (!questionsData.wallProblems) return;
+  const p = questionsData.wallProblems[idx];
+  if (!p) return;
+  p.terms = p.terms.slice(0, 2);
+  renderWallProblems();
+}
+
+function addWallProblem() {
+  if (!questionsData.wallProblems) questionsData.wallProblems = [];
+  questionsData.wallProblems.push({ terms: ['', ''] });
+  renderWallProblems();
+  // 追加した行の1つ目の入力にフォーカス
+  const inputs = document.querySelectorAll('.wall-term-input');
+  if (inputs.length >= 2) inputs[inputs.length - 2].focus();
+}
+
+function deleteWallProblem(idx) {
+  if (!questionsData.wallProblems) return;
+  const prob = questionsData.wallProblems[idx];
+  const label = (prob.terms || []).filter(Boolean).join('，') || `問題${idx + 1}`;
+  if (!confirm(`「${label}」を削除しますか？`)) return;
+  questionsData.wallProblems.splice(idx, 1);
+  renderWallProblems();
+}
+
+async function saveWallProblems(btn) {
+  const sta = document.getElementById('wall-save-status');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+    });
+    const r = await res.json();
+    sta.textContent = r.ok ? '✓ 保存しました' : '❌ 失敗';
+    sta.style.color = r.ok ? '#86efac' : '#ff6b6b';
+  } catch(e) {
+    sta.textContent = '❌ エラー';
+    sta.style.color = '#ff6b6b';
+  }
+  btn.textContent = '💾 保存';
+  btn.disabled = false;
+  setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
 function escHtml(str) {

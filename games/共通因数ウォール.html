@@ -617,7 +617,20 @@ function normalizeProblem(p) {
   return { terms: [p.left || '', p.right || ''] };
 }
 
-function loadCustomProblems() {
+async function loadCustomProblems() {
+  // まず questions.json からサーバー管理の問題を取得する
+  try {
+    const res = await fetch('../questions.json');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.wallProblems && data.wallProblems.length > 0) {
+        customProblems = data.wallProblems.map(p => normalizeProblem(p));
+        return; // サーバーデータを使用：localStorage は参照しない
+      }
+    }
+  } catch (e) { /* オフライン or file://時はlocalStorageにフォールバック */ }
+
+  // フォールバック: localStorage
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === null) {
@@ -1505,11 +1518,11 @@ function updateCustomCountLabel() {
 // =====================================================
 //   イベント結線
 // =====================================================
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   initThree();
   buildButtons();
   requestAnimationFrame(animate);
-  loadCustomProblems();
+  await loadCustomProblems();
 
   // URL に ?edit が付いているときだけ編集ボタンを表示 (先生用URL)
   const editAllowed = new URLSearchParams(window.location.search).has('edit');

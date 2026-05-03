@@ -1515,5 +1515,29 @@
     }
   ],
   "cardMatchStudentBestName": "5組T君",
-  "cardMatchStudentBestTime": 16
+  "cardMatchStudentBestTime": 16,
+  "wallProblems": [
+    { "terms": ["bc",    "by"   ] },
+    { "terms": ["ax",    "ay"   ] },
+    { "terms": ["cx",    "cy"   ] },
+    { "terms": ["6bx",   "3b"   ] },
+    { "terms": ["4cy",   "2c"   ] },
+    { "terms": ["6ab",   "4a"   ] },
+    { "terms": ["3bc",   "4bx"  ] },
+    { "terms": ["5cy",   "2cx"  ] },
+    { "terms": ["3ab",   "5ax"  ] },
+    { "terms": ["6x^2y", "3y^2" ] },
+    { "terms": ["4a^2c", "2c^2" ] },
+    { "terms": ["6b^2x", "4x^2" ] },
+    { "terms": ["x^2y",  "xy^2" ] },
+    { "terms": ["a^2c",  "ac^2" ] },
+    { "terms": ["b^2x",  "bx^2" ] },
+    { "terms": ["ay",    "by",   "cy"   ] },
+    { "terms": ["ab",    "ax",   "ay"   ] },
+    { "terms": ["bc",    "bx",   "by"   ] },
+    { "terms": ["2a",    "4ab",  "6ac"  ] },
+    { "terms": ["6x^2y", "4xy",  "8xc"  ] },
+    { "terms": ["3a^2b", "6ab^2","9abc" ] },
+    { "terms": ["x^2y",  "xy^2", "xyc"  ] }
+  ]
 }
