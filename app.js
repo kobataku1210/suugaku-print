@@ -845,6 +845,14 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
     isNew: false,
   },
+  {
+    title: '共通因数ウォール',
+    desc: '共通因数をくくり出してウォールを崩せ！',
+    icon: '🧱',
+    onclick: "window.open('games/共通因数ウォール.html','_blank')",
+    gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
+    isNew: true,
+  },
 ];
 function renderGamesPage() {
   // カードマッチの自己ベストを取得

@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>共通因数ウォール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #d8dde2; }
+  body { font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif; color: #222; }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル / モード選択 ===== */
+  #title-screen, #mode-screen {
+    background: linear-gradient(180deg, #e8ecef 0%, #c8ced3 100%);
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px;
+  }
+  .title-logo {
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #2a2a2a;
+    font-style: italic;
+    text-shadow: 0 2px 0 #fff, 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .title-sub {
+    font-size: clamp(14px, 2.5vw, 18px);
+    color: #555;
+    border-top: 2px solid #ff8a2a;
+    border-bottom: 2px solid #ff8a2a;
+    padding: 4px 16px;
+    margin-top: -8px;
+    font-weight: bold;
+  }
+  .title-desc { font-size: 14px; color: #666; text-align: center; max-width: 320px; line-height: 1.6; }
+
+  .btn {
+    border: none;
+    background: #ff8a2a;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    padding: 14px 48px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-secondary { background: white; color: #333; border: 1px solid #ccc; }
+
+  .mode-card {
+    width: min(85vw, 380px);
+    background: white;
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.1s;
+  }
+  .mode-card:active { transform: scale(0.98); }
+  .mode-card h3 {
+    font-size: 18px; font-weight: 900; letter-spacing: 1px;
+    border-bottom: 2px solid #ff8a2a; padding-bottom: 6px; margin-bottom: 8px;
+  }
+  .mode-card p { font-size: 13px; color: #555; line-height: 1.6; }
+
+  /* ===== ゲーム画面 ===== */
+  #game-screen { background: #d8dde2; }
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 12px 18px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 10;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(6px);
+    font-weight: bold;
+  }
+  .hud-item { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+  .hud-label { font-size: 11px; color: #777; letter-spacing: 1px; }
+  .hud-value { font-size: 22px; color: #2a2a2a; font-variant-numeric: tabular-nums; }
+  #time-bar-wrap { flex: 1; max-width: 220px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 0 16px; }
+  #time-bar { height: 100%; background: linear-gradient(90deg, #ff8a2a, #ffb066); width: 100%; transition: width 0.2s linear; }
+
+  #three-container {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 280px;
+  }
+  #three-container canvas { display: block; width: 100%; height: 100%; }
+
+  #feedback {
+    position: absolute; left: 0; right: 0; top: 35%;
+    text-align: center;
+    font-size: 56px; font-weight: 900; color: #ff8a2a;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #feedback.show { opacity: 1; }
+  #feedback.miss { color: #d33; }
+
+  #input-area {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: white;
+    padding: 12px 16px 18px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+    z-index: 5;
+  }
+  #input-display {
+    height: 56px; line-height: 56px;
+    border-bottom: 2px solid #ddd;
+    text-align: center;
+    font-size: 36px; font-weight: bold; color: #2a2a2a;
+    margin-bottom: 10px;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  }
+  #input-display sup { font-size: 0.6em; vertical-align: super; }
+  #input-display .placeholder { color: #ccc; font-size: 22px; font-weight: normal; }
+
+  #buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .key {
+    height: 52px;
+    border: none;
+    background: #f0f2f5;
+    border-radius: 12px;
+    font-size: 22px; font-weight: bold; color: #333;
+    cursor: pointer;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    transition: transform 0.06s, background 0.1s;
+  }
+  .key:active { transform: scale(0.94); background: #e0e3e8; }
+  .key.disabled { opacity: 0.3; cursor: not-allowed; }
+  .key.action { background: #ff8a2a; color: white; }
+  .key.action:active { background: #e6741a; }
+  .key.del { background: #ddd; }
+
+  /* ===== 結果画面 ===== */
+  #result-screen {
+    background: linear-gradient(180deg, #2a2e33 0%, #1a1d20 100%);
+    color: white;
+    align-items: center; justify-content: center;
+    gap: 18px; padding: 24px;
+  }
+  .result-title { font-size: 14px; letter-spacing: 4px; color: #aaa; }
+  .result-mode { font-size: 18px; font-weight: bold; color: #ff8a2a; letter-spacing: 2px; }
+  .result-score {
+    font-size: 96px; font-weight: 900; line-height: 1;
+    background: linear-gradient(180deg, #fff, #ffb066);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-unit { font-size: 18px; color: #ccc; margin-top: -8px; }
+  .result-detail { font-size: 14px; color: #ccc; }
+  .result-best { font-size: 12px; color: #ff8a2a; letter-spacing: 1px; }
+  .result-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; min-width: 200px; }
+
+  /* 一時停止オーバーレイ */
+  #pause-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    z-index: 20; color: white;
+  }
+  #pause-overlay.show { display: flex; }
+  #pause-overlay h2 { font-size: 32px; letter-spacing: 4px; }
+
+  /* ===== 編集画面 ===== */
+  #edit-screen { background: #f5f6f8; padding: 0; }
+  #edit-header {
+    padding: 14px 16px; background: white; border-bottom: 1px solid #ddd;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  }
+  #edit-header h2 { font-size: 18px; font-weight: 900; flex: 1; letter-spacing: 1px; }
+  .edit-action {
+    padding: 8px 14px; border: 1px solid #ccc; background: white;
+    border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .edit-action:active { background: #eee; }
+  .edit-action.primary { background: #ff8a2a; color: white; border-color: #ff8a2a; }
+  #edit-list { flex: 1; overflow-y: auto; padding: 12px 12px 80px; }
+  .edit-row {
+    display: grid;
+    grid-template-columns: 24px 28px 1fr auto auto 30px;
+    gap: 6px;
+    align-items: center;
+    background: white; padding: 8px;
+    border-radius: 10px; margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .edit-row .terms-container {
+    display: flex; gap: 6px; min-width: 0;
+  }
+  .edit-row .terms-container input { flex: 1; min-width: 0; }
+  .edit-row .term-toggle {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid #ddd; background: #fafafa; cursor: pointer;
+    font-size: 14px; font-weight: bold; color: #666;
+  }
+  .edit-row .term-toggle:active { background: #eee; }
+  .edit-row.sortable-ghost { opacity: 0.4; background: #ffe9d4; }
+  .edit-row.sortable-chosen { box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+  .edit-row .drag-handle {
+    cursor: grab;
+    color: #b0b6bc;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+    user-select: none;
+    touch-action: none;
+    letter-spacing: -2px;
+  }
+  .edit-row .drag-handle:active { cursor: grabbing; color: #ff8a2a; }
+  .edit-row .row-num { font-size: 12px; color: #888; text-align: center; font-weight: bold; }
+  .edit-row input[type="text"] {
+    border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px;
+    font-size: 16px; font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    width: 100%; min-width: 0;
+  }
+  .edit-row input.invalid { border-color: #d33; background: #fee; }
+  .edit-row .answer-cell {
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    font-size: 16px; font-weight: bold; color: #2a2a2a;
+    padding: 0 8px; min-width: 56px; text-align: center;
+    white-space: nowrap;
+  }
+  .edit-row .answer-cell.error { color: #d33; font-size: 11px; font-weight: normal; }
+  .edit-row .answer-cell sup { font-size: 0.7em; vertical-align: super; }
+  .edit-row .del-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: #f0f0f0; cursor: pointer;
+    font-size: 14px; color: #666;
+  }
+  .edit-row .del-btn:active { background: #ddd; }
+  #edit-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px; background: white;
+    border-top: 1px solid #ddd; display: flex; gap: 8px; align-items: center;
+  }
+  #edit-status { flex: 1; font-size: 12px; color: #666; }
+  #edit-status.saved { color: #2a8; }
+  #edit-help {
+    margin: 0 12px 12px; padding: 10px 12px;
+    background: #fff8ec; border: 1px solid #ffd980; border-radius: 8px;
+    font-size: 12px; color: #6a4a00; line-height: 1.5;
+  }
+  #edit-help code {
+    background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px;
+    font-family: 'Consolas', monospace;
+  }
+
+  /* 問題数表示 */
+  .problem-count {
+    font-size: 13px; color: #666; padding: 6px 14px;
+    background: rgba(255,255,255,0.7); border-radius: 999px;
+  }
+  .problem-count span { font-weight: bold; color: #ff8a2a; }
+
+  /* 設定アイコン (タイトル左上) */
+  .icon-btn {
+    position: absolute; top: 14px; left: 14px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.7); border: none;
+    font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pause-btn {
+    position: absolute; right: 14px; top: 12px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: white; border: 1px solid #ccc; cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル画面 -->
+  <div id="title-screen" class="screen active">
+    <div class="title-logo">WALLBREAK!</div>
+    <div class="title-sub">共通因数で壁を壊せ</div>
+    <div style="height: 20px;"></div>
+    <div class="title-desc">2 つの式に共通する因数を入力して<br>壁をどんどん突破しよう!</div>
+    <div style="height: 20px;"></div>
+    <button class="btn" id="title-start">START</button>
+    <button class="btn btn-secondary" id="title-edit">EDIT 問題編集</button>
+  </div>
+
+  <!-- モード選択 -->
+  <div id="mode-screen" class="screen">
+    <div class="title-logo" style="font-size: 32px;">MODE SELECT</div>
+    <div class="problem-count">📝 出題リスト: <span id="custom-count">0問</span></div>
+    <div class="mode-card" data-mode="challenge">
+      <h3>CHALLENGE MODE</h3>
+      <p>制限時間 60 秒。<br>たくさん壁を壊してハイスコアを狙おう! 不正解は -3 秒。</p>
+    </div>
+    <div class="mode-card" data-mode="casual">
+      <h3>CASUAL MODE</h3>
+      <p>30 問完走タイムアタック。<br>自分のペースで全問クリアを目指そう!</p>
+    </div>
+    <button class="btn btn-secondary" id="mode-back">BACK</button>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="hud-item">
+        <div class="hud-label" id="hud-left-label">SCORE</div>
+        <div class="hud-value" id="hud-left-value">0</div>
+      </div>
+      <div id="time-bar-wrap"><div id="time-bar"></div></div>
+      <div class="hud-item">
+        <div class="hud-label" id="hud-right-label">TIME</div>
+        <div class="hud-value" id="hud-right-value">60</div>
+      </div>
+    </div>
+    <button class="pause-btn" id="pause-btn">‖</button>
+
+    <div id="three-container"></div>
+    <div id="feedback"></div>
+
+    <div id="input-area">
+      <div id="input-display"><span class="placeholder">入力してください</span></div>
+      <div id="buttons"></div>
+    </div>
+
+    <div id="pause-overlay">
+      <h2>PAUSE</h2>
+      <button class="btn" id="pause-resume">RESUME</button>
+      <button class="btn btn-secondary" id="pause-quit">QUIT</button>
+    </div>
+  </div>
+
+  <!-- 編集画面 -->
+  <div id="edit-screen" class="screen">
+    <div id="edit-header">
+      <h2>問題編集</h2>
+      <button class="edit-action" id="edit-sample">教科書例</button>
+      <button class="edit-action" id="edit-import">取込</button>
+      <button class="edit-action" id="edit-export">出力</button>
+      <button class="edit-action primary" id="edit-back">完了</button>
+      <input type="file" id="edit-file" accept="application/json" style="display:none">
+    </div>
+    <div id="edit-help">
+      使える文字: <code>a b c x y</code> ／ 答えの係数: <code>1〜7</code><br>
+      入力例: <code>6ab</code>, <code>3a^2b</code>, <code>3a²b</code>（指数は <code>^2</code> または <code>²</code>）
+    </div>
+    <div id="edit-list"></div>
+    <div id="edit-footer">
+      <span id="edit-status"></span>
+      <button class="edit-action" id="edit-clear">全削除</button>
+      <button class="edit-action primary" id="edit-add">+ 追加</button>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="result-screen" class="screen">
+    <div class="result-title">RESULT</div>
+    <div class="result-mode" id="result-mode-label">CHALLENGE</div>
+    <div class="result-score" id="result-score">0</div>
+    <div class="result-unit" id="result-unit">pt</div>
+    <div class="result-detail" id="result-detail"></div>
+    <div class="result-best" id="result-best"></div>
+    <div class="result-buttons">
+      <button class="btn" id="result-retry">RETRY</button>
+      <button class="btn btn-secondary" id="result-top">TOP</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+'use strict';
+
+// =====================================================
+//   ユーティリティ
+// =====================================================
+const SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+function toSuper(n) { return String(n).split('').map(c => SUP[c] || c).join(''); }
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// =====================================================
+//   単項式モデル
+// =====================================================
+// Monomial: { coef: number, vars: { letter: exp } }
+function monomial(coef, vars) { return { coef, vars: vars || {} }; }
+
+function multiplyMono(a, b) {
+  const vars = { ...a.vars };
+  for (const [l, e] of Object.entries(b.vars)) {
+    vars[l] = (vars[l] || 0) + e;
+  }
+  return monomial(a.coef * b.coef, vars);
+}
+
+function gcdMono(a, b) {
+  const c = gcd(a.coef, b.coef);
+  const vars = {};
+  for (const [l, e] of Object.entries(a.vars)) {
+    if (b.vars[l]) vars[l] = Math.min(e, b.vars[l]);
+  }
+  return monomial(c, vars);
+}
+
+function monoToString(m) {
+  let s = '';
+  const letters = Object.keys(m.vars).sort();
+  if (m.coef !== 1 || letters.length === 0) s += m.coef;
+  for (const l of letters) {
+    s += l;
+    if (m.vars[l] > 1) s += toSuper(m.vars[l]);
+  }
+  return s;
+}
+
+function monoEqual(a, b) {
+  if (a.coef !== b.coef) return false;
+  const ka = Object.keys(a.vars), kb = Object.keys(b.vars);
+  if (ka.length !== kb.length) return false;
+  for (const l of ka) if (a.vars[l] !== b.vars[l]) return false;
+  return true;
+}
+
+// =====================================================
+//   問題生成
+// =====================================================
+const LETTERS = ['a','b','c','x','y'];
+const PRIMES = [2, 3, 5, 7];
+const COPRIME_PAIRS = [[2,3],[3,4],[2,5],[3,5],[4,5],[2,7],[3,7],[4,7],[5,7],[3,8]];
+
+// stage: 1, 2, 3
+function generateProblem(stage) {
+  if (stage === 1) {
+    // 文字のみ、1文字共通 (例: ab と bc → b)
+    const [common, l1, l2] = shuffle(LETTERS);
+    const left = monomial(1, { [common]: 1, [l1]: 1 });
+    const right = monomial(1, { [common]: 1, [l2]: 1 });
+    return { left, right, answer: gcdMono(left, right) };
+  }
+  if (stage === 2) {
+    // 数+1文字共通 (例: 6ab と 9bc → 3b)
+    const [common, l1, l2] = shuffle(LETTERS);
+    const g = rand(PRIMES);
+    let [m1, m2] = rand(COPRIME_PAIRS);
+    if (Math.random() < 0.5) [m1, m2] = [m2, m1];
+    const n1 = g * m1, n2 = g * m2;
+    const left = monomial(n1, { [common]: 1, [l1]: 1 });
+    const right = monomial(n2, { [common]: 1, [l2]: 1 });
+    return { left, right, answer: gcdMono(left, right) };
+  }
+  // stage 3: 指数あり、1〜2文字共通
+  const numCommon = Math.random() < 0.55 ? 1 : 2;
+  if (numCommon === 1) {
+    // 指数違いの1文字共通 (例: 6a²b と 4ab² → 2ab? いや 1文字共通だから差別化)
+    // → 6a²b と 4ac → 2a (a の指数 min(2,1)=1)
+    const [common, l1, l2] = shuffle(LETTERS);
+    const ce1 = Math.random() < 0.5 ? 2 : 1;
+    const ce2 = Math.random() < 0.5 ? 2 : 1;
+    const useNum = Math.random() < 0.7;
+    const g = useNum ? rand(PRIMES) : 1;
+    const [m1, m2] = useNum ? rand(COPRIME_PAIRS) : [1, 1];
+    const left = monomial(g * m1, { [common]: ce1, [l1]: 1 });
+    const right = monomial(g * m2, { [common]: ce2, [l2]: 1 });
+    return { left, right, answer: gcdMono(left, right) };
+  }
+  // 2文字共通、指数あり (例: 6a²b と 4ab² → 2ab)
+  const shuffled = shuffle(LETTERS);
+  const [c1, c2, l1, l2] = shuffled;
+  const c1e1 = Math.random() < 0.5 ? 2 : 1;
+  const c1e2 = Math.random() < 0.5 ? 2 : 1;
+  const c2e1 = Math.random() < 0.5 ? 2 : 1;
+  const c2e2 = Math.random() < 0.5 ? 2 : 1;
+  const useNum = Math.random() < 0.6;
+  const g = useNum ? rand(PRIMES) : 1;
+  const [m1, m2] = useNum ? rand(COPRIME_PAIRS) : [1, 1];
+  // 余分な文字を入れて差別化
+  const addExtra = Math.random() < 0.5;
+  const leftVars = { [c1]: c1e1, [c2]: c2e1 };
+  const rightVars = { [c1]: c1e2, [c2]: c2e2 };
+  if (addExtra) leftVars[l1] = 1;
+  else rightVars[l2] = 1;
+  const left = monomial(g * m1, leftVars);
+  const right = monomial(g * m2, rightVars);
+  return { left, right, answer: gcdMono(left, right) };
+}
+
+function stageForProblemIndex(i) {
+  // 0..9 → 1, 10..19 → 2, 20..29 → 3
+  if (i < 10) return 1;
+  if (i < 20) return 2;
+  return 3;
+}
+
+// =====================================================
+//   単項式パーサ (編集画面用)
+// =====================================================
+const ALLOWED_LETTERS = new Set(['a','b','c','x','y']);
+const ALLOWED_COEFS = new Set([1,2,3,4,5,6,7]);
+
+function parseMonomial(str) {
+  if (str == null) return { ok: false, error: '入力なし' };
+  let s = String(str).trim().toLowerCase();
+  if (!s) return { ok: false, error: '入力なし' };
+  // 上付き数字を ^N に正規化
+  const supMap = { '⁰':'^0','¹':'^1','²':'^2','³':'^3','⁴':'^4','⁵':'^5','⁶':'^6','⁷':'^7','⁸':'^8','⁹':'^9' };
+  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, ch => supMap[ch]);
+  s = s.replace(/[\s\*・×]/g, '');
+  let i = 0;
+  let coefStr = '';
+  while (i < s.length && /[0-9]/.test(s[i])) { coefStr += s[i]; i++; }
+  let coef = coefStr ? parseInt(coefStr, 10) : 1;
+  if (coef <= 0) return { ok: false, error: '係数が不正' };
+  const vars = {};
+  while (i < s.length) {
+    const c = s[i];
+    if (!/[a-z]/.test(c)) return { ok: false, error: `不明な文字: ${c}` };
+    if (!ALLOWED_LETTERS.has(c)) return { ok: false, error: `${c} は使用不可（a b c x y のみ）` };
+    i++;
+    let exp = 1;
+    if (s[i] === '^') {
+      i++;
+      let expStr = '';
+      while (i < s.length && /[0-9]/.test(s[i])) { expStr += s[i]; i++; }
+      if (!expStr) return { ok: false, error: '指数の数字がない' };
+      exp = parseInt(expStr, 10);
+      if (exp <= 0 || exp > 9) return { ok: false, error: '指数が不正' };
+    }
+    vars[c] = (vars[c] || 0) + exp;
+  }
+  return { ok: true, mono: monomial(coef, vars) };
+}
+
+function validateAnswerForKeyboard(ans) {
+  if (!ALLOWED_COEFS.has(ans.coef)) return `係数 ${ans.coef} は入力ボタンにない（1〜7）`;
+  for (const l of Object.keys(ans.vars)) {
+    if (!ALLOWED_LETTERS.has(l)) return `文字 ${l} は入力ボタンにない`;
+    if (ans.vars[l] > 3) return `指数 ${ans.vars[l]} は入力ボタンで3以上不可`;
+  }
+  return null;
+}
+
+function monoToHTML(m) {
+  let html = '';
+  const letters = Object.keys(m.vars).sort();
+  if (m.coef !== 1 || letters.length === 0) html += m.coef;
+  for (const l of letters) {
+    html += l;
+    if (m.vars[l] > 1) html += `<sup>${m.vars[l]}</sup>`;
+  }
+  return html;
+}
+
+// =====================================================
+//   自作問題ストレージ
+// =====================================================
+const STORAGE_KEY = 'wallbreak_custom_problems';
+
+// 教科書サンプル: 6問 × 各3題 = 18問
+const SAMPLE_PROBLEMS = [
+  // (1) ab − ac の類題
+  { terms: ['bc',   'by'  ] },
+  { terms: ['ax',   'ay'  ] },
+  { terms: ['cx',   'cy'  ] },
+  // (2) 4ax − 2a の類題
+  { terms: ['6bx',  '3b'  ] },
+  { terms: ['4cy',  '2c'  ] },
+  { terms: ['6ab',  '4a'  ] },
+  // (3) 2ax + 3ay の類題
+  { terms: ['3bc',  '4bx' ] },
+  { terms: ['5cy',  '2cx' ] },
+  { terms: ['3ab',  '5ax' ] },
+  // (4) 8a²b − 4b² の類題
+  { terms: ['6x^2y', '3y^2'] },
+  { terms: ['4a^2c', '2c^2'] },
+  { terms: ['6b^2x', '4x^2'] },
+  // (5) a²b − ab² の類題
+  { terms: ['x^2y', 'xy^2'] },
+  { terms: ['a^2c', 'ac^2'] },
+  { terms: ['b^2x', 'bx^2'] },
+  // (6) ax + bx + cx の類題 (3項)
+  { terms: ['ay', 'by', 'cy'] },
+  { terms: ['ab', 'ax', 'ay'] },
+  { terms: ['bc', 'bx', 'by'] },
+  // 3項追加問題 (係数・指数・複数文字共通のバリエーション)
+  { terms: ['2a',     '4ab',   '6ac'  ] },
+  { terms: ['6x^2y',  '4xy',   '8xc'  ] },
+  { terms: ['3a^2b',  '6ab^2', '9abc' ] },
+  { terms: ['x^2y',   'xy^2',  'xyc'  ] }
+];
+
+let customProblems = []; // [{ left: "6ab", right: "9bc" }, ...]
+
+function normalizeProblem(p) {
+  // 後方互換: { left, right } → { terms: [left, right] }
+  if (p.terms && Array.isArray(p.terms)) return { terms: p.terms.slice() };
+  return { terms: [p.left || '', p.right || ''] };
+}
+
+function loadCustomProblems() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) {
+      // 初回起動: 最新の教科書サンプルをプリセット
+      customProblems = SAMPLE_PROBLEMS.map(p => normalizeProblem(p));
+      saveCustomProblems();
+    } else {
+      customProblems = JSON.parse(raw).map(normalizeProblem);
+      // 先頭が旧サンプルそのままなら、追加分を末尾に自動マージ
+      if (customProblems.length < SAMPLE_PROBLEMS.length) {
+        const looksUntouched = customProblems.every((p, i) => {
+          const s = normalizeProblem(SAMPLE_PROBLEMS[i]);
+          return JSON.stringify(p.terms) === JSON.stringify(s.terms);
+        });
+        if (looksUntouched) {
+          const additional = SAMPLE_PROBLEMS.slice(customProblems.length).map(normalizeProblem);
+          customProblems = customProblems.concat(additional);
+          saveCustomProblems();
+        }
+      }
+    }
+  } catch (e) { customProblems = []; }
+}
+
+function loadSampleProblems(append) {
+  if (append) {
+    customProblems = customProblems.concat(SAMPLE_PROBLEMS.map(p => normalizeProblem(p)));
+  } else {
+    customProblems = SAMPLE_PROBLEMS.map(p => normalizeProblem(p));
+  }
+  saveCustomProblems();
+}
+
+function saveCustomProblems() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(customProblems)); }
+  catch (e) {}
+}
+
+function gcdAll(monos) {
+  return monos.reduce((a, b) => gcdMono(a, b));
+}
+
+// 自作問題を Problem オブジェクトに変換 (有効なもののみ)
+function customToProblems() {
+  const out = [];
+  for (const p of customProblems) {
+    const terms = (p.terms || []).filter(t => String(t).trim().length > 0);
+    if (terms.length < 2) continue;
+    const parsed = terms.map(parseMonomial);
+    if (parsed.some(r => !r.ok)) continue;
+    const monos = parsed.map(r => r.mono);
+    const ans = gcdAll(monos);
+    if (validateAnswerForKeyboard(ans)) continue;
+    if (ans.coef === 1 && Object.keys(ans.vars).length === 0) continue;
+    out.push({ terms: monos, answer: ans });
+  }
+  return out;
+}
+
+// =====================================================
+//   入力ステート
+// =====================================================
+const input = {
+  coef: null,           // 数字（押した順を保持: 一桁前提なら直接、複数桁対応するなら配列）
+  letters: [],          // [{letter, exp}, ...] 入力順 (常にアルファベット順を強制)
+  reset() { this.coef = null; this.letters = []; },
+  pressNumber(n) {
+    if (this.letters.length > 0) return false; // 文字を押した後は数字不可
+    if (this.coef !== null) return false;       // 1桁のみ受け付け（GCDは1桁内で生成）
+    this.coef = n;
+    return true;
+  },
+  pressLetter(l) {
+    if (this.letters.length === 0) {
+      this.letters.push({ letter: l, exp: 1 });
+      return true;
+    }
+    const last = this.letters[this.letters.length - 1];
+    if (last.letter === l) {
+      // 連続同じ文字 → 指数 +1
+      if (last.exp >= 3) return false; // 上限
+      last.exp += 1;
+      return true;
+    }
+    if (l > last.letter) {
+      this.letters.push({ letter: l, exp: 1 });
+      return true;
+    }
+    return false; // アルファベット順を破る入力は不可
+  },
+  backspace() {
+    if (this.letters.length > 0) {
+      const last = this.letters[this.letters.length - 1];
+      if (last.exp > 1) last.exp -= 1;
+      else this.letters.pop();
+    } else if (this.coef !== null) {
+      this.coef = null;
+    }
+  },
+  toMonomial() {
+    const vars = {};
+    for (const { letter, exp } of this.letters) vars[letter] = exp;
+    const coef = this.coef !== null ? this.coef : 1;
+    if (coef === 1 && this.letters.length === 0) return null;
+    return monomial(coef, vars);
+  },
+  isEmpty() { return this.coef === null && this.letters.length === 0; }
+};
+
+function renderInputDisplay() {
+  const el = document.getElementById('input-display');
+  if (input.isEmpty()) {
+    el.innerHTML = '<span class="placeholder">入力してください</span>';
+    return;
+  }
+  let html = '';
+  if (input.coef !== null) html += input.coef;
+  for (const { letter, exp } of input.letters) {
+    html += letter;
+    if (exp > 1) html += `<sup>${exp}</sup>`;
+  }
+  el.innerHTML = html;
+}
+
+function buildButtons() {
+  const wrap = document.getElementById('buttons');
+  wrap.innerHTML = '';
+  // 1段目: 数字
+  for (const n of [2, 3, 4, 5, 6]) {
+    const b = document.createElement('button');
+    b.className = 'key num';
+    b.textContent = n;
+    b.addEventListener('click', () => onPressNumber(n));
+    wrap.appendChild(b);
+  }
+  // 2段目: 7, a, b, c, ←
+  const row2 = [
+    { type: 'num', v: 7 },
+    { type: 'letter', v: 'a' },
+    { type: 'letter', v: 'b' },
+    { type: 'letter', v: 'c' },
+    { type: 'del' }
+  ];
+  for (const item of row2) {
+    const b = document.createElement('button');
+    if (item.type === 'num') {
+      b.className = 'key num';
+      b.textContent = item.v;
+      b.addEventListener('click', () => onPressNumber(item.v));
+    } else if (item.type === 'letter') {
+      b.className = 'key letter';
+      b.textContent = item.v;
+      b.addEventListener('click', () => onPressLetter(item.v));
+    } else {
+      b.className = 'key del';
+      b.textContent = '←';
+      b.addEventListener('click', onPressDel);
+    }
+    wrap.appendChild(b);
+  }
+  // 3段目: x, y, _, _, 突破
+  const row3 = [
+    { type: 'letter', v: 'x' },
+    { type: 'letter', v: 'y' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'submit' }
+  ];
+  for (const item of row3) {
+    const b = document.createElement('button');
+    if (item.type === 'letter') {
+      b.className = 'key letter';
+      b.textContent = item.v;
+      b.addEventListener('click', () => onPressLetter(item.v));
+    } else if (item.type === 'submit') {
+      b.className = 'key action';
+      b.textContent = '突破';
+      b.addEventListener('click', onSubmit);
+    } else {
+      b.className = 'key';
+      b.style.visibility = 'hidden';
+    }
+    wrap.appendChild(b);
+  }
+}
+
+function onPressNumber(n) {
+  if (game.paused || game.locked) return;
+  if (input.pressNumber(n)) renderInputDisplay();
+}
+function onPressLetter(l) {
+  if (game.paused || game.locked) return;
+  if (input.pressLetter(l)) renderInputDisplay();
+}
+function onPressDel() {
+  if (game.paused || game.locked) return;
+  input.backspace();
+  renderInputDisplay();
+}
+function onSubmit() {
+  if (game.paused || game.locked) return;
+  if (input.isEmpty()) return;
+  game.submit();
+}
+
+// =====================================================
+//   Three.js シーン
+// =====================================================
+let scene, camera, renderer, ambient, directional;
+let walls = [];
+let fragments = [];
+let lastTime = 0;
+let cameraBaseZ = 8;
+
+function initThree() {
+  const container = document.getElementById('three-container');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xd8dde2);
+  scene.fog = new THREE.Fog(0xd8dde2, 12, 30);
+
+  const w = container.clientWidth, h = container.clientHeight;
+  camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+  camera.position.set(0, 1.6, cameraBaseZ);
+  camera.lookAt(0, 1.4, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  container.appendChild(renderer.domElement);
+
+  ambient = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambient);
+  directional = new THREE.DirectionalLight(0xffffff, 0.6);
+  directional.position.set(4, 8, 6);
+  scene.add(directional);
+
+  // 床
+  const floorGeo = new THREE.PlaneGeometry(40, 40);
+  const floorMat = new THREE.MeshLambertMaterial({ color: 0xb0b6bc });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0;
+  scene.add(floor);
+
+  // 床ライン (奥行き感)
+  for (let i = 1; i <= 6; i++) {
+    const lineGeo = new THREE.PlaneGeometry(8, 0.05);
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0x868c92 });
+    const line = new THREE.Mesh(lineGeo, lineMat);
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(0, 0.01, -i * 2);
+    scene.add(line);
+  }
+
+  window.addEventListener('resize', onResize);
+}
+
+function onResize() {
+  const container = document.getElementById('three-container');
+  if (!container || !renderer) return;
+  const w = container.clientWidth, h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+// 単項式テクスチャ生成
+function createMonomialTexture(mono) {
+  const SIZE = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE; canvas.height = SIZE;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#2c2f33';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  // 縁
+  ctx.strokeStyle = '#1a1c1f';
+  ctx.lineWidth = 12;
+  ctx.strokeRect(6, 6, SIZE - 12, SIZE - 12);
+
+  // パーツ生成
+  const parts = [];
+  const letters = Object.keys(mono.vars).sort();
+  if (mono.coef !== 1 || letters.length === 0) {
+    parts.push({ text: String(mono.coef), sup: false });
+  }
+  for (const l of letters) {
+    parts.push({ text: l, sup: false, italic: true });
+    if (mono.vars[l] > 1) parts.push({ text: String(mono.vars[l]), sup: true });
+  }
+
+  const mainPx = 220;
+  const supPx = 110;
+  const mainFont = `900 ${mainPx}px "Times New Roman", serif`;
+  const supFont = `900 ${supPx}px "Times New Roman", serif`;
+  const mainItalic = `italic 900 ${mainPx}px "Times New Roman", serif`;
+
+  // 幅計測
+  let total = 0;
+  for (const p of parts) {
+    ctx.font = p.sup ? supFont : (p.italic ? mainItalic : mainFont);
+    total += ctx.measureText(p.text).width;
+  }
+  let x = (SIZE - total) / 2;
+  const baseY = SIZE / 2 + mainPx * 0.32;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  for (const p of parts) {
+    ctx.font = p.sup ? supFont : (p.italic ? mainItalic : mainFont);
+    const y = p.sup ? baseY - mainPx * 0.55 : baseY;
+    ctx.fillText(p.text, x, y);
+    x += ctx.measureText(p.text).width;
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const WALL_W = 2.6, WALL_H = 3.0, WALL_D = 0.4;
+const WALL_GAP = 0.4;
+
+function createWall(mono, xOffset) {
+  const tex = createMonomialTexture(mono);
+  const faceMat = new THREE.MeshLambertMaterial({ map: tex });
+  const sideMat = new THREE.MeshLambertMaterial({ color: 0x1a1c1f });
+  const mats = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
+  const geo = new THREE.BoxGeometry(WALL_W, WALL_H, WALL_D);
+  const mesh = new THREE.Mesh(geo, mats);
+  mesh.position.set(xOffset, WALL_H / 2 + 0.05, 0);
+  mesh.userData.tex = tex;
+  scene.add(mesh);
+  return mesh;
+}
+
+function disposeWall(wall) {
+  if (!wall) return;
+  scene.remove(wall);
+  wall.geometry.dispose();
+  if (wall.userData.tex) wall.userData.tex.dispose();
+  if (Array.isArray(wall.material)) {
+    for (const m of wall.material) m.dispose();
+  } else {
+    wall.material.dispose();
+  }
+}
+
+function shatterWall(wall) {
+  if (!wall) return;
+  const pos = wall.position.clone();
+  const N = 4;
+  const fragW = WALL_W / N, fragH = WALL_H / N, fragD = WALL_D;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const geo = new THREE.BoxGeometry(fragW * 0.92, fragH * 0.92, fragD * 0.92);
+      const mat = new THREE.MeshLambertMaterial({ color: 0x2c2f33 });
+      const cube = new THREE.Mesh(geo, mat);
+      cube.position.set(
+        pos.x - WALL_W / 2 + fragW / 2 + i * fragW,
+        pos.y - WALL_H / 2 + fragH / 2 + j * fragH,
+        pos.z
+      );
+      const dir = new THREE.Vector3(
+        cube.position.x - pos.x + (Math.random() - 0.5) * 0.5,
+        cube.position.y - pos.y + (Math.random() - 0.5) * 0.5,
+        1
+      ).normalize();
+      cube.userData.velocity = new THREE.Vector3(
+        dir.x * (3 + Math.random() * 3),
+        dir.y * (2 + Math.random() * 2) + 3,
+        (1 + Math.random() * 3)
+      );
+      cube.userData.angularVelocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8
+      );
+      cube.userData.life = 0;
+      cube.userData.maxLife = 1.4;
+      scene.add(cube);
+      fragments.push(cube);
+    }
+  }
+  disposeWall(wall);
+}
+
+function updateFragments(dt) {
+  for (let i = fragments.length - 1; i >= 0; i--) {
+    const f = fragments[i];
+    f.userData.life += dt;
+    f.position.addScaledVector(f.userData.velocity, dt);
+    f.userData.velocity.y -= 14 * dt;
+    f.rotation.x += f.userData.angularVelocity.x * dt;
+    f.rotation.y += f.userData.angularVelocity.y * dt;
+    f.rotation.z += f.userData.angularVelocity.z * dt;
+    if (f.userData.life > f.userData.maxLife * 0.7) {
+      const o = 1 - (f.userData.life - f.userData.maxLife * 0.7) / (f.userData.maxLife * 0.3);
+      f.material.opacity = Math.max(0, o);
+      f.material.transparent = true;
+    }
+    if (f.userData.life >= f.userData.maxLife) {
+      scene.remove(f);
+      f.geometry.dispose();
+      f.material.dispose();
+      fragments.splice(i, 1);
+    }
+  }
+}
+
+// 壁登場アニメ (スケール in)
+const wallSpawnAnims = [];
+function spawnWalls(problem) {
+  const n = problem.terms.length;
+  walls = [];
+  const stepX = WALL_W + WALL_GAP;
+  for (let i = 0; i < n; i++) {
+    const xOffset = (i - (n - 1) / 2) * stepX;
+    const w = createWall(problem.terms[i], xOffset);
+    w.scale.set(0.01, 0.01, 0.01);
+    w.userData.spawn = { t: 0, dur: 0.35, delay: i * 0.05 };
+    wallSpawnAnims.push(w);
+    walls.push(w);
+  }
+  // カメラ距離を壁数に応じて調整
+  cameraBaseZ = n >= 3 ? 11 : 8;
+  camera.position.z = cameraBaseZ;
+}
+
+function disposeAllWalls() {
+  for (const w of walls) disposeWall(w);
+  walls = [];
+}
+
+function shatterAllWalls() {
+  for (const w of walls) shatterWall(w);
+  walls = [];
+}
+
+function updateWallSpawns(dt) {
+  for (let i = wallSpawnAnims.length - 1; i >= 0; i--) {
+    const w = wallSpawnAnims[i];
+    w.userData.spawn.t += dt;
+    const localT = w.userData.spawn.t - (w.userData.spawn.delay || 0);
+    if (localT < 0) continue;
+    const t = Math.min(1, localT / w.userData.spawn.dur);
+    const e = 1 - Math.pow(1 - t, 3); // ease out
+    w.scale.set(e, e, e);
+    if (t >= 1) wallSpawnAnims.splice(i, 1);
+  }
+}
+
+// カメラ揺れ (不正解時)
+let camShake = 0;
+function triggerShake() { camShake = 0.4; }
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
+  lastTime = now;
+  if (!game.paused) {
+    updateFragments(dt);
+    updateWallSpawns(dt);
+    // カメラ揺れ
+    if (camShake > 0) {
+      camShake -= dt;
+      camera.position.x = (Math.random() - 0.5) * camShake * 0.6;
+      camera.position.y = 1.6 + (Math.random() - 0.5) * camShake * 0.4;
+    } else {
+      camera.position.x *= 0.85;
+      camera.position.y += (1.6 - camera.position.y) * 0.2;
+    }
+  }
+  renderer.render(scene, camera);
+}
+
+// =====================================================
+//   ゲーム本体
+// =====================================================
+const game = {
+  mode: 'challenge',     // 'challenge' or 'casual'
+  problemIndex: 0,
+  current: null,
+  score: 0,              // challenge: 突破した壁数
+  timeLeft: 60,          // challenge
+  elapsed: 0,            // casual
+  totalProblems: 30,     // casual
+  paused: false,
+  running: false,
+  locked: false,         // 演出中入力ロック
+  lastTickTime: 0,
+  intervalId: null,
+
+  start(mode) {
+    this.mode = mode;
+    this.problemIndex = 0;
+    this.score = 0;
+    this.timeLeft = 60;
+    this.elapsed = 0;
+    this.paused = false;
+    this.running = true;
+    this.locked = false;
+    // 常に先生が登録した問題を使用
+    const customList = customToProblems();
+    this.usingCustom = customList.length > 0;
+    this.customQueue = this.usingCustom ? shuffle(customList) : [];
+    this.customCursor = 0;
+    // CASUAL の問題数: 登録問題数 (フォールバックの自動生成は最大30)
+    this.totalProblems = this.usingCustom ? customList.length : 30;
+    input.reset();
+    renderInputDisplay();
+    this.updateHUD();
+    this.nextProblem();
+    this.lastTickTime = performance.now();
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.intervalId = setInterval(() => this.tick(), 100);
+  },
+
+  stop() {
+    this.running = false;
+    if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    disposeAllWalls();
+  },
+
+  tick() {
+    if (!this.running || this.paused) { this.lastTickTime = performance.now(); return; }
+    const now = performance.now();
+    const dt = (now - this.lastTickTime) / 1000;
+    this.lastTickTime = now;
+    if (this.mode === 'challenge') {
+      this.timeLeft -= dt;
+      if (this.timeLeft <= 0) { this.timeLeft = 0; this.updateHUD(); this.finish(); return; }
+    } else {
+      this.elapsed += dt;
+    }
+    this.updateHUD();
+  },
+
+  updateHUD() {
+    const leftLabel = document.getElementById('hud-left-label');
+    const leftValue = document.getElementById('hud-left-value');
+    const rightLabel = document.getElementById('hud-right-label');
+    const rightValue = document.getElementById('hud-right-value');
+    const bar = document.getElementById('time-bar');
+    if (this.mode === 'challenge') {
+      leftLabel.textContent = 'SCORE';
+      leftValue.textContent = this.score;
+      rightLabel.textContent = 'TIME';
+      rightValue.textContent = Math.ceil(this.timeLeft);
+      bar.style.width = (Math.max(0, this.timeLeft) / 60 * 100) + '%';
+    } else {
+      leftLabel.textContent = 'PROBLEM';
+      leftValue.textContent = `${this.problemIndex + 1}/${this.totalProblems}`;
+      rightLabel.textContent = 'TIME';
+      const t = this.elapsed;
+      const m = Math.floor(t / 60);
+      const s = (t - m * 60).toFixed(1);
+      rightValue.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s + 's';
+      bar.style.width = ((this.problemIndex) / this.totalProblems * 100) + '%';
+    }
+  },
+
+  nextProblem() {
+    disposeAllWalls();
+    let p;
+    if (this.usingCustom && this.customQueue.length > 0) {
+      // 自作問題: キューから取り出し、空になったら再シャッフル (CHALLENGEは無限ループ)
+      if (this.customCursor >= this.customQueue.length) {
+        this.customQueue = shuffle(customToProblems());
+        this.customCursor = 0;
+      }
+      p = this.customQueue[this.customCursor];
+      this.customCursor += 1;
+    } else {
+      let attempts = 0;
+      do {
+        const auto = generateProblem(stageForProblemIndex(this.problemIndex));
+        p = { terms: [auto.left, auto.right], answer: auto.answer };
+        attempts++;
+      } while (attempts < 8 && (p.answer.coef === 1 && Object.keys(p.answer.vars).length === 0));
+    }
+    this.current = p;
+    spawnWalls(p);
+    input.reset();
+    renderInputDisplay();
+  },
+
+  submit() {
+    const guess = input.toMonomial();
+    if (!guess) return;
+    if (monoEqual(guess, this.current.answer)) {
+      this.onCorrect();
+    } else {
+      this.onWrong();
+    }
+  },
+
+  onCorrect() {
+    this.locked = true;
+    this.score += 1;
+    showFeedback('PERFECT!', false);
+    shatterAllWalls();
+    this.problemIndex += 1;
+    setTimeout(() => {
+      hideFeedback();
+      if (this.mode === 'casual' && this.problemIndex >= this.totalProblems) {
+        this.locked = false;
+        this.finish();
+        return;
+      }
+      this.nextProblem();
+      this.locked = false;
+      this.updateHUD();
+    }, 600);
+  },
+
+  onWrong() {
+    showFeedback('MISS!', true);
+    triggerShake();
+    if (this.mode === 'challenge') {
+      this.timeLeft = Math.max(0, this.timeLeft - 3);
+      this.updateHUD();
+      if (this.timeLeft <= 0) { setTimeout(() => this.finish(), 400); return; }
+    } else {
+      this.elapsed += 3;
+      this.updateHUD();
+    }
+    input.reset();
+    renderInputDisplay();
+    setTimeout(hideFeedback, 600);
+  },
+
+  finish() {
+    this.stop();
+    showResult();
+  },
+
+  pause() { this.paused = true; document.getElementById('pause-overlay').classList.add('show'); },
+  resume() {
+    this.paused = false;
+    this.lastTickTime = performance.now();
+    document.getElementById('pause-overlay').classList.remove('show');
+  }
+};
+
+function showFeedback(text, isMiss) {
+  const el = document.getElementById('feedback');
+  el.textContent = text;
+  el.classList.toggle('miss', isMiss);
+  el.classList.add('show');
+}
+function hideFeedback() {
+  document.getElementById('feedback').classList.remove('show');
+}
+
+// =====================================================
+//   画面遷移
+// =====================================================
+function showScreen(id) {
+  for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
+  document.getElementById(id).classList.add('active');
+  if (id === 'game-screen') setTimeout(onResize, 0);
+}
+
+function showResult() {
+  const modeLabel = document.getElementById('result-mode-label');
+  const score = document.getElementById('result-score');
+  const unit = document.getElementById('result-unit');
+  const detail = document.getElementById('result-detail');
+  const best = document.getElementById('result-best');
+  if (game.mode === 'challenge') {
+    modeLabel.textContent = 'CHALLENGE MODE';
+    score.textContent = game.score;
+    unit.textContent = 'WALLS BROKEN';
+    detail.textContent = '60秒間で壊した壁数';
+    const key = 'wallbreak_best_challenge';
+    const prev = parseInt(localStorage.getItem(key) || '0', 10);
+    if (game.score > prev) {
+      localStorage.setItem(key, String(game.score));
+      best.textContent = '★ NEW RECORD! ★';
+    } else {
+      best.textContent = `BEST: ${prev}`;
+    }
+  } else {
+    modeLabel.textContent = 'CASUAL MODE';
+    if (game.problemIndex >= game.totalProblems) {
+      const t = game.elapsed;
+      const m = Math.floor(t / 60);
+      const s = (t - m * 60).toFixed(1);
+      score.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+      unit.textContent = m > 0 ? 'MIN' : 'SEC';
+      detail.textContent = '30問完走タイム';
+      const key = 'wallbreak_best_casual';
+      const prev = parseFloat(localStorage.getItem(key) || '999999');
+      if (game.elapsed < prev) {
+        localStorage.setItem(key, String(game.elapsed));
+        best.textContent = '★ NEW RECORD! ★';
+      } else {
+        const pm = Math.floor(prev / 60);
+        const ps = (prev - pm * 60).toFixed(1);
+        best.textContent = `BEST: ${pm > 0 ? pm + ':' + ps.padStart(4,'0') : ps + 's'}`;
+      }
+    } else {
+      score.textContent = `${game.problemIndex}/${game.totalProblems}`;
+      unit.textContent = 'CLEARED';
+      detail.textContent = '中断';
+      best.textContent = '';
+    }
+  }
+  showScreen('result-screen');
+}
+
+// =====================================================
+//   編集画面
+// =====================================================
+let sortableInstance = null;
+
+function renderEditList() {
+  const wrap = document.getElementById('edit-list');
+  if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+  wrap.innerHTML = '';
+  if (customProblems.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.textAlign = 'center';
+    empty.style.color = '#999';
+    empty.style.padding = '40px 20px';
+    empty.style.fontSize = '14px';
+    empty.textContent = '「+ 追加」で問題を作ってください';
+    wrap.appendChild(empty);
+    return;
+  }
+  customProblems.forEach((p, idx) => {
+    if (!p.terms) p.terms = [p.left || '', p.right || ''];
+    while (p.terms.length < 2) p.terms.push('');
+    if (p.terms.length > 3) p.terms.length = 3;
+
+    const row = document.createElement('div');
+    row.className = 'edit-row';
+    row.innerHTML = `
+      <div class="drag-handle" title="ドラッグで並び替え">⋮⋮</div>
+      <div class="row-num">${idx + 1}</div>
+      <div class="terms-container"></div>
+      <div class="answer-cell"></div>
+      <button class="term-toggle" title="${p.terms.length === 2 ? '3項にする' : '2項に戻す'}">${p.terms.length === 2 ? '+項' : '−項'}</button>
+      <button class="del-btn" title="削除">✕</button>
+    `;
+    const termsCt = row.querySelector('.terms-container');
+    const ansEl = row.querySelector('.answer-cell');
+    const delBtn = row.querySelector('.del-btn');
+    const toggleBtn = row.querySelector('.term-toggle');
+
+    const inputs = [];
+    p.terms.forEach((term, ti) => {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'term-input';
+      inp.placeholder = `項${ti + 1}`;
+      inp.value = term;
+      inp.addEventListener('input', () => {
+        p.terms[ti] = inp.value;
+        update();
+      });
+      termsCt.appendChild(inp);
+      inputs.push(inp);
+    });
+
+    function update() {
+      const parsed = p.terms.map(t => parseMonomial(t));
+      let allOk = true;
+      parsed.forEach((r, i) => {
+        const invalid = !r.ok && p.terms[i].length > 0;
+        inputs[i].classList.toggle('invalid', invalid);
+        if (!r.ok || !p.terms[i]) allOk = false;
+      });
+      if (allOk) {
+        const monos = parsed.map(r => r.mono);
+        const ans = gcdAll(monos);
+        const err = validateAnswerForKeyboard(ans);
+        if (err) {
+          ansEl.className = 'answer-cell error';
+          ansEl.textContent = err;
+        } else if (ans.coef === 1 && Object.keys(ans.vars).length === 0) {
+          ansEl.className = 'answer-cell error';
+          ansEl.textContent = '共通因数なし';
+        } else {
+          ansEl.className = 'answer-cell';
+          ansEl.innerHTML = '= ' + monoToHTML(ans);
+        }
+      } else {
+        ansEl.className = 'answer-cell';
+        ansEl.textContent = '';
+      }
+      saveCustomProblems();
+      flashSaved();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (p.terms.length === 2) p.terms.push('');
+      else p.terms = p.terms.slice(0, 2);
+      saveCustomProblems();
+      renderEditList();
+    });
+    delBtn.addEventListener('click', () => {
+      customProblems.splice(idx, 1);
+      saveCustomProblems();
+      renderEditList();
+      flashSaved();
+    });
+    wrap.appendChild(row);
+    update(); // 初期表示
+  });
+  // ドラッグ並び替え (タッチ・マウス両対応)
+  if (typeof Sortable !== 'undefined') {
+    sortableInstance = Sortable.create(wrap, {
+      handle: '.drag-handle',
+      animation: 150,
+      forceFallback: true,
+      fallbackTolerance: 4,
+      onEnd: (evt) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const item = customProblems.splice(evt.oldIndex, 1)[0];
+        customProblems.splice(evt.newIndex, 0, item);
+        saveCustomProblems();
+        renderEditList();
+        flashSaved();
+      }
+    });
+  }
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+let saveFlashTimer = null;
+function flashSaved() {
+  const el = document.getElementById('edit-status');
+  el.textContent = '✓ 保存しました';
+  el.classList.add('saved');
+  if (saveFlashTimer) clearTimeout(saveFlashTimer);
+  saveFlashTimer = setTimeout(() => { el.textContent = ''; el.classList.remove('saved'); }, 1200);
+}
+
+function exportProblems() {
+  const data = { version: 1, problems: customProblems };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `共通因数ウォール_問題_${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importProblems(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !Array.isArray(data.problems)) throw new Error('形式エラー');
+      const ok = confirm(`${data.problems.length}問読み込みます。\n現在の問題リストに上書きしますか?\n（OK=上書き / キャンセル=末尾に追加）`);
+      if (ok) customProblems = data.problems.slice();
+      else customProblems = customProblems.concat(data.problems);
+      saveCustomProblems();
+      renderEditList();
+      flashSaved();
+    } catch (err) {
+      alert('読み込みに失敗しました: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function updateCustomCountLabel() {
+  const valid = customToProblems().length;
+  const total = customProblems.length;
+  const el = document.getElementById('custom-count');
+  if (total === 0) el.textContent = '0問';
+  else if (valid === total) el.textContent = `${total}問`;
+  else el.textContent = `${valid}問 / ${total}問中`;
+}
+
+// =====================================================
+//   イベント結線
+// =====================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initThree();
+  buildButtons();
+  requestAnimationFrame(animate);
+  loadCustomProblems();
+
+  // URL に ?edit が付いているときだけ編集ボタンを表示 (先生用URL)
+  const editAllowed = new URLSearchParams(window.location.search).has('edit');
+  if (!editAllowed) {
+    document.getElementById('title-edit').style.display = 'none';
+  }
+
+  document.getElementById('title-start').addEventListener('click', () => {
+    updateCustomCountLabel();
+    showScreen('mode-screen');
+  });
+  document.getElementById('title-edit').addEventListener('click', () => {
+    renderEditList();
+    showScreen('edit-screen');
+  });
+  document.getElementById('mode-back').addEventListener('click', () => showScreen('title-screen'));
+  for (const card of document.querySelectorAll('.mode-card')) {
+    card.addEventListener('click', () => {
+      const list = customToProblems();
+      if (list.length === 0) {
+        alert('問題が登録されていません。先生に確認してください。');
+        return;
+      }
+      const mode = card.getAttribute('data-mode');
+      showScreen('game-screen');
+      game.start(mode);
+    });
+  }
+  document.getElementById('pause-btn').addEventListener('click', () => game.pause());
+  document.getElementById('pause-resume').addEventListener('click', () => game.resume());
+  document.getElementById('pause-quit').addEventListener('click', () => {
+    document.getElementById('pause-overlay').classList.remove('show');
+    game.stop();
+    showScreen('title-screen');
+  });
+  document.getElementById('result-retry').addEventListener('click', () => {
+    showScreen('game-screen');
+    game.start(game.mode);
+  });
+  document.getElementById('result-top').addEventListener('click', () => showScreen('title-screen'));
+
+  // 編集画面
+  document.getElementById('edit-back').addEventListener('click', () => showScreen('title-screen'));
+  document.getElementById('edit-add').addEventListener('click', () => {
+    customProblems.push({ left: '', right: '' });
+    saveCustomProblems();
+    renderEditList();
+    // 追加した行の左入力にフォーカス
+    const rows = document.querySelectorAll('.edit-row');
+    const lastInput = rows[rows.length - 1]?.querySelector('.left-input');
+    if (lastInput) lastInput.focus();
+  });
+  document.getElementById('edit-clear').addEventListener('click', () => {
+    if (customProblems.length === 0) return;
+    if (confirm(`${customProblems.length}問すべて削除します。よろしいですか?`)) {
+      customProblems = [];
+      saveCustomProblems();
+      renderEditList();
+      flashSaved();
+    }
+  });
+  document.getElementById('edit-sample').addEventListener('click', () => {
+    let append = false;
+    if (customProblems.length > 0) {
+      const ok = confirm('教科書例 18 問を読み込みます。\nOK = 上書き / キャンセル = 末尾に追加');
+      if (!ok) append = true;
+    }
+    loadSampleProblems(append);
+    renderEditList();
+    flashSaved();
+  });
+  document.getElementById('edit-export').addEventListener('click', exportProblems);
+  document.getElementById('edit-import').addEventListener('click', () => {
+    document.getElementById('edit-file').click();
+  });
+  document.getElementById('edit-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) importProblems(file);
+    e.target.value = '';
+  });
+
+  // キーボード入力（PCでテストしやすく）
+  window.addEventListener('keydown', (e) => {
+    if (!document.getElementById('game-screen').classList.contains('active')) return;
+    if (game.paused || game.locked) return;
+    const k = e.key;
+    if (/^[2-7]$/.test(k)) onPressNumber(parseInt(k, 10));
+    else if (/^[abcxy]$/.test(k)) onPressLetter(k);
+    else if (k === 'Backspace') onPressDel();
+    else if (k === 'Enter') onSubmit();
+  });
+});
+</script>
+</body>
+</html>
