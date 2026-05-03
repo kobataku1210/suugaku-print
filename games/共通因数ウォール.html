@@ -91,7 +91,7 @@
   #time-bar { height: 100%; background: linear-gradient(90deg, #ff8a2a, #ffb066); width: 100%; transition: width 0.2s linear; }
 
   #three-container {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 280px;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 150px;
   }
   #three-container canvas { display: block; width: 100%; height: 100%; }
 
@@ -113,37 +113,25 @@
     box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
     z-index: 5;
   }
-  #input-display {
-    height: 56px; line-height: 56px;
-    border-bottom: 2px solid #ddd;
+  #answer-input {
+    width: 100%; height: 58px;
+    font-size: 28px; font-weight: bold;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
     text-align: center;
-    font-size: 36px; font-weight: bold; color: #2a2a2a;
+    background: #f5f5f5; border: 2px solid #ddd; border-radius: 12px;
+    outline: none; color: #2a2a2a; padding: 0 1rem;
     margin-bottom: 10px;
-    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   }
-  #input-display sup { font-size: 0.6em; vertical-align: super; }
-  #input-display .placeholder { color: #ccc; font-size: 22px; font-weight: normal; }
-
-  #buttons {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+  #answer-input:focus { border-color: #ff8a2a; background: white; }
+  #answer-input::placeholder { color: #ccc; font-size: 17px; font-weight: normal; font-family: 'Hiragino Sans', sans-serif; }
+  #submit-btn {
+    width: 100%; height: 52px;
+    background: #ff8a2a; color: white;
+    font-weight: bold; font-size: 20px; letter-spacing: 3px;
+    border: none; border-radius: 12px; cursor: pointer;
+    font-family: inherit; transition: transform 0.1s;
   }
-  .key {
-    height: 52px;
-    border: none;
-    background: #f0f2f5;
-    border-radius: 12px;
-    font-size: 22px; font-weight: bold; color: #333;
-    cursor: pointer;
-    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-    transition: transform 0.06s, background 0.1s;
-  }
-  .key:active { transform: scale(0.94); background: #e0e3e8; }
-  .key.disabled { opacity: 0.3; cursor: not-allowed; }
-  .key.action { background: #ff8a2a; color: white; }
-  .key.action:active { background: #e6741a; }
-  .key.del { background: #ddd; }
+  #submit-btn:active { transform: scale(0.97); }
 
   /* ===== 結果画面 ===== */
   #result-screen {
@@ -330,8 +318,11 @@
     <div id="feedback"></div>
 
     <div id="input-area">
-      <div id="input-display"><span class="placeholder">入力してください</span></div>
-      <div id="buttons"></div>
+      <input type="text" id="answer-input"
+             placeholder="共通因数を入力（例: 3ab）"
+             autocomplete="off" autocorrect="off"
+             autocapitalize="none" spellcheck="false">
+      <button id="submit-btn" onclick="onSubmit()">突破！</button>
     </div>
 
     <div id="pause-overlay">
@@ -691,149 +682,24 @@ function customToProblems() {
 }
 
 // =====================================================
-//   入力ステート
+//   テキスト入力ヘルパー
 // =====================================================
-const input = {
-  coef: null,           // 数字（押した順を保持: 一桁前提なら直接、複数桁対応するなら配列）
-  letters: [],          // [{letter, exp}, ...] 入力順 (常にアルファベット順を強制)
-  reset() { this.coef = null; this.letters = []; },
-  pressNumber(n) {
-    if (this.letters.length > 0) return false; // 文字を押した後は数字不可
-    if (this.coef !== null) return false;       // 1桁のみ受け付け（GCDは1桁内で生成）
-    this.coef = n;
-    return true;
-  },
-  pressLetter(l) {
-    if (this.letters.length === 0) {
-      this.letters.push({ letter: l, exp: 1 });
-      return true;
-    }
-    const last = this.letters[this.letters.length - 1];
-    if (last.letter === l) {
-      // 連続同じ文字 → 指数 +1
-      if (last.exp >= 3) return false; // 上限
-      last.exp += 1;
-      return true;
-    }
-    if (l > last.letter) {
-      this.letters.push({ letter: l, exp: 1 });
-      return true;
-    }
-    return false; // アルファベット順を破る入力は不可
-  },
-  backspace() {
-    if (this.letters.length > 0) {
-      const last = this.letters[this.letters.length - 1];
-      if (last.exp > 1) last.exp -= 1;
-      else this.letters.pop();
-    } else if (this.coef !== null) {
-      this.coef = null;
-    }
-  },
-  toMonomial() {
-    const vars = {};
-    for (const { letter, exp } of this.letters) vars[letter] = exp;
-    const coef = this.coef !== null ? this.coef : 1;
-    if (coef === 1 && this.letters.length === 0) return null;
-    return monomial(coef, vars);
-  },
-  isEmpty() { return this.coef === null && this.letters.length === 0; }
-};
-
-function renderInputDisplay() {
-  const el = document.getElementById('input-display');
-  if (input.isEmpty()) {
-    el.innerHTML = '<span class="placeholder">入力してください</span>';
-    return;
-  }
-  let html = '';
-  if (input.coef !== null) html += input.coef;
-  for (const { letter, exp } of input.letters) {
-    html += letter;
-    if (exp > 1) html += `<sup>${exp}</sup>`;
-  }
-  el.innerHTML = html;
+function clearAnswerInput() {
+  const el = document.getElementById('answer-input');
+  if (el) el.value = '';
+}
+function focusAnswerInput() {
+  const el = document.getElementById('answer-input');
+  if (el) el.focus();
 }
 
-function buildButtons() {
-  const wrap = document.getElementById('buttons');
-  wrap.innerHTML = '';
-  // 1段目: 数字
-  for (const n of [2, 3, 4, 5, 6]) {
-    const b = document.createElement('button');
-    b.className = 'key num';
-    b.textContent = n;
-    b.addEventListener('click', () => onPressNumber(n));
-    wrap.appendChild(b);
-  }
-  // 2段目: 7, a, b, c, ←
-  const row2 = [
-    { type: 'num', v: 7 },
-    { type: 'letter', v: 'a' },
-    { type: 'letter', v: 'b' },
-    { type: 'letter', v: 'c' },
-    { type: 'del' }
-  ];
-  for (const item of row2) {
-    const b = document.createElement('button');
-    if (item.type === 'num') {
-      b.className = 'key num';
-      b.textContent = item.v;
-      b.addEventListener('click', () => onPressNumber(item.v));
-    } else if (item.type === 'letter') {
-      b.className = 'key letter';
-      b.textContent = item.v;
-      b.addEventListener('click', () => onPressLetter(item.v));
-    } else {
-      b.className = 'key del';
-      b.textContent = '←';
-      b.addEventListener('click', onPressDel);
-    }
-    wrap.appendChild(b);
-  }
-  // 3段目: x, y, _, _, 突破
-  const row3 = [
-    { type: 'letter', v: 'x' },
-    { type: 'letter', v: 'y' },
-    { type: 'spacer' },
-    { type: 'spacer' },
-    { type: 'submit' }
-  ];
-  for (const item of row3) {
-    const b = document.createElement('button');
-    if (item.type === 'letter') {
-      b.className = 'key letter';
-      b.textContent = item.v;
-      b.addEventListener('click', () => onPressLetter(item.v));
-    } else if (item.type === 'submit') {
-      b.className = 'key action';
-      b.textContent = '突破';
-      b.addEventListener('click', onSubmit);
-    } else {
-      b.className = 'key';
-      b.style.visibility = 'hidden';
-    }
-    wrap.appendChild(b);
-  }
-}
-
-function onPressNumber(n) {
-  if (game.paused || game.locked) return;
-  if (input.pressNumber(n)) renderInputDisplay();
-}
-function onPressLetter(l) {
-  if (game.paused || game.locked) return;
-  if (input.pressLetter(l)) renderInputDisplay();
-}
-function onPressDel() {
-  if (game.paused || game.locked) return;
-  input.backspace();
-  renderInputDisplay();
-}
 function onSubmit() {
   if (game.paused || game.locked) return;
-  if (input.isEmpty()) return;
-  game.submit();
+  const raw = document.getElementById('answer-input').value.trim();
+  if (!raw) return;
+  const result = parseMonomial(raw);
+  if (!result.ok) return; // 解析失敗は無視
+  game.submit(result.mono);
 }
 
 // =====================================================
@@ -1139,8 +1005,6 @@ const game = {
     this.customCursor = 0;
     // CASUAL の問題数: 登録問題数 (フォールバックの自動生成は最大30)
     this.totalProblems = this.usingCustom ? customList.length : 30;
-    input.reset();
-    renderInputDisplay();
     this.updateHUD();
     this.nextProblem();
     this.lastTickTime = performance.now();
@@ -1213,13 +1077,11 @@ const game = {
     }
     this.current = p;
     spawnWalls(p);
-    input.reset();
-    renderInputDisplay();
+    clearAnswerInput();
+    focusAnswerInput();
   },
 
-  submit() {
-    const guess = input.toMonomial();
-    if (!guess) return;
+  submit(guess) {
     if (monoEqual(guess, this.current.answer)) {
       this.onCorrect();
     } else {
@@ -1257,8 +1119,7 @@ const game = {
       this.elapsed += 3;
       this.updateHUD();
     }
-    input.reset();
-    renderInputDisplay();
+    clearAnswerInput();
     setTimeout(hideFeedback, 600);
   },
 
@@ -1520,7 +1381,6 @@ function updateCustomCountLabel() {
 // =====================================================
 window.addEventListener('DOMContentLoaded', async () => {
   initThree();
-  buildButtons();
   requestAnimationFrame(animate);
   await loadCustomProblems();
 
@@ -1604,15 +1464,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     e.target.value = '';
   });
 
-  // キーボード入力（PCでテストしやすく）
-  window.addEventListener('keydown', (e) => {
-    if (!document.getElementById('game-screen').classList.contains('active')) return;
-    if (game.paused || game.locked) return;
-    const k = e.key;
-    if (/^[2-7]$/.test(k)) onPressNumber(parseInt(k, 10));
-    else if (/^[abcxy]$/.test(k)) onPressLetter(k);
-    else if (k === 'Backspace') onPressDel();
-    else if (k === 'Enter') onSubmit();
+  // Enterキーで送信
+  document.getElementById('answer-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSubmit();
+    }
   });
 });
 </script>

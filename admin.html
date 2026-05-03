@@ -958,6 +958,64 @@ async function saveAndPush() {
   btn.disabled = false;
 }
 
+// ===== 共通因数ウォール 単項式計算ユーティリティ =====
+function _gcd(a, b) { return b === 0 ? a : _gcd(b, a % b); }
+function _mono(coef, vars) { return { coef, vars: vars || {} }; }
+function _gcdMono(a, b) {
+  const c = _gcd(Math.abs(a.coef), Math.abs(b.coef));
+  const vars = {};
+  for (const [l, e] of Object.entries(a.vars)) {
+    if (b.vars[l]) vars[l] = Math.min(e, b.vars[l]);
+  }
+  return _mono(c, vars);
+}
+function _gcdAll(monos) { return monos.reduce((a, b) => _gcdMono(a, b)); }
+const _SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function _toSuper(n) { return String(n).split('').map(c => _SUP[c]||c).join(''); }
+function _monoToStr(m) {
+  let s = '';
+  const letters = Object.keys(m.vars).sort();
+  if (m.coef !== 1 || letters.length === 0) s += m.coef;
+  for (const l of letters) { s += l; if (m.vars[l] > 1) s += _toSuper(m.vars[l]); }
+  return s;
+}
+function _parseMono(str) {
+  if (!str) return { ok: false };
+  let s = String(str).trim().toLowerCase();
+  if (!s) return { ok: false };
+  const supMap={'⁰':'^0','¹':'^1','²':'^2','³':'^3','⁴':'^4','⁵':'^5','⁶':'^6','⁷':'^7','⁸':'^8','⁹':'^9'};
+  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, ch => supMap[ch]).replace(/[\s*・×]/g,'');
+  let i = 0, coefStr = '';
+  while (i < s.length && /[0-9]/.test(s[i])) { coefStr += s[i]; i++; }
+  let coef = coefStr ? parseInt(coefStr, 10) : 1;
+  if (coef <= 0) return { ok: false };
+  const vars = {};
+  while (i < s.length) {
+    const c = s[i];
+    if (!/[a-z]/.test(c)) return { ok: false };
+    i++;
+    let exp = 1;
+    if (s[i] === '^') {
+      i++;
+      let expStr = '';
+      while (i < s.length && /[0-9]/.test(s[i])) { expStr += s[i]; i++; }
+      if (!expStr) return { ok: false };
+      exp = parseInt(expStr, 10);
+    }
+    vars[c] = (vars[c] || 0) + exp;
+  }
+  return { ok: true, mono: _mono(coef, vars) };
+}
+function computeWallGcd(problem) {
+  const terms = (problem.terms || []).filter(t => String(t).trim().length > 0);
+  if (terms.length < 2) return null;
+  const parsed = terms.map(t => _parseMono(t));
+  if (parsed.some(r => !r.ok)) return null;
+  const ans = _gcdAll(parsed.map(r => r.mono));
+  if (ans.coef === 1 && Object.keys(ans.vars).length === 0) return null;
+  return _monoToStr(ans);
+}
+
 // ===== 共通因数ウォール 問題管理 =====
 let wallSectionOpen = false;
 
@@ -982,25 +1040,30 @@ function renderWallProblems() {
     const t1 = escHtml(terms[0] || '');
     const t2 = escHtml(terms[1] || '');
     const t3 = has3 ? escHtml(terms[2] || '') : '';
+    const gcdStr = computeWallGcd(p);
+    const gcdCell = gcdStr
+      ? `<span style="color:#ff8a2a;font-weight:800;font-family:monospace;font-size:1rem;">${escHtml(gcdStr)}</span>`
+      : `<span style="color:rgba(255,255,255,0.2);font-size:0.78rem;">—</span>`;
     return `<tr>
       <td class="wall-num">${i + 1}</td>
       <td><input class="wall-term-input" type="text" value="${t1}"
                  placeholder="例: 6ab"
-                 onchange="updateWallTerm(${i},0,this.value)"></td>
-      <td style="color:rgba(255,255,255,0.25);padding:0 0.15rem;font-size:0.85rem">，</td>
+                 onchange="updateWallTerm(${i},0,this.value);refreshWallGcd(${i})"></td>
+      <td style="color:rgba(255,255,255,0.25);padding:0 0.1rem;font-size:0.85rem">，</td>
       <td><input class="wall-term-input" type="text" value="${t2}"
                  placeholder="例: 4ac"
-                 onchange="updateWallTerm(${i},1,this.value)"></td>
+                 onchange="updateWallTerm(${i},1,this.value);refreshWallGcd(${i})"></td>
       <td style="padding:0 0.2rem;">
         ${has3
           ? `<input class="wall-term-input" type="text" value="${t3}"
                     placeholder="例: 8bc"
-                    onchange="updateWallTerm(${i},2,this.value)">`
+                    onchange="updateWallTerm(${i},2,this.value);refreshWallGcd(${i})">`
           : ''}
         ${has3
           ? `<button class="wall-toggle-btn" onclick="removeWallTerm(${i})">−項</button>`
           : `<button class="wall-toggle-btn" onclick="addWallTerm(${i})">+項</button>`}
       </td>
+      <td style="padding:0 0.5rem;text-align:center;min-width:60px;" id="wall-gcd-${i}">${gcdCell}</td>
       <td class="wall-del-cell">
         <button class="wall-del-btn" title="削除" onclick="deleteWallProblem(${i})">×</button>
       </td>
@@ -1014,11 +1077,24 @@ function renderWallProblems() {
         <th></th>
         <th>項2</th>
         <th>項3（任意）</th>
+        <th style="text-align:center;min-width:60px;">答え</th>
         <th></th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+function refreshWallGcd(idx) {
+  if (!questionsData.wallProblems) return;
+  const p = questionsData.wallProblems[idx];
+  if (!p) return;
+  const cell = document.getElementById(`wall-gcd-${idx}`);
+  if (!cell) return;
+  const gcdStr = computeWallGcd(p);
+  cell.innerHTML = gcdStr
+    ? `<span style="color:#ff8a2a;font-weight:800;font-family:monospace;font-size:1rem;">${escHtml(gcdStr)}</span>`
+    : `<span style="color:rgba(255,255,255,0.2);font-size:0.78rem;">—</span>`;
 }
 
 function updateWallTerm(idx, ti, val) {
