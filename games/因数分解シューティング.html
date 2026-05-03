@@ -835,10 +835,8 @@
     ch.start(t0); ch.stop(t0 + 0.1);
   }
 
-  // Wrong sound: distorted buzzer + low rumble
-  //   3 dissonant square waves through WaveShaper distortion
-  //   + low-pass filtered noise rumble for menace
-  function playWrong() {
+  // Wrong sound: 無効化
+  function playWrong() { return; // 音なし
     if (!audioCtx) return;
     const t0 = audioCtx.currentTime;
     const out = dst();
