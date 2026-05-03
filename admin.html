@@ -356,6 +356,17 @@
       border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
     }
     .wall-add-btn:hover { background: rgba(255,138,42,0.1); color: #ff8a2a; }
+    .wall-drag-cell { width: 1.8rem; text-align: center; padding: 0.3rem 0.15rem !important; }
+    .wall-drag-handle {
+      display: inline-block; cursor: grab; font-size: 1.1rem;
+      color: rgba(255,138,42,0.35); user-select: none; padding: 0 0.2rem;
+      transition: color 0.15s;
+    }
+    .wall-drag-handle:hover { color: #ff8a2a; }
+    .wall-drag-handle:active { cursor: grabbing; }
+    tr.wall-row.wall-dragging { opacity: 0.3; }
+    tr.wall-row.wall-drag-over td { box-shadow: inset 0 3px 0 #ff8a2a; }
+    tr.wall-row.wall-drag-over { background: rgba(255,138,42,0.12) !important; }
   </style>
 </head>
 <body>
@@ -1044,7 +1055,16 @@ function renderWallProblems() {
     const gcdCell = gcdStr
       ? `<span style="color:#ff8a2a;font-weight:800;font-family:monospace;font-size:1rem;">${escHtml(gcdStr)}</span>`
       : `<span style="color:rgba(255,255,255,0.2);font-size:0.78rem;">—</span>`;
-    return `<tr>
+    return `<tr class="wall-row" id="wall-row-${i}" draggable="true"
+               ondragstart="wallDragStart(event,${i})"
+               ondragover="wallDragOver(event,${i})"
+               ondragleave="wallDragLeave(event,${i})"
+               ondrop="wallDragDrop(event,${i})"
+               ondragend="wallDragEnd()">
+      <td class="wall-drag-cell">
+        <span class="wall-drag-handle" title="ドラッグして並び替え"
+              onmousedown="wallDragFromHandle=true">⠿</span>
+      </td>
       <td class="wall-num">${i + 1}</td>
       <td><input class="wall-term-input" type="text" value="${t1}"
                  placeholder="例: 6ab"
@@ -1072,6 +1092,7 @@ function renderWallProblems() {
   wrap.innerHTML = `<table class="wall-table">
     <thead>
       <tr>
+        <th style="width:1.8rem;"></th>
         <th class="wall-num">#</th>
         <th>項1</th>
         <th></th>
@@ -1083,6 +1104,48 @@ function renderWallProblems() {
     </thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+// ===== 共通因数ウォール ドラッグ並び替え =====
+let wallDragSrc = null;
+let wallDragFromHandle = false;
+document.addEventListener('mouseup', () => { wallDragFromHandle = false; });
+
+function wallDragStart(e, idx) {
+  if (!wallDragFromHandle) { e.preventDefault(); return; }
+  wallDragSrc = idx;
+  const row = document.getElementById(`wall-row-${idx}`);
+  if (row) row.classList.add('wall-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(idx));
+}
+function wallDragOver(e, idx) {
+  e.preventDefault();
+  if (wallDragSrc === null || wallDragSrc === idx) return;
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.wall-row.wall-drag-over').forEach(r => r.classList.remove('wall-drag-over'));
+  const row = document.getElementById(`wall-row-${idx}`);
+  if (row) row.classList.add('wall-drag-over');
+}
+function wallDragLeave(e, idx) {
+  const row = document.getElementById(`wall-row-${idx}`);
+  if (row) row.classList.remove('wall-drag-over');
+}
+function wallDragDrop(e, idx) {
+  e.stopPropagation();
+  e.preventDefault();
+  document.querySelectorAll('.wall-row').forEach(r => r.classList.remove('wall-drag-over', 'wall-dragging'));
+  if (wallDragSrc === null || wallDragSrc === idx) return;
+  const arr = questionsData.wallProblems;
+  const [removed] = arr.splice(wallDragSrc, 1);
+  arr.splice(idx, 0, removed);
+  wallDragSrc = null;
+  renderWallProblems();
+}
+function wallDragEnd() {
+  document.querySelectorAll('.wall-row').forEach(r => r.classList.remove('wall-drag-over', 'wall-dragging'));
+  wallDragFromHandle = false;
+  wallDragSrc = null;
 }
 
 function refreshWallGcd(idx) {
