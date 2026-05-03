@@ -849,7 +849,7 @@ const GAME_ITEMS = [
     title: '共通因数ウォール',
     desc: '共通因数をくくり出してウォールを崩せ！',
     icon: '🧱',
-    onclick: "window.open('games/共通因数ウォール.html','_blank')",
+    onclick: "window.location.href='games/共通因数ウォール.html'",
     gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
     isNew: true,
   },
