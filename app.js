@@ -815,6 +815,26 @@ function renderHome() {
       <div class="gm-home-arrow">›</div>
     </div>`;
 
+  // ===== NEWS セクション =====
+  const newsItems = (mathData.news || []).slice(0, 10);
+  const newsHTML = newsItems.length > 0 ? `
+    <div class="news-section">
+      <div class="news-header">
+        <h3>📰 NEWS</h3>
+        <span class="news-count">${newsItems.length}件</span>
+      </div>
+      <ul class="news-list">
+        ${newsItems.map(n => `
+          <li class="news-item">
+            <span class="news-icon">${n.icon || '📌'}</span>
+            <span class="news-text">${escHtml(n.title || '')}</span>
+            <span class="news-date">${formatNewsDate(n.date)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  ` : '';
+
   return `
     <div class="section-title">
       <h2>章を選ぼう！</h2>
@@ -822,8 +842,25 @@ function renderHome() {
     </div>
     ${sgBanner}
     ${gamesBanner}
-    <div class="chapters-grid">${cards}</div>`;
+    <div class="chapters-grid">${cards}</div>
+    ${newsHTML}`;
 }
+
+// NEWS の日付を整形（今日/昨日/N日前/月/日）
+function formatNewsDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 0) return '';
+  if (diffDays === 0) return '今日';
+  if (diffDays === 1) return '昨日';
+  if (diffDays < 7) return `${diffDays}日前`;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 
 // ===== ゲーム選択画面 =====
 // 今後ゲームを追加する場合は GAME_ITEMS に1要素加えるだけ。

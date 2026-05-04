@@ -411,6 +411,26 @@
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
+  <!-- NEWS 管理 -->
+  <div class="news-admin-section">
+    <div class="news-admin-header" onclick="toggleNewsAdminSection()">
+      <span class="news-admin-label">📰 NEWS 管理（ホーム画面に表示）</span>
+      <span id="news-admin-count" class="news-admin-count">0件 / 最大10件</span>
+      <button class="news-admin-save-btn" id="news-admin-save-btn"
+              onclick="event.stopPropagation();saveNews(this)">💾 保存</button>
+      <span class="news-admin-save-status" id="news-admin-save-status"></span>
+      <span class="news-admin-toggle" id="news-admin-toggle">▼ 開く</span>
+    </div>
+    <div class="news-admin-body" id="news-admin-body" style="display:none">
+      <div id="news-admin-list"></div>
+      <button class="news-admin-add-btn" onclick="addNewsManual()">＋ NEWS追加</button>
+      <div style="margin-top:0.4rem;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.5;">
+        ※ オレンジ枠は自動生成（小林Tタイム/生徒ベスト更新時）、緑枠は手動追加。<br>
+        　 11件目以降は自動的に古いものから削除されます。
+      </div>
+    </div>
+  </div>
+
   <!-- 共通因数ウォール 問題管理 -->
   <div class="wall-section">
     <div class="wall-section-header" onclick="toggleWallSection()">
@@ -471,6 +491,7 @@ const LEVEL_LABELS = ['★ 基礎レベル', '★★ 標準レベル', '★★�
 const LEVEL_KEYS   = ['basic', 'standard', 'advanced'];
 
 let questionsData = null;
+let originalSnapshot = null; // NEWS自動検知用
 let currentChapter = 0;
 let enteredPassword = '';
 
@@ -573,6 +594,8 @@ async function saveStudentBest(chIdx, si, btn) {
   const sta = document.getElementById(`sb-status-${chIdx}-${si}`);
   btn.textContent = '保存中...';
   btn.disabled = true;
+  // 変更を検出して NEWS に追加
+  detectAndPushNews();
   try {
     const res = await fetch('/api/questions', {
       method: 'POST',
@@ -582,6 +605,7 @@ async function saveStudentBest(chIdx, si, btn) {
     const r = await res.json();
     sta.textContent = r.ok ? '✓ 保存しました' : '❌ 失敗';
     sta.style.color = r.ok ? '#2ecc71' : '#e74c3c';
+    if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
   } catch(e) {
     sta.textContent = '❌ エラー';
     sta.style.color = '#e74c3c';
@@ -630,9 +654,183 @@ async function loadQuestions() {
   const st = document.getElementById('cm-student-time-input');
   if (sn) sn.value = questionsData.cardMatchStudentBestName || '';
   if (st && questionsData.cardMatchStudentBestTime != null) st.value = questionsData.cardMatchStudentBestTime;
+  // NEWS 自動検知用にスナップショットを保存
+  if (!Array.isArray(questionsData.news)) questionsData.news = [];
+  originalSnapshot = JSON.parse(JSON.stringify(questionsData));
   renderChapterTabs();
   renderSections(0);
   renderWallProblems();
+  renderNewsAdmin();
+}
+
+// =====================================================
+//   NEWS 自動検知 / 管理
+// =====================================================
+let newsAdminOpen = false;
+
+function toggleNewsAdminSection() {
+  newsAdminOpen = !newsAdminOpen;
+  document.getElementById('news-admin-body').style.display = newsAdminOpen ? 'block' : 'none';
+  document.getElementById('news-admin-toggle').textContent = newsAdminOpen ? '▲ 閉じる' : '▼ 開く';
+}
+
+function genNewsId() {
+  return String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
+}
+
+// オリジナルと現在を比較してNEWSを自動生成
+function detectAndPushNews() {
+  if (!originalSnapshot) return;
+  const news = [];
+  const now = new Date().toISOString();
+
+  // カードマッチ 小林Tタイム
+  if (originalSnapshot.cardMatchTeacherTime !== questionsData.cardMatchTeacherTime &&
+      questionsData.cardMatchTeacherTime != null) {
+    news.push({
+      id: genNewsId(), type: 'auto', icon: '👑',
+      title: `小林Tがカードマッチを ${questionsData.cardMatchTeacherTime}秒 で更新！`,
+      date: now
+    });
+  }
+  // カードマッチ 生徒ベスト
+  const oldCmName = originalSnapshot.cardMatchStudentBestName || '';
+  const oldCmTime = originalSnapshot.cardMatchStudentBestTime;
+  const newCmName = questionsData.cardMatchStudentBestName || '';
+  const newCmTime = questionsData.cardMatchStudentBestTime;
+  if ((oldCmName !== newCmName || oldCmTime !== newCmTime) && newCmName && newCmTime != null) {
+    news.push({
+      id: genNewsId(), type: 'auto', icon: '🏅',
+      title: `${newCmName} がカードマッチを ${newCmTime}秒 で更新！`,
+      date: now
+    });
+  }
+
+  // 章/節
+  const chs = questionsData.chapters || [];
+  const oldChs = originalSnapshot.chapters || [];
+  for (let chIdx = 0; chIdx < chs.length; chIdx++) {
+    const ch = chs[chIdx];
+    const oldCh = oldChs[chIdx] || {};
+    const oldSecs = oldCh.sections || [];
+    const secs = ch.sections || [];
+    for (let si = 0; si < secs.length; si++) {
+      const sec = secs[si];
+      const oldSec = oldSecs[si] || {};
+      const label = `第${ch.id}章「${sec.title}」`;
+
+      if (sec.teacherTime !== oldSec.teacherTime && sec.teacherTime != null) {
+        news.push({
+          id: genNewsId(), type: 'auto', icon: '👑',
+          title: `小林Tが${label}を ${sec.teacherTime}秒 で更新！`,
+          date: now
+        });
+      }
+      const oldStuName = oldSec.studentBestName || '';
+      const oldStuTime = oldSec.studentBestTime;
+      const stuName = sec.studentBestName || '';
+      const stuTime = sec.studentBestTime;
+      if ((stuName !== oldStuName || stuTime !== oldStuTime) && stuName && stuTime != null) {
+        news.push({
+          id: genNewsId(), type: 'auto', icon: '🏅',
+          title: `${stuName} が${label}を ${stuTime}秒 で更新！`,
+          date: now
+        });
+      }
+    }
+  }
+
+  if (news.length > 0) {
+    if (!Array.isArray(questionsData.news)) questionsData.news = [];
+    questionsData.news = [...news, ...questionsData.news].slice(0, 10);
+  }
+}
+
+// 保存後にスナップショットを更新（次回検知の基準にする）
+function refreshSnapshot() {
+  originalSnapshot = JSON.parse(JSON.stringify(questionsData));
+}
+
+function renderNewsAdmin() {
+  const list = document.getElementById('news-admin-list');
+  const news = questionsData.news || [];
+  document.getElementById('news-admin-count').textContent = `${news.length}件 / 最大10件`;
+  if (news.length === 0) {
+    list.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85rem;padding:0.4rem 0">NEWS はまだありません。「＋ NEWS追加」で追加するか、生徒ベスト/先生タイムを更新すると自動で増えます。</p>';
+    return;
+  }
+  list.innerHTML = news.map((n, i) => {
+    const cls = n.type === 'auto' ? 'auto' : 'manual';
+    const badgeText = n.type === 'auto' ? '自動' : '手動';
+    const dateLabel = formatNewsDateAdmin(n.date);
+    return `<div class="news-admin-row ${cls}">
+      <input type="text" class="news-admin-icon-input" value="${escHtml(n.icon || '📌')}"
+             onchange="updateNewsField(${i},'icon',this.value)" maxlength="4">
+      <input type="text" class="news-admin-title-input" value="${escHtml(n.title || '')}"
+             onchange="updateNewsField(${i},'title',this.value)">
+      <span class="news-admin-type-badge ${cls}">${badgeText}</span>
+      <span class="news-admin-date">${dateLabel}</span>
+      <button class="news-admin-del-btn" title="削除" onclick="deleteNews(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function formatNewsDateAdmin(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const m = d.getMonth() + 1, day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${m}/${day} ${hh}:${mm}`;
+}
+
+function updateNewsField(idx, field, val) {
+  if (!questionsData.news || !questionsData.news[idx]) return;
+  questionsData.news[idx][field] = val;
+}
+
+function addNewsManual() {
+  if (!Array.isArray(questionsData.news)) questionsData.news = [];
+  questionsData.news.unshift({
+    id: genNewsId(), type: 'manual', icon: '📌',
+    title: '', date: new Date().toISOString()
+  });
+  if (questionsData.news.length > 10) questionsData.news = questionsData.news.slice(0, 10);
+  renderNewsAdmin();
+  // 追加した行のタイトル入力にフォーカス
+  const inputs = document.querySelectorAll('.news-admin-title-input');
+  if (inputs.length > 0) inputs[0].focus();
+}
+
+function deleteNews(idx) {
+  if (!questionsData.news) return;
+  if (!confirm('このNEWSを削除しますか？')) return;
+  questionsData.news.splice(idx, 1);
+  renderNewsAdmin();
+}
+
+async function saveNews(btn) {
+  const sta = document.getElementById('news-admin-save-status');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+    });
+    const r = await res.json();
+    sta.textContent = r.ok ? '✓ 保存しました' : '❌ 失敗';
+    sta.style.color = r.ok ? '#86efac' : '#ff6b6b';
+    if (r.ok) refreshSnapshot();
+  } catch(e) {
+    sta.textContent = '❌ エラー';
+    sta.style.color = '#ff6b6b';
+  }
+  btn.textContent = '💾 保存';
+  btn.disabled = false;
+  setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
 async function saveCmTeacherTime() {
@@ -641,6 +839,7 @@ async function saveCmTeacherTime() {
   const val = parseInt(el.value);
   if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; return; }
   questionsData.cardMatchTeacherTime = val;
+  detectAndPushNews();
   // questions.json 全体を保存
   const res = await fetch('/api/questions', {
     method: 'POST',
@@ -648,6 +847,7 @@ async function saveCmTeacherTime() {
     body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
   });
   const r = await res.json();
+  if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
   sta.textContent = r.ok ? `✓ ${val}秒に更新しました` : '❌ 保存失敗';
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
@@ -662,12 +862,14 @@ async function saveCmStudentBest() {
   if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; setTimeout(() => { sta.textContent = ''; }, 3000); return; }
   questionsData.cardMatchStudentBestName = name;
   questionsData.cardMatchStudentBestTime = val;
+  detectAndPushNews();
   const res = await fetch('/api/questions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
   });
   const r = await res.json();
+  if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
   sta.textContent = r.ok ? `✓ ${name} ${val}秒に更新しました` : '❌ 保存失敗';
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
@@ -874,6 +1076,9 @@ async function saveAll() {
   btn.disabled = true;
 
   try {
+    // 変更を検出して NEWS に追加
+    detectAndPushNews();
+
     // 保存前にパスワードをハッシュ化（平文のまま残っているものだけ）
     const dataToSave = JSON.parse(JSON.stringify(questionsData));
     await hashAllPasswords(dataToSave);
@@ -889,6 +1094,8 @@ async function saveAll() {
     });
     const result = await res.json();
     if (result.ok) {
+      refreshSnapshot();
+      renderNewsAdmin();
       const status = document.getElementById('save-status');
       status.style.display = 'inline';
       setTimeout(() => status.style.display = 'none', 3000);
@@ -950,6 +1157,9 @@ async function saveAndPush() {
   btn.disabled = true;
   status.style.display = 'none';
 
+  // 変更を検出して NEWS に追加
+  detectAndPushNews();
+
   const saveRes = await fetch('/api/questions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -962,6 +1172,8 @@ async function saveAndPush() {
     btn.disabled = false;
     return;
   }
+  refreshSnapshot();
+  renderNewsAdmin();
 
   // push
   btn.textContent = '🚀 Push中...';

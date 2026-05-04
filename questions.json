@@ -1516,36 +1516,223 @@
   ],
   "cardMatchStudentBestName": "5組T君",
   "cardMatchStudentBestTime": 16,
+  "news": [],
   "wallProblems": [
-    { "level": 1, "terms": ["ab",     "ac"    ] },
-    { "level": 1, "terms": ["bx",     "by"    ] },
-    { "level": 1, "terms": ["cx",     "cy"    ] },
-    { "level": 1, "terms": ["ax",     "bx"    ] },
-    { "level": 1, "terms": ["ay",     "cy"    ] },
-    { "level": 1, "terms": ["6a",     "4b"    ] },
-    { "level": 1, "terms": ["9x",     "6y"    ] },
-    { "level": 1, "terms": ["4a",     "6b"    ] },
-    { "level": 1, "terms": ["6x",     "9y"    ] },
-    { "level": 1, "terms": ["4a",     "4b"    ] },
-    { "level": 2, "terms": ["6ab",    "4ac"   ] },
-    { "level": 2, "terms": ["9bx",    "6by"   ] },
-    { "level": 2, "terms": ["4cx",    "6cy"   ] },
-    { "level": 2, "terms": ["6ax",    "4bx"   ] },
-    { "level": 2, "terms": ["9ay",    "6by"   ] },
-    { "level": 2, "terms": ["6a^2",   "4ab"   ] },
-    { "level": 2, "terms": ["9b^2",   "6bc"   ] },
-    { "level": 2, "terms": ["4x^2",   "6xy"   ] },
-    { "level": 2, "terms": ["6ab",    "4a"    ] },
-    { "level": 2, "terms": ["6a^2b",  "4ab^2" ] },
-    { "level": 3, "terms": ["6ab",    "4ac",  "2ax" ] },
-    { "level": 3, "terms": ["9bx",    "6by",  "3bc" ] },
-    { "level": 3, "terms": ["4cx",    "6cy",  "2ac" ] },
-    { "level": 3, "terms": ["6ax",    "4bx",  "2cx" ] },
-    { "level": 3, "terms": ["6ay",    "4by",  "2cy" ] },
-    { "level": 3, "terms": ["6a^2",   "4ab",  "2ac" ] },
-    { "level": 3, "terms": ["9b^2",   "6bc",  "3bx" ] },
-    { "level": 3, "terms": ["4x^2",   "6xy",  "2ax" ] },
-    { "level": 3, "terms": ["6a^2b",  "4ab^2","2ab" ] },
-    { "level": 3, "terms": ["6ab",    "4ac",  "2bc" ] }
+    {
+      "level": 1,
+      "terms": [
+        "ab",
+        "ac"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "bx",
+        "by"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "cx",
+        "cy"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "ax",
+        "bx"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "ay",
+        "cy"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "4",
+        "6"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "6",
+        "9"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "12",
+        "18"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "15",
+        "25"
+      ]
+    },
+    {
+      "level": 1,
+      "terms": [
+        "9",
+        "18"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "2ab",
+        "2ac"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "3xy",
+        "3x"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "9bx",
+        "6by"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "4cx",
+        "6cy"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "6ax",
+        "4bx"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "9ay",
+        "6by"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "6a^2",
+        "4ab"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "9b^2",
+        "6bc"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "4x^2",
+        "6xy"
+      ]
+    },
+    {
+      "level": 2,
+      "terms": [
+        "6ab",
+        "4a"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "ab",
+        "a^2b"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "xy^2",
+        "x"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "x^2y^2",
+        "xy"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "a^3b",
+        "ab"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "9bx",
+        "6by",
+        "3bc"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "6ay",
+        "4by",
+        "2cy"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "6a^2",
+        "4ab",
+        "2ac"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "9b^2",
+        "6bc",
+        "3bx"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "6a^2b",
+        "4ab^2",
+        "2ab"
+      ]
+    },
+    {
+      "level": 3,
+      "terms": [
+        "6ab",
+        "4ac",
+        "2bc"
+      ]
+    }
   ]
 }
