@@ -55,6 +55,91 @@
     background: #f0f2f5; padding: 2px 8px; border-radius: 999px;
   }
   .level-card p { font-size: 13px; color: #555; line-height: 1.5; }
+  .level-card.locked {
+    opacity: 0.5; cursor: not-allowed; filter: grayscale(0.55);
+    border-left-color: #888 !important;
+  }
+  .level-card.locked:active { transform: none; }
+  .level-card-badge {
+    display: inline-block; font-size: 11px; font-weight: 800;
+    padding: 2px 9px; border-radius: 999px; letter-spacing: 0.5px;
+  }
+  .level-card-badge.cleared { background: #4ade80; color: #053e1c; }
+  .level-card-badge.locked  { background: #94a3b8; color: #1a1a1a; }
+  .level-card-badge.new     { background: #ff8a2a; color: white; }
+
+  /* ボーナス情報パネル */
+  .bonus-info {
+    width: min(85vw, 420px);
+    background: rgba(255,255,255,0.85);
+    border-radius: 12px;
+    padding: 10px 14px 12px;
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: #444;
+  }
+  .bonus-info h4 {
+    font-size: 12px; font-weight: 900;
+    color: #ff8a2a; letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+  .bonus-info table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .bonus-info th { color: #888; font-weight: 600; text-align: center; padding: 1px 4px; }
+  .bonus-info td { text-align: center; padding: 1px 4px; font-weight: 700; }
+  .bonus-info td.lv { color: #555; text-align: left; font-weight: 700; }
+  .bonus-info td .pea { color: #4a8; font-weight: 800; }
+  .bonus-info-divider { border-top: 1px dashed #ccc; margin: 6px 0 4px; }
+
+  /* HUD ライフ表示 */
+  .hud-lives {
+    font-size: 24px; letter-spacing: 5px;
+    color: #ff5577;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .hud-lives.lost { animation: lifeFlash 0.5s; }
+  @keyframes lifeFlash {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.3); color: #ff0033; }
+    100% { transform: scale(1); }
+  }
+
+  /* 結果画面の追加スタイル */
+  #result-screen .result-time-line {
+    font-size: 18px; color: #ddd; margin-top: -4px;
+  }
+  #result-screen .result-time-line strong { color: #fff; font-size: 26px; font-weight: 900; }
+  #result-screen .reward-row {
+    display: flex; justify-content: space-between; gap: 16px;
+    width: min(80vw, 320px);
+    padding: 6px 0; font-size: 14px; color: #ccc;
+    border-bottom: 1px dashed rgba(255,255,255,0.15);
+  }
+  #result-screen .reward-row:last-child { border-bottom: none; }
+  #result-screen .reward-row strong { color: #ffb066; font-weight: 800; font-size: 16px; }
+  #result-screen .reward-total {
+    margin-top: 6px;
+    font-size: 28px; font-weight: 900;
+    color: #4ade80;
+  }
+  #result-screen .reward-total .pea-icon { font-size: 1.2em; }
+  #result-screen .unlock-msg {
+    margin-top: 4px; padding: 6px 14px;
+    background: rgba(255,138,42,0.15); border: 1px solid rgba(255,138,42,0.4);
+    border-radius: 999px; color: #ffb066;
+    font-weight: 800; font-size: 14px; letter-spacing: 1px;
+    animation: pop 0.6s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #result-screen.gameover .result-title { color: #ff5577; }
+  #result-screen.gameover .result-score {
+    background: linear-gradient(180deg, #fff, #ff5577);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
   .title-logo {
     font-size: clamp(36px, 7vw, 64px);
     font-weight: 900;
@@ -357,68 +442,66 @@
 
   <!-- レベル選択 -->
   <div id="level-screen" class="screen">
-    <div class="title-logo" style="font-size: 32px;">LEVEL SELECT</div>
-    <div class="level-card lv1" data-level="1">
+    <div class="title-logo" style="font-size: 30px;">LEVEL SELECT</div>
+    <div class="level-card lv1" data-level="1" id="lvcard-1">
       <div class="level-card-head">
         <span class="level-card-stars">★☆☆</span>
         <span class="level-card-title">Lv.1</span>
         <span class="level-card-count" id="lv1-count">10問</span>
+        <span class="level-card-badge" id="lv1-badge"></span>
       </div>
       <p>2項。共通因数は<strong>文字1つ</strong>または<strong>数字のみ</strong>。</p>
     </div>
-    <div class="level-card lv2" data-level="2">
+    <div class="level-card lv2" data-level="2" id="lvcard-2">
       <div class="level-card-head">
         <span class="level-card-stars">★★☆</span>
         <span class="level-card-title">Lv.2</span>
         <span class="level-card-count" id="lv2-count">10問</span>
+        <span class="level-card-badge" id="lv2-badge"></span>
       </div>
       <p>2項。共通因数は<strong>数字×文字</strong>の組み合わせ。</p>
     </div>
-    <div class="level-card lv3" data-level="3">
+    <div class="level-card lv3" data-level="3" id="lvcard-3">
       <div class="level-card-head">
         <span class="level-card-stars">★★★</span>
         <span class="level-card-title">Lv.3</span>
         <span class="level-card-count" id="lv3-count">10問</span>
+        <span class="level-card-badge" id="lv3-badge"></span>
       </div>
       <p><strong>3項</strong>からの共通因数くくり出し。</p>
     </div>
-    <div class="level-card all" data-level="all">
-      <div class="level-card-head">
-        <span class="level-card-stars">∞</span>
-        <span class="level-card-title">全レベル</span>
-        <span class="level-card-count" id="lvall-count">30問</span>
-      </div>
-      <p>Lv1→Lv2→Lv3 を順番に全問チャレンジ。</p>
-    </div>
-    <button class="btn btn-secondary" id="level-back">BACK</button>
-  </div>
 
-  <!-- モード選択 -->
-  <div id="mode-screen" class="screen">
-    <div class="title-logo" style="font-size: 32px;">MODE SELECT</div>
-    <div class="problem-count">📝 <span id="selected-level-label">全レベル</span> ・ <span id="custom-count">0問</span></div>
-    <div class="mode-card" data-mode="challenge">
-      <h3>CHALLENGE MODE</h3>
-      <p>制限時間 60 秒。<br>たくさん壁を壊してハイスコアを狙おう! 不正解は -3 秒。</p>
+    <div class="bonus-info">
+      <h4>📜 ルール ＆ 報酬</h4>
+      クリア条件: <strong>全問正解</strong>　／　ライフ: <strong>♥×3</strong>（3回ミスでゲームオーバー）
+      <div class="bonus-info-divider"></div>
+      <table>
+        <thead>
+          <tr><th></th><th>初回クリア</th><th>10秒</th><th>20秒</th><th>30秒</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×10</span></td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×20</span></td><td><span class="pea">🌱×10</span></td></tr>
+          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×20</span></td><td><span class="pea">🌱×45</span></td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×15</span></td></tr>
+          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×60</span></td><td><span class="pea">🌱×40</span></td><td><span class="pea">🌱×20</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:4px;font-size:10.5px;color:#888;">※ 時間ボーナスは何度プレイしてももらえます</div>
     </div>
-    <div class="mode-card" data-mode="casual">
-      <h3>CASUAL MODE</h3>
-      <p>選んだ問題を完走するタイムアタック。<br>自分のペースで全問クリアを目指そう!</p>
-    </div>
-    <button class="btn btn-secondary" id="mode-back">BACK</button>
+
+    <button class="btn btn-secondary btn-sm" id="level-back">BACK</button>
   </div>
 
   <!-- ゲーム画面 -->
   <div id="game-screen" class="screen">
     <div id="hud">
       <div class="hud-item">
-        <div class="hud-label" id="hud-left-label">SCORE</div>
-        <div class="hud-value" id="hud-left-value">0</div>
+        <div class="hud-label">PROBLEM</div>
+        <div class="hud-value" id="hud-problem">1/10</div>
       </div>
-      <div id="time-bar-wrap"><div id="time-bar"></div></div>
+      <div class="hud-lives" id="hud-lives">♥♥♥</div>
       <div class="hud-item">
-        <div class="hud-label" id="hud-right-label">TIME</div>
-        <div class="hud-value" id="hud-right-value">60</div>
+        <div class="hud-label">TIME</div>
+        <div class="hud-value" id="hud-time">0.0</div>
       </div>
     </div>
     <button class="pause-btn" id="pause-btn">‖</button>
@@ -468,15 +551,17 @@
 
   <!-- 結果画面 -->
   <div id="result-screen" class="screen">
-    <div class="result-title">RESULT</div>
-    <div class="result-mode" id="result-mode-label">CHALLENGE</div>
-    <div class="result-score" id="result-score">0</div>
-    <div class="result-unit" id="result-unit">pt</div>
-    <div class="result-detail" id="result-detail"></div>
+    <div class="result-title" id="result-title">CLEAR!</div>
+    <div class="result-mode" id="result-mode-label">Lv.1</div>
+    <div class="result-score" id="result-score">0.0</div>
+    <div class="result-unit" id="result-unit">秒</div>
+    <div id="result-rewards" style="margin-top: 8px;"></div>
+    <div class="reward-total" id="reward-total" style="display:none"><span class="pea-icon">🌱</span> ×<span id="reward-total-num">0</span> 獲得！</div>
+    <div class="unlock-msg" id="unlock-msg" style="display:none"></div>
     <div class="result-best" id="result-best"></div>
     <div class="result-buttons">
-      <button class="btn" id="result-retry">RETRY</button>
-      <button class="btn btn-secondary" id="result-top">TOP</button>
+      <button class="btn" id="result-retry">もう一度</button>
+      <button class="btn btn-secondary" id="result-top">レベル選択</button>
       <button class="btn btn-secondary btn-sm" onclick="window.location.href='../index.html'">🏠 ホームへ戻る</button>
     </div>
   </div>
@@ -487,6 +572,45 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 'use strict';
+
+// =====================================================
+//   進捗管理 (localStorage) と すごろく連携
+// =====================================================
+const WALL_PROGRESS = {
+  isCleared(lv) { return localStorage.getItem(`wallbreak_cleared_lv${lv}`) === '1'; },
+  setCleared(lv) { localStorage.setItem(`wallbreak_cleared_lv${lv}`, '1'); },
+  hasFirstReward(lv) { return localStorage.getItem(`wallbreak_first_reward_lv${lv}`) === '1'; },
+  setFirstReward(lv) { localStorage.setItem(`wallbreak_first_reward_lv${lv}`, '1'); },
+  isUnlocked(lv) {
+    if (lv === 1) return true;
+    if (lv === 2) return this.isCleared(1);
+    if (lv === 3) return this.isCleared(2);
+    return false;
+  }
+};
+
+// 報酬計算
+const REWARDS = {
+  // 初回クリア報酬
+  firstClear(lv) { return lv === 1 ? 10 : (lv === 2 ? 20 : 30); },
+  // 時間ボーナス（毎回もらえる）
+  timeBonus(lv, sec) {
+    const base = sec <= 10 ? 30 : (sec <= 20 ? 20 : (sec <= 30 ? 10 : 0));
+    const mult = lv === 1 ? 1 : (lv === 2 ? 1.5 : 2);
+    return Math.floor(base * mult);
+  }
+};
+
+// すごろくの save に peas を加算
+function addPeasToSugoroku(amount) {
+  if (amount <= 0) return;
+  const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+  const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+  let save = {};
+  try { save = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch(e) { save = {}; }
+  save.peas = (save.peas || 0) + amount;
+  localStorage.setItem(key, JSON.stringify(save));
+}
 
 // =====================================================
 //   ユーティリティ
@@ -1156,30 +1280,26 @@ function animate(now) {
 //   ゲーム本体
 // =====================================================
 const game = {
-  mode: 'challenge',     // 'challenge' or 'casual'
-  selectedLevel: 'all',  // 1, 2, 3, 'all'
+  selectedLevel: 1,      // 1, 2, 3
   problemIndex: 0,
   current: null,
-  score: 0,              // challenge: 突破した壁数
-  timeLeft: 60,          // challenge
-  elapsed: 0,            // casual
-  totalProblems: 30,     // casual
+  lives: 3,              // ライフ数（3回ミスでゲームオーバー）
+  elapsed: 0,
+  totalProblems: 10,
   paused: false,
   running: false,
   locked: false,         // 演出中入力ロック
   lastTickTime: 0,
   intervalId: null,
 
-  start(mode) {
-    this.mode = mode;
+  start() {
     this.problemIndex = 0;
-    this.score = 0;
-    this.timeLeft = 60;
+    this.lives = 3;
     this.elapsed = 0;
     this.paused = false;
     this.running = true;
     this.locked = false;
-    // 選択したレベルの問題を取得 (10問単位で分割)
+    // 選択したレベルの問題を取得
     const customList = filterByLevel(customToProblems(), this.selectedLevel);
     this.usingCustom = customList.length > 0;
     this.customQueue = this.usingCustom ? [...customList] : [];
@@ -1204,36 +1324,26 @@ const game = {
     const now = performance.now();
     const dt = (now - this.lastTickTime) / 1000;
     this.lastTickTime = now;
-    if (this.mode === 'challenge') {
-      this.timeLeft -= dt;
-      if (this.timeLeft <= 0) { this.timeLeft = 0; this.updateHUD(); this.finish(); return; }
-    } else {
-      this.elapsed += dt;
-    }
+    this.elapsed += dt;
     this.updateHUD();
   },
 
   updateHUD() {
-    const leftLabel = document.getElementById('hud-left-label');
-    const leftValue = document.getElementById('hud-left-value');
-    const rightLabel = document.getElementById('hud-right-label');
-    const rightValue = document.getElementById('hud-right-value');
-    const bar = document.getElementById('time-bar');
-    if (this.mode === 'challenge') {
-      leftLabel.textContent = 'SCORE';
-      leftValue.textContent = this.score;
-      rightLabel.textContent = 'TIME';
-      rightValue.textContent = Math.ceil(this.timeLeft);
-      bar.style.width = (Math.max(0, this.timeLeft) / 60 * 100) + '%';
-    } else {
-      leftLabel.textContent = 'PROBLEM';
-      leftValue.textContent = `${this.problemIndex + 1}/${this.totalProblems}`;
-      rightLabel.textContent = 'TIME';
+    const probEl = document.getElementById('hud-problem');
+    const livesEl = document.getElementById('hud-lives');
+    const timeEl = document.getElementById('hud-time');
+    if (probEl) probEl.textContent = `${Math.min(this.problemIndex + 1, this.totalProblems)}/${this.totalProblems}`;
+    if (livesEl) {
+      // ♥♥♥ - lives 残数
+      let s = '';
+      for (let i = 0; i < 3; i++) s += (i < this.lives) ? '♥' : '♡';
+      livesEl.textContent = s;
+    }
+    if (timeEl) {
       const t = this.elapsed;
       const m = Math.floor(t / 60);
       const s = (t - m * 60).toFixed(1);
-      rightValue.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s + 's';
-      bar.style.width = ((this.problemIndex) / this.totalProblems * 100) + '%';
+      timeEl.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
     }
   },
 
@@ -1272,7 +1382,6 @@ const game = {
 
   onCorrect() {
     this.locked = true;
-    this.score += 1;
     showFeedback('PERFECT!', false);
     shatterAllWalls();
     showFactoredResult(this.current);  // 因数分解式を表示
@@ -1280,35 +1389,48 @@ const game = {
     setTimeout(() => {
       hideFeedback();
       hideFactoredResult();
-      if (this.mode === 'casual' && this.problemIndex >= this.totalProblems) {
+      if (this.problemIndex >= this.totalProblems) {
+        // 全問正解 → クリア！
         this.locked = false;
-        this.finish();
+        this.clearLevel();
         return;
       }
       this.nextProblem();
       this.locked = false;
       this.updateHUD();
-    }, 1400);  // 因数分解式を読む時間を確保
+    }, 1400);
   },
 
   onWrong() {
     showFeedback('MISS!', true);
     triggerShake();
-    if (this.mode === 'challenge') {
-      this.timeLeft = Math.max(0, this.timeLeft - 3);
-      this.updateHUD();
-      if (this.timeLeft <= 0) { setTimeout(() => this.finish(), 400); return; }
-    } else {
-      this.elapsed += 3;
-      this.updateHUD();
+    this.lives -= 1;
+    // ライフ表示にアニメ
+    const livesEl = document.getElementById('hud-lives');
+    if (livesEl) {
+      livesEl.classList.remove('lost');
+      void livesEl.offsetWidth; // reflow
+      livesEl.classList.add('lost');
+    }
+    this.updateHUD();
+    if (this.lives <= 0) {
+      // ライフ切れ → ゲームオーバー
+      this.locked = true;
+      setTimeout(() => this.gameOver(), 700);
+      return;
     }
     clearAnswerInput();
     setTimeout(hideFeedback, 600);
   },
 
-  finish() {
+  clearLevel() {
     this.stop();
-    showResult();
+    showClearResult();
+  },
+
+  gameOver() {
+    this.stop();
+    showGameOverResult();
   },
 
   pause() { this.paused = true; document.getElementById('pause-overlay').classList.add('show'); },
@@ -1338,51 +1460,92 @@ function showScreen(id) {
   if (id === 'game-screen') setTimeout(onResize, 0);
 }
 
-function showResult() {
-  const modeLabel = document.getElementById('result-mode-label');
-  const score = document.getElementById('result-score');
-  const unit = document.getElementById('result-unit');
-  const detail = document.getElementById('result-detail');
-  const best = document.getElementById('result-best');
-  if (game.mode === 'challenge') {
-    modeLabel.textContent = 'CHALLENGE MODE';
-    score.textContent = game.score;
-    unit.textContent = 'WALLS BROKEN';
-    detail.textContent = '60秒間で壊した壁数';
-    const key = `wallbreak_best_challenge_${game.selectedLevel}`;
-    const prev = parseInt(localStorage.getItem(key) || '0', 10);
-    if (game.score > prev) {
-      localStorage.setItem(key, String(game.score));
-      best.textContent = '★ NEW RECORD! ★';
-    } else {
-      best.textContent = `BEST: ${prev}`;
-    }
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = (t - m * 60).toFixed(1);
+  return m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+}
+
+function showClearResult() {
+  const lv = game.selectedLevel;
+  const elapsed = game.elapsed;
+  const screen = document.getElementById('result-screen');
+  screen.classList.remove('gameover');
+
+  document.getElementById('result-title').textContent = '🎉 CLEAR! 🎉';
+  document.getElementById('result-mode-label').textContent = `Lv.${lv}`;
+  document.getElementById('result-score').textContent = fmtTime(elapsed);
+  document.getElementById('result-unit').textContent = elapsed >= 60 ? '' : '秒';
+
+  // 報酬計算
+  const isFirstClear = !WALL_PROGRESS.hasFirstReward(lv);
+  const firstRew = isFirstClear ? REWARDS.firstClear(lv) : 0;
+  const timeRew = REWARDS.timeBonus(lv, elapsed);
+  const total = firstRew + timeRew;
+
+  // クリア状態を保存
+  WALL_PROGRESS.setCleared(lv);
+  if (isFirstClear) WALL_PROGRESS.setFirstReward(lv);
+
+  // すごろくの save に加算
+  addPeasToSugoroku(total);
+
+  // ベストタイム保存
+  const bestKey = `wallbreak_best_clear_${lv}`;
+  const prev = parseFloat(localStorage.getItem(bestKey) || '999999');
+  let bestText = '';
+  if (elapsed < prev) {
+    localStorage.setItem(bestKey, String(elapsed));
+    bestText = '★ NEW BEST! ★';
   } else {
-    modeLabel.textContent = 'CASUAL MODE';
-    if (game.problemIndex >= game.totalProblems) {
-      const t = game.elapsed;
-      const m = Math.floor(t / 60);
-      const s = (t - m * 60).toFixed(1);
-      score.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
-      unit.textContent = m > 0 ? 'MIN' : 'SEC';
-      detail.textContent = `${game.totalProblems}問完走タイム`;
-      const key = `wallbreak_best_casual_${game.selectedLevel}`;
-      const prev = parseFloat(localStorage.getItem(key) || '999999');
-      if (game.elapsed < prev) {
-        localStorage.setItem(key, String(game.elapsed));
-        best.textContent = '★ NEW RECORD! ★';
-      } else {
-        const pm = Math.floor(prev / 60);
-        const ps = (prev - pm * 60).toFixed(1);
-        best.textContent = `BEST: ${pm > 0 ? pm + ':' + ps.padStart(4,'0') : ps + 's'}`;
-      }
-    } else {
-      score.textContent = `${game.problemIndex}/${game.totalProblems}`;
-      unit.textContent = 'CLEARED';
-      detail.textContent = '中断';
-      best.textContent = '';
-    }
+    bestText = `BEST: ${fmtTime(prev)}秒`;
   }
+  document.getElementById('result-best').textContent = bestText;
+
+  // 報酬の内訳表示
+  const rewardsDiv = document.getElementById('result-rewards');
+  let html = '';
+  if (firstRew > 0) {
+    html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
+  }
+  if (timeRew > 0) {
+    const sec = Math.floor(elapsed);
+    html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+  } else {
+    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（30秒超）</span><span>—</span></div>`;
+  }
+  rewardsDiv.innerHTML = html;
+
+  // 合計獲得
+  document.getElementById('reward-total').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('reward-total-num').textContent = total;
+
+  // レベル開放メッセージ
+  const unlockEl = document.getElementById('unlock-msg');
+  if (isFirstClear && lv < 3) {
+    unlockEl.style.display = 'inline-block';
+    unlockEl.textContent = `🎊 Lv.${lv + 1} 開放！`;
+  } else {
+    unlockEl.style.display = 'none';
+  }
+
+  showScreen('result-screen');
+}
+
+function showGameOverResult() {
+  const screen = document.getElementById('result-screen');
+  screen.classList.add('gameover');
+
+  document.getElementById('result-title').textContent = '💀 GAME OVER';
+  document.getElementById('result-mode-label').textContent = `Lv.${game.selectedLevel}`;
+  document.getElementById('result-score').textContent = `${game.problemIndex}/${game.totalProblems}`;
+  document.getElementById('result-unit').textContent = '問正解で終了';
+  document.getElementById('result-rewards').innerHTML =
+    '<div style="color:#aaa;font-size:14px;margin-top:8px;">ライフを使い切りました…<br>もう一度チャレンジしよう！</div>';
+  document.getElementById('reward-total').style.display = 'none';
+  document.getElementById('unlock-msg').style.display = 'none';
+  document.getElementById('result-best').textContent = '';
+
   showScreen('result-screen');
 }
 
@@ -1565,7 +1728,27 @@ function updateLevelCounts() {
   set('lv1-count',  filterByLevel(all, 1).length);
   set('lv2-count',  filterByLevel(all, 2).length);
   set('lv3-count',  filterByLevel(all, 3).length);
-  set('lvall-count', all.length);
+}
+
+function updateLevelLockState() {
+  for (let lv = 1; lv <= 3; lv++) {
+    const card = document.getElementById(`lvcard-${lv}`);
+    const badge = document.getElementById(`lv${lv}-badge`);
+    if (!card || !badge) continue;
+    const unlocked = WALL_PROGRESS.isUnlocked(lv);
+    const cleared = WALL_PROGRESS.isCleared(lv);
+    card.classList.toggle('locked', !unlocked);
+    if (!unlocked) {
+      badge.className = 'level-card-badge locked';
+      badge.textContent = `🔒 Lv.${lv - 1}クリアで開放`;
+    } else if (cleared) {
+      badge.className = 'level-card-badge cleared';
+      badge.textContent = '✓ クリア済み';
+    } else {
+      badge.className = 'level-card-badge new';
+      badge.textContent = '挑戦できます！';
+    }
+  }
 }
 
 // =====================================================
@@ -1584,6 +1767,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('title-start').addEventListener('click', () => {
     updateLevelCounts();
+    updateLevelLockState();
     showScreen('level-screen');
   });
   document.getElementById('title-edit').addEventListener('click', () => {
@@ -1593,50 +1777,43 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // レベル選択
   document.getElementById('level-back').addEventListener('click', () => showScreen('title-screen'));
-  for (const card of document.querySelectorAll('.level-card')) {
+  for (const card of document.querySelectorAll('.level-card[data-level]')) {
     card.addEventListener('click', () => {
       const lvAttr = card.getAttribute('data-level');
-      const level = lvAttr === 'all' ? 'all' : parseInt(lvAttr, 10);
+      if (lvAttr === 'all') return; // 全レベルカードは廃止済み
+      const level = parseInt(lvAttr, 10);
+      // ロック中のレベルはスキップ
+      if (!WALL_PROGRESS.isUnlocked(level)) {
+        alert(`Lv.${level - 1} をクリアすると開放されます。`);
+        return;
+      }
       const list = filterByLevel(customToProblems(), level);
       if (list.length === 0) {
-        alert('このレベルの問題が登録されていません。');
+        alert('このレベルの問題が登録されていません。先生に確認してください。');
         return;
       }
       game.selectedLevel = level;
-      // モード選択画面に表示するラベルと問題数
-      const labelEl = document.getElementById('selected-level-label');
-      labelEl.textContent = level === 'all' ? '全レベル'
-        : (level === 1 ? 'Lv.1' : (level === 2 ? 'Lv.2' : 'Lv.3'));
-      document.getElementById('custom-count').textContent = `${list.length}問`;
-      showScreen('mode-screen');
+      showScreen('game-screen');
+      game.start();
     });
   }
 
-  document.getElementById('mode-back').addEventListener('click', () => showScreen('level-screen'));
-  for (const card of document.querySelectorAll('.mode-card')) {
-    card.addEventListener('click', () => {
-      const list = filterByLevel(customToProblems(), game.selectedLevel);
-      if (list.length === 0) {
-        alert('問題が登録されていません。先生に確認してください。');
-        return;
-      }
-      const mode = card.getAttribute('data-mode');
-      showScreen('game-screen');
-      game.start(mode);
-    });
-  }
   document.getElementById('pause-btn').addEventListener('click', () => game.pause());
   document.getElementById('pause-resume').addEventListener('click', () => game.resume());
   document.getElementById('pause-quit').addEventListener('click', () => {
     document.getElementById('pause-overlay').classList.remove('show');
     game.stop();
-    showScreen('title-screen');
+    updateLevelLockState();
+    showScreen('level-screen');
   });
   document.getElementById('result-retry').addEventListener('click', () => {
     showScreen('game-screen');
-    game.start(game.mode);
+    game.start();
   });
-  document.getElementById('result-top').addEventListener('click', () => showScreen('title-screen'));
+  document.getElementById('result-top').addEventListener('click', () => {
+    updateLevelLockState();
+    showScreen('level-screen');
+  });
 
   // 編集画面
   document.getElementById('edit-back').addEventListener('click', () => showScreen('title-screen'));
