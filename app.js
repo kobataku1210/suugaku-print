@@ -2693,6 +2693,7 @@ fetch('./questions.json')
   .then(r => r.json())
   .then(data => {
     mathData.chapters = data.chapters;
+    mathData.news = Array.isArray(data.news) ? data.news : [];
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;
     if (data.cardMatchStudentBestName) cmStudentBestName = data.cardMatchStudentBestName;
