@@ -1516,7 +1516,18 @@
   ],
   "cardMatchStudentBestName": "5組T君",
   "cardMatchStudentBestTime": 16,
-  "news": [],
+  "news": [
+    { "id": "demo-01", "type": "manual", "icon": "🆕", "title": "新ゲーム「共通因数ウォール」が登場！Lv.1〜Lv.3の3段階", "date": "2026-05-04T09:00:00.000Z" },
+    { "id": "demo-02", "type": "auto",   "icon": "🏅", "title": "5組T君 がカードマッチを 16秒 で更新！", "date": "2026-05-03T14:20:00.000Z" },
+    { "id": "demo-03", "type": "auto",   "icon": "🏅", "title": "2組　N君 が第1章「因数分解①」を 6.2秒 で更新！", "date": "2026-05-02T10:35:00.000Z" },
+    { "id": "demo-04", "type": "auto",   "icon": "🏅", "title": "2組　H君 が第1章「因数分解②」を 5.3秒 で更新！", "date": "2026-05-01T11:15:00.000Z" },
+    { "id": "demo-05", "type": "auto",   "icon": "👑", "title": "小林Tがカードマッチを 20秒 で更新！", "date": "2026-04-30T16:40:00.000Z" },
+    { "id": "demo-06", "type": "auto",   "icon": "👑", "title": "小林Tが第1章「式の乗法」を 16.1秒 で更新！", "date": "2026-04-29T15:00:00.000Z" },
+    { "id": "demo-07", "type": "manual", "icon": "🎮", "title": "因数分解シューティングのレベル4〜6が追加されました", "date": "2026-04-28T09:30:00.000Z" },
+    { "id": "demo-08", "type": "manual", "icon": "🎉", "title": "すごろく「ステージ2」が解放されました！150マス挑戦", "date": "2026-04-26T13:20:00.000Z" },
+    { "id": "demo-09", "type": "manual", "icon": "📜", "title": "タイムアタックで自己ベスト超えで🌱×50ボーナス！", "date": "2026-04-24T10:00:00.000Z" },
+    { "id": "demo-10", "type": "manual", "icon": "📌", "title": "数学プリント集サイトへようこそ！", "date": "2026-04-22T08:00:00.000Z" }
+  ],
   "wallProblems": [
     {
       "level": 1,
