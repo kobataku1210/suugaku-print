@@ -356,6 +356,23 @@
       border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
     }
     .wall-add-btn:hover { background: rgba(255,138,42,0.1); color: #ff8a2a; }
+    .wall-lv-tabs {
+      display: flex; gap: 0.4rem; margin: 0 0 0.6rem; flex-wrap: wrap;
+    }
+    .wall-lv-tab {
+      padding: 0.32rem 0.95rem; border-radius: 999px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.55); font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
+    }
+    .wall-lv-tab:hover { background: rgba(255,255,255,0.1); color: white; }
+    .wall-lv-tab.active[data-lv="1"]   { background: linear-gradient(135deg,#4ecdc4,#37a8a1); border-color: transparent; color: #003830; }
+    .wall-lv-tab.active[data-lv="2"]   { background: linear-gradient(135deg,#f7971e,#cf7a0a); border-color: transparent; color: #3a1f00; }
+    .wall-lv-tab.active[data-lv="3"]   { background: linear-gradient(135deg,#f5576c,#c43a4d); border-color: transparent; color: #3d0710; }
+    .wall-lv-tab.active[data-lv="all"] { background: linear-gradient(135deg,#667eea,#4654a8); border-color: transparent; color: white; }
+    .wall-lv-tab .lv-cnt {
+      margin-left: 6px; font-size: 0.72rem; opacity: 0.75; font-weight: 600;
+    }
     .wall-drag-cell { width: 1.8rem; text-align: center; padding: 0.3rem 0.15rem !important; }
     .wall-drag-handle {
       display: inline-block; cursor: grab; font-size: 1.1rem;
@@ -405,10 +422,16 @@
       <span class="wall-section-toggle" id="wall-toggle">▼ 開く</span>
     </div>
     <div class="wall-section-body" id="wall-body" style="display:none">
+      <div class="wall-lv-tabs" id="wall-lv-tabs">
+        <button class="wall-lv-tab active" data-lv="1" onclick="switchWallLevel(1)">Lv.1<span class="lv-cnt" id="wall-lv1-cnt">0</span></button>
+        <button class="wall-lv-tab" data-lv="2" onclick="switchWallLevel(2)">Lv.2<span class="lv-cnt" id="wall-lv2-cnt">0</span></button>
+        <button class="wall-lv-tab" data-lv="3" onclick="switchWallLevel(3)">Lv.3<span class="lv-cnt" id="wall-lv3-cnt">0</span></button>
+        <button class="wall-lv-tab" data-lv="all" onclick="switchWallLevel('all')">全部<span class="lv-cnt" id="wall-lvall-cnt">0</span></button>
+      </div>
       <div id="wall-table-wrap"></div>
       <button class="wall-add-btn" onclick="addWallProblem()">＋ 問題を追加</button>
       <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.3)">
-        使える文字: a b c x y　係数: 1〜7　指数: a^2 または a²　例: 6a^2b, 4ab
+        使える文字: a b c x y　例: 6a^2b, 4ab　指数: a^2 または a²
       </div>
     </div>
   </div>
@@ -1029,6 +1052,36 @@ function computeWallGcd(problem) {
 
 // ===== 共通因数ウォール 問題管理 =====
 let wallSectionOpen = false;
+let currentWallLevel = 1; // 1, 2, 3, 'all'
+
+// 表示中のレベルに該当する元配列のインデックス一覧を返す
+function getWallVisibleIndices() {
+  const arr = (questionsData && questionsData.wallProblems) || [];
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (currentWallLevel === 'all' || arr[i].level === currentWallLevel) out.push(i);
+  }
+  return out;
+}
+
+function switchWallLevel(lv) {
+  currentWallLevel = lv;
+  document.querySelectorAll('.wall-lv-tab').forEach(t => {
+    t.classList.toggle('active', String(t.getAttribute('data-lv')) === String(lv));
+  });
+  renderWallProblems();
+}
+
+function updateWallLevelCounts() {
+  if (!questionsData || !questionsData.wallProblems) return;
+  const arr = questionsData.wallProblems;
+  const cnt = (lv) => arr.filter(p => p.level === lv).length;
+  const set = (id, n) => { const e = document.getElementById(id); if (e) e.textContent = String(n); };
+  set('wall-lv1-cnt', cnt(1));
+  set('wall-lv2-cnt', cnt(2));
+  set('wall-lv3-cnt', cnt(3));
+  set('wall-lvall-cnt', arr.length);
+}
 
 function toggleWallSection() {
   wallSectionOpen = !wallSectionOpen;
@@ -1040,12 +1093,26 @@ function renderWallProblems() {
   if (!questionsData) return;
   const probs = questionsData.wallProblems || [];
   document.getElementById('wall-count').textContent = `${probs.length}問`;
+  updateWallLevelCounts();
   const wrap = document.getElementById('wall-table-wrap');
+
+  // 表示するインデックス（レベルでフィルタ）
+  const visibleIdx = getWallVisibleIndices();
+
   if (probs.length === 0) {
     wrap.innerHTML = '<p style="color:rgba(255,255,255,0.4);padding:0.4rem 0;font-size:0.85rem">問題がありません。「＋ 問題を追加」で追加してください。</p>';
     return;
   }
-  const rows = probs.map((p, i) => {
+  if (visibleIdx.length === 0) {
+    wrap.innerHTML = `<p style="color:rgba(255,255,255,0.4);padding:0.4rem 0;font-size:0.85rem">Lv.${currentWallLevel} の問題はまだありません。「＋ 問題を追加」で追加してください。</p>`;
+    return;
+  }
+
+  const showLevelBadge = (currentWallLevel === 'all');
+  const lvColors = { 1:'#4ecdc4', 2:'#f7971e', 3:'#f5576c' };
+
+  const rows = visibleIdx.map((i, displayIdx) => {
+    const p = probs[i];
     const terms = p.terms || [];
     const has3 = terms.length >= 3;
     const t1 = escHtml(terms[0] || '');
@@ -1055,6 +1122,9 @@ function renderWallProblems() {
     const gcdCell = gcdStr
       ? `<span style="color:#ff8a2a;font-weight:800;font-family:monospace;font-size:1rem;">${escHtml(gcdStr)}</span>`
       : `<span style="color:rgba(255,255,255,0.2);font-size:0.78rem;">—</span>`;
+    const lvBadge = showLevelBadge && p.level
+      ? `<span style="display:inline-block;padding:1px 6px;border-radius:8px;background:${lvColors[p.level]||'#888'};color:#000;font-size:0.7rem;font-weight:800;margin-left:4px;">Lv${p.level}</span>`
+      : '';
     return `<tr class="wall-row" id="wall-row-${i}" draggable="true"
                ondragstart="wallDragStart(event,${i})"
                ondragover="wallDragOver(event,${i})"
@@ -1065,7 +1135,7 @@ function renderWallProblems() {
         <span class="wall-drag-handle" title="ドラッグして並び替え"
               onmousedown="wallDragFromHandle=true">⠿</span>
       </td>
-      <td class="wall-num">${i + 1}</td>
+      <td class="wall-num">${displayIdx + 1}${lvBadge}</td>
       <td><input class="wall-term-input" type="text" value="${t1}"
                  placeholder="例: 6ab"
                  onchange="updateWallTerm(${i},0,this.value);refreshWallGcd(${i})"></td>
@@ -1186,7 +1256,29 @@ function removeWallTerm(idx) {
 
 function addWallProblem() {
   if (!questionsData.wallProblems) questionsData.wallProblems = [];
-  questionsData.wallProblems.push({ terms: ['', ''] });
+  const arr = questionsData.wallProblems;
+  // 新規問題の level を決める
+  const lv = (currentWallLevel === 'all') ? 1 : currentWallLevel;
+  const newProb = { level: lv, terms: ['', ''] };
+
+  if (currentWallLevel === 'all') {
+    // 全部表示中: 末尾に追加
+    arr.push(newProb);
+  } else {
+    // 同レベル問題の末尾の次に挿入
+    let insertAt = -1;
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i].level === lv) { insertAt = i + 1; break; }
+    }
+    // 同レベルが空 → 次のレベルの先頭、なければ末尾
+    if (insertAt === -1) {
+      insertAt = arr.length;
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i].level && arr[i].level > lv) { insertAt = i; break; }
+      }
+    }
+    arr.splice(insertAt, 0, newProb);
+  }
   renderWallProblems();
   // 追加した行の1つ目の入力にフォーカス
   const inputs = document.querySelectorAll('.wall-term-input');
