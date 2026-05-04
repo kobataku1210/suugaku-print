@@ -592,6 +592,15 @@ function updateStudentBest(chIdx, si, field, val) {
 
 async function saveStudentBest(chIdx, si, btn) {
   const sta = document.getElementById(`sb-status-${chIdx}-${si}`);
+  // 入力欄からその場の値を読み取って questionsData に反映
+  // （onchange未発火の状態でも確実に反映させる）
+  const wrap = btn.closest('.student-best-wrap');
+  if (wrap) {
+    const nameEl = wrap.querySelector('.student-best-name-input');
+    const timeEl = wrap.querySelector('.student-best-time-input');
+    if (nameEl) updateStudentBest(chIdx, si, 'name', nameEl.value);
+    if (timeEl) updateStudentBest(chIdx, si, 'time', timeEl.value);
+  }
   btn.textContent = '保存中...';
   btn.disabled = true;
   // 変更を検出して NEWS に追加
@@ -743,6 +752,7 @@ function detectAndPushNews() {
   if (news.length > 0) {
     if (!Array.isArray(questionsData.news)) questionsData.news = [];
     questionsData.news = [...news, ...questionsData.news].slice(0, 10);
+    console.log('[NEWS自動生成]', news.length, '件追加:', news.map(n => n.title));
   }
 }
 
