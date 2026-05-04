@@ -846,14 +846,16 @@ function renderHome() {
     ${newsHTML}`;
 }
 
-// NEWS の日付を整形（今日/昨日/N日前/月/日）
+// NEWS の日付を整形（カレンダー日で「今日/昨日/N日前/月/日」）
 function formatNewsDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   const now = new Date();
-  const diffMs = now - d;
-  const diffDays = Math.floor(diffMs / 86400000);
+  // 時刻を 0時に揃えてカレンダー日で比較
+  const dDay   = new Date(d.getFullYear(),   d.getMonth(),   d.getDate());
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowDay - dDay) / 86400000);
   if (diffDays < 0) return '';
   if (diffDays === 0) return '今日';
   if (diffDays === 1) return '昨日';
