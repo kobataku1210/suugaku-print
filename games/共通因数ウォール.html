@@ -488,12 +488,12 @@
       <div class="bonus-info-divider"></div>
       <table>
         <thead>
-          <tr><th></th><th>初回クリア</th><th>10秒</th><th>20秒</th><th>30秒</th></tr>
+          <tr><th></th><th>初回クリア</th><th>速い</th><th>普通</th><th>ゆっくり</th></tr>
         </thead>
         <tbody>
-          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×10</span></td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×20</span></td><td><span class="pea">🌱×10</span></td></tr>
-          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×20</span></td><td><span class="pea">🌱×45</span></td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×15</span></td></tr>
-          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×30</span></td><td><span class="pea">🌱×60</span></td><td><span class="pea">🌱×40</span></td><td><span class="pea">🌱×20</span></td></tr>
+          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×10</span></td><td><span class="pea">25秒↓<br>🌱×30</span></td><td><span class="pea">30秒↓<br>🌱×20</span></td><td><span class="pea">35秒↓<br>🌱×10</span></td></tr>
+          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×20</span></td><td><span class="pea">35秒↓<br>🌱×45</span></td><td><span class="pea">40秒↓<br>🌱×30</span></td><td><span class="pea">45秒↓<br>🌱×15</span></td></tr>
+          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×30</span></td><td><span class="pea">40秒↓<br>🌱×60</span></td><td><span class="pea">45秒↓<br>🌱×40</span></td><td><span class="pea">50秒↓<br>🌱×20</span></td></tr>
         </tbody>
       </table>
       <div style="margin-top:4px;font-size:10.5px;color:#888;">※ 時間ボーナスは何度プレイしてももらえます</div>
@@ -604,11 +604,27 @@ const WALL_PROGRESS = {
 const REWARDS = {
   // 初回クリア報酬
   firstClear(lv) { return lv === 1 ? 10 : (lv === 2 ? 20 : 30); },
+  // 時間ボーナス段階の基準秒数 [3段階]
+  thresholds: {
+    1: [25, 30, 35],
+    2: [35, 40, 45],
+    3: [40, 45, 50]
+  },
+  // レベル別倍率
+  multiplier(lv) { return lv === 1 ? 1 : (lv === 2 ? 1.5 : 2); },
   // 時間ボーナス（毎回もらえる）
   timeBonus(lv, sec) {
-    const base = sec <= 10 ? 30 : (sec <= 20 ? 20 : (sec <= 30 ? 10 : 0));
-    const mult = lv === 1 ? 1 : (lv === 2 ? 1.5 : 2);
-    return Math.floor(base * mult);
+    const t = this.thresholds[lv] || this.thresholds[1];
+    const baseAmounts = [30, 20, 10];
+    const mult = this.multiplier(lv);
+    if (sec <= t[0]) return Math.floor(baseAmounts[0] * mult);
+    if (sec <= t[1]) return Math.floor(baseAmounts[1] * mult);
+    if (sec <= t[2]) return Math.floor(baseAmounts[2] * mult);
+    return 0;
+  },
+  maxThreshold(lv) {
+    const t = this.thresholds[lv] || this.thresholds[1];
+    return t[2];
   }
 };
 
@@ -1523,7 +1539,7 @@ function showClearResult() {
     const sec = Math.floor(elapsed);
     html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
   } else {
-    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（30秒超）</span><span>—</span></div>`;
+    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
   }
   rewardsDiv.innerHTML = html;
 
