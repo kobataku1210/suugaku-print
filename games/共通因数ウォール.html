@@ -89,6 +89,13 @@
   }
   .btn:active { transform: scale(0.96); }
   .btn-secondary { background: white; color: #333; border: 1px solid #ccc; }
+  .btn-primary-xl {
+    font-size: 26px;
+    padding: 22px 80px;
+    letter-spacing: 6px;
+    box-shadow: 0 6px 18px rgba(255,138,42,0.45);
+    transform: scale(1);
+  }
 
   .mode-card {
     width: min(85vw, 380px);
@@ -337,7 +344,7 @@
     <div style="height: 20px;"></div>
     <div class="title-desc">2 つの式に共通する因数を入力して<br>壁をどんどん突破しよう!</div>
     <div style="height: 20px;"></div>
-    <button class="btn" id="title-start">START</button>
+    <button class="btn btn-primary-xl" id="title-start">START</button>
     <button class="btn btn-secondary" id="title-edit">EDIT 問題編集</button>
     <button class="btn btn-secondary" onclick="window.location.href='../index.html'">🏠 ホームへ戻る</button>
   </div>
