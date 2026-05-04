@@ -55,6 +55,14 @@
     background: #f0f2f5; padding: 2px 8px; border-radius: 999px;
   }
   .level-card p { font-size: 13px; color: #555; line-height: 1.5; }
+  .level-card-best {
+    margin-top: 6px; font-size: 12px;
+    color: #ff8a2a; font-weight: 800;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .level-card-best .lbl { color: #888; font-weight: 600; font-size: 11px; }
+  .level-card-best .time { font-family: monospace; font-size: 14px; }
+  .level-card.locked .level-card-best { display: none; }
   .level-card.locked {
     opacity: 0.5; cursor: not-allowed; filter: grayscale(0.55);
     border-left-color: #888 !important;
@@ -451,6 +459,7 @@
         <span class="level-card-badge" id="lv1-badge"></span>
       </div>
       <p>2項。共通因数は<strong>文字1つ</strong>または<strong>数字のみ</strong>。</p>
+      <div class="level-card-best" id="lv1-best"></div>
     </div>
     <div class="level-card lv2" data-level="2" id="lvcard-2">
       <div class="level-card-head">
@@ -460,6 +469,7 @@
         <span class="level-card-badge" id="lv2-badge"></span>
       </div>
       <p>2項。共通因数は<strong>数字×文字</strong>の組み合わせ。</p>
+      <div class="level-card-best" id="lv2-best"></div>
     </div>
     <div class="level-card lv3" data-level="3" id="lvcard-3">
       <div class="level-card-head">
@@ -469,6 +479,7 @@
         <span class="level-card-badge" id="lv3-badge"></span>
       </div>
       <p><strong>3項</strong>からの共通因数くくり出し。</p>
+      <div class="level-card-best" id="lv3-best"></div>
     </div>
 
     <div class="bonus-info">
@@ -1734,6 +1745,7 @@ function updateLevelLockState() {
   for (let lv = 1; lv <= 3; lv++) {
     const card = document.getElementById(`lvcard-${lv}`);
     const badge = document.getElementById(`lv${lv}-badge`);
+    const bestEl = document.getElementById(`lv${lv}-best`);
     if (!card || !badge) continue;
     const unlocked = WALL_PROGRESS.isUnlocked(lv);
     const cleared = WALL_PROGRESS.isCleared(lv);
@@ -1747,6 +1759,17 @@ function updateLevelLockState() {
     } else {
       badge.className = 'level-card-badge new';
       badge.textContent = '挑戦できます！';
+    }
+    // 最速タイム表示
+    if (bestEl) {
+      const bestKey = `wallbreak_best_clear_${lv}`;
+      const bestVal = parseFloat(localStorage.getItem(bestKey) || 'NaN');
+      if (!isNaN(bestVal)) {
+        bestEl.innerHTML = `🏆 <span class="lbl">最速タイム</span><span class="time">${fmtTime(bestVal)}秒</span>`;
+        bestEl.style.display = '';
+      } else {
+        bestEl.style.display = 'none';
+      }
     }
   }
 }
