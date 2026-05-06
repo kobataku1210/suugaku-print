@@ -628,15 +628,32 @@ const REWARDS = {
   }
 };
 
-// すごろくの save に peas を加算
-function addPeasToSugoroku(amount) {
+// お椀ウィジェット (mathPrint_v2) と すごろく (sgSave_v1/v2) 両方に peas を加算
+function addEarnedPeas(amount) {
   if (amount <= 0) return;
-  const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
-  const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
-  let save = {};
-  try { save = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch(e) { save = {}; }
-  save.peas = (save.peas || 0) + amount;
-  localStorage.setItem(key, JSON.stringify(save));
+
+  // お椀ウィジェット用: mathPrint_v2 に peaCount/peaCupCount として加算（45個で1杯）
+  try {
+    const KEY = 'mathPrint_v2';
+    const p = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    let cur  = p.peaCount    || 0;
+    let cups = p.peaCupCount || 0;
+    cur += amount;
+    while (cur >= 45) { cur -= 45; cups += 1; }
+    p.peaCount    = cur;
+    p.peaCupCount = cups;
+    if (!p.done || typeof p.done !== 'object') p.done = {};
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch(e) {}
+
+  // すごろく用: sgSave_v1 / sgSave_v2 に peas として加算
+  try {
+    const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+    const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+    const save = JSON.parse(localStorage.getItem(key) || '{}') || {};
+    save.peas = (save.peas || 0) + amount;
+    localStorage.setItem(key, JSON.stringify(save));
+  } catch(e) {}
 }
 
 // =====================================================
@@ -1514,8 +1531,8 @@ function showClearResult() {
   WALL_PROGRESS.setCleared(lv);
   if (isFirstClear) WALL_PROGRESS.setFirstReward(lv);
 
-  // すごろくの save に加算
-  addPeasToSugoroku(total);
+  // お椀ウィジェット & すごろくの両方に加算
+  addEarnedPeas(total);
 
   // ベストタイム保存
   const bestKey = `wallbreak_best_clear_${lv}`;
