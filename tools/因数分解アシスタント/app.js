@@ -1070,6 +1070,18 @@ function askFactorPair() {
   bindEnterSubmit(['num1-input', 'num2-input'], window.submitFactorPair);
 }
 
+// 3項式 (x+a)(x+b) の最終形を自動で表示
+function autoShow3Term() {
+  const ans = py('factor_full', currentExpr);
+  const formLabel = isSameNumbers ? '(x + a)²' : '(x + a)(x + b)';
+  bubbleHTML(
+    `では <b>${formLabel}</b> に当てはめると：<br>` +
+    `<b>${pretty(currentExpr)} = ${pretty(ans)}</b>`,
+    'app'
+  );
+  setTimeout(() => finalize(), 1500);
+}
+
 window.tellFactorPair = function() {
   bubble('教えて！', 'user');
   const correct = py('factor_pair', currentExpr);
@@ -1085,7 +1097,7 @@ window.tellFactorPair = function() {
   let msg = `${pretty(correct[0])} と ${pretty(correct[1])} だよ。`;
   if (isSameNumbers) msg += ' 同じ数だから (x+a)² の形だね！';
   bubble(msg, 'hint');
-  setTimeout(() => askFinal3Term(), 1700);
+  setTimeout(() => autoShow3Term(), 1700);
 };
 
 window.submitFactorPair = function() {
@@ -1113,7 +1125,7 @@ window.submitFactorPair = function() {
     let msg = `正解！${pretty(correct[0])} と ${pretty(correct[1])} だね。`;
     if (same) msg += '\n2 数が同じだから (x+a)² の形だね！';
     bubble(msg, 'correct');
-    setTimeout(() => askFinal3Term(), 1200);
+    setTimeout(() => autoShow3Term(), 1200);
   } else {
     attempts++;
     if (attempts < 2) {
@@ -1124,7 +1136,7 @@ window.submitFactorPair = function() {
       bubble(`正解は ${pretty(correct[0])} と ${pretty(correct[1])} だよ。`, 'hint');
       factorPair = correct;
       isSameNumbers = pyodide.runPython('equal_expr(_c1, _c2)');
-      setTimeout(() => askFinal3Term(), 1200);
+      setTimeout(() => autoShow3Term(), 1200);
     }
   }
 };
@@ -1267,6 +1279,17 @@ function askInnerPS(correct) {
   bindEnterSubmit(['ps-a-input', 'ps-b-input'], window.submitInnerPS);
 }
 
+// (a+b)² の最終形を自動で表示
+function autoShowPS() {
+  const ans = py('factor_full', currentExpr);
+  bubbleHTML(
+    `では <b>(a + b)²</b> に当てはめると：<br>` +
+    `<b>${pretty(currentExpr)} = ${pretty(ans)}</b>`,
+    'app'
+  );
+  setTimeout(() => finalize(), 1500);
+}
+
 window.submitInnerPS = function() {
   const a = readMathField('ps-a-input');
   const b = readMathField('ps-b-input');
@@ -1281,7 +1304,7 @@ window.submitInnerPS = function() {
   );
   if (ok) {
     bubble(`正解！${pretty(psInnerPair[0])} と ${pretty(psInnerPair[1])} だね。`, 'correct');
-    setTimeout(() => askFinalPS(), 1200);
+    setTimeout(() => autoShowPS(), 1200);
   } else {
     attempts++;
     if (attempts < 2) {
@@ -1289,7 +1312,7 @@ window.submitInnerPS = function() {
       askInnerPS(psInnerPair);
     } else {
       bubble(`正解は a = ${pretty(psInnerPair[0])}, b = ${pretty(psInnerPair[1])} だよ。`, 'hint');
-      setTimeout(() => askFinalPS(), 1500);
+      setTimeout(() => autoShowPS(), 1500);
     }
   }
 };
@@ -1297,54 +1320,7 @@ window.submitInnerPS = function() {
 window.tellInnerPS = function() {
   bubble('教えて！', 'user');
   bubble(`a = ${pretty(psInnerPair[0])},  b = ${pretty(psInnerPair[1])} だよ。`, 'hint');
-  setTimeout(() => askFinalPS(), 1500);
-};
-
-function askFinalPS() {
-  attempts = 0;
-  bubbleHTML(`では <b>(a + b)²</b> に当てはめて、答えは？`, 'app');
-  setInputArea(`
-    <div class="input-row">
-      <math-field id="finalps-input" placeholder="例: (5a+1)^2"></math-field>
-      <button class="btn" onclick="submitFinalPS()">送信</button>
-      <button class="btn-tell" onclick="tellFinalPS()">教えて</button>
-      <button class="btn-restart" onclick="showStart()">最初から</button>
-    </div>
-  `);
-  bindEnterSubmit('finalps-input', window.submitFinalPS);
-}
-
-window.submitFinalPS = function() {
-  const ans = readMathField('finalps-input');
-  if (!ans) return;
-  bubble(pretty(ans), 'user');
-  pyodide.globals.set('_ans', ans);
-  pyodide.globals.set('_target', currentExpr);
-  pyodide.globals.set('_orig', problem);
-  const ok = pyodide.runPython(
-    'factored_eq_target(_ans, _target) or factored_eq_target(_ans, _orig)'
-  );
-  if (ok) {
-    bubble('正解！🎉', 'correct');
-    setTimeout(() => finalize(), 600);
-  } else {
-    attempts++;
-    if (attempts < 2) {
-      bubble(`もう一度。(${pretty(psInnerPair[0])} + ${pretty(psInnerPair[1])})² で書いてみて。`, 'hint');
-      askFinalPS();
-    } else {
-      const correct = py('factor_full', problem);
-      bubble(`答えは ${pretty(correct)} だよ。`, 'hint');
-      setTimeout(() => finalize(), 1500);
-    }
-  }
-};
-
-window.tellFinalPS = function() {
-  bubble('教えて！', 'user');
-  const ans = py('factor_full', currentExpr);
-  bubble(`${pretty(ans)} だよ。`, 'hint');
-  setTimeout(() => finalize(), 1500);
+  setTimeout(() => autoShowPS(), 1500);
 };
 
 function finalize(unfinished) {
