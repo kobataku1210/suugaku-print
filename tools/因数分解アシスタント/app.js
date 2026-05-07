@@ -112,8 +112,26 @@ def _all_integer_coeffs(expr):
     except Exception:
         return False
 
+def _safe_quotient(e, f):
+    """e ÷ f を確実に展開して整理した形で返す。失敗時は None。"""
+    try:
+        # 各項を個別に割って合計（多項式同士でも安定）
+        e_exp = sp.expand(e)
+        if e_exp.is_Add:
+            terms = [sp.cancel(t / f) for t in e_exp.args]
+            inside = sp.Add(*terms)
+        else:
+            inside = sp.cancel(e_exp / f)
+        inside = sp.expand(inside)
+        # 検算: inside * f == e
+        if sp.expand(inside * f) != e_exp:
+            return None
+        return inside
+    except Exception:
+        return None
+
 def is_valid_gcf(user_str, expr_str):
-    """ユーザーの入力が expr の共通因数として有効か（割った結果が整数係数の多項式）"""
+    """ユーザーの入力が expr の共通因数として有効か"""
     f = parse(user_str)
     e = parse(expr_str)
     if f is None or e is None:
@@ -121,12 +139,13 @@ def is_valid_gcf(user_str, expr_str):
     if f == 0 or f == 1 or f == -1:
         return False
     try:
-        inside = sp.cancel(e / f)
+        inside = _safe_quotient(e, f)
+        if inside is None:
+            return False
+        # 商が整数係数の多項式でなければ NG（=分数や根号が残る場合）
         if hasattr(inside, 'is_polynomial') and not inside.is_polynomial():
             return False
         if not _all_integer_coeffs(inside):
-            return False
-        if sp.expand(inside * f) != sp.expand(e):
             return False
         return True
     except Exception:
@@ -139,12 +158,12 @@ def factor_with_gcf(expr_str, factor_str):
     if e is None or f is None or f == 0:
         return ""
     try:
-        inside = sp.cancel(e / f)
+        inside = _safe_quotient(e, f)
+        if inside is None:
+            return ""
         if hasattr(inside, 'is_polynomial') and not inside.is_polynomial():
             return ""
         if not _all_integer_coeffs(inside):
-            return ""
-        if sp.expand(inside * f) != sp.expand(e):
             return ""
         return to_str(inside)
     except Exception:
