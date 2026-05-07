@@ -1143,7 +1143,9 @@ function renderQuiz() {
       <div class="quiz-question">${formatQuestion(q.q)}</div>
       ${getBlankHint(q) ? `<div class="quiz-blank-hint"><span class="quiz-blank-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
       <input type="text" id="quiz-input" class="quiz-input"
-             placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off">
+             placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
+             autocomplete="off"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();submitQuizAnswer();}">
       <div id="quiz-msg" class="quiz-msg"></div>
       <div class="quiz-btns">
         <button class="quiz-submit-btn" style="--lv-color:${lv.color}"
