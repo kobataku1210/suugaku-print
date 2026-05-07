@@ -1299,7 +1299,9 @@
               "b": "1"
             }
           ],
-          "miniTestPassword": "1672"
+          "miniTestPassword": "1672",
+          "studentBestTime": 8.5,
+          "studentBestName": "2組　K君"
         },
         {
           "title": "式の計算の利用",
@@ -1517,6 +1519,20 @@
   "cardMatchStudentBestName": "6組S君",
   "cardMatchStudentBestTime": 10,
   "news": [
+    {
+      "id": "1778124041100-q8e4u",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "2組　K君 が第1章「いろいろな因数分解」を 8.5秒 で更新！",
+      "date": "2026-05-07T03:20:41.098Z"
+    },
+    {
+      "id": "1778122610674-dx6fc",
+      "type": "manual",
+      "icon": "📌",
+      "title": "2組　R君が共通因数ウォールのレベル１を15.5秒でクリア",
+      "date": "2026-05-07T02:56:50.674Z"
+    },
     {
       "id": "1778120990802-mi7sp",
       "type": "auto",
