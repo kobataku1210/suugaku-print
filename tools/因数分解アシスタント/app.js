@@ -115,18 +115,40 @@ def _all_integer_coeffs(expr):
 def _safe_quotient(e, f):
     """e ÷ f を確実に展開して整理した形で返す。失敗時は None。"""
     try:
-        # 各項を個別に割って合計（多項式同士でも安定）
         e_exp = sp.expand(e)
+        f_exp = sp.expand(f)
+        # アプローチ1: 全体を simplify (cancel より積極的に約分)
+        try:
+            inside = sp.simplify(e_exp / f_exp)
+            inside = sp.expand(inside)
+            if sp.expand(inside * f_exp) == e_exp:
+                return inside
+        except Exception:
+            pass
+        # アプローチ2: 各項を個別に割って合計
         if e_exp.is_Add:
-            terms = [sp.cancel(t / f) for t in e_exp.args]
-            inside = sp.Add(*terms)
-        else:
-            inside = sp.cancel(e_exp / f)
-        inside = sp.expand(inside)
-        # 検算: inside * f == e
-        if sp.expand(inside * f) != e_exp:
-            return None
-        return inside
+            try:
+                terms = []
+                for t in e_exp.args:
+                    q = sp.simplify(t / f_exp)
+                    terms.append(q)
+                inside = sp.expand(sp.Add(*terms))
+                if sp.expand(inside * f_exp) == e_exp:
+                    return inside
+            except Exception:
+                pass
+        # アプローチ3: 多項式除算
+        try:
+            syms = list((e_exp.free_symbols | f_exp.free_symbols))
+            if syms:
+                E = sp.Poly(e_exp, *syms)
+                F = sp.Poly(f_exp, *syms)
+                Q, R = sp.div(E, F)
+                if R.as_expr() == 0:
+                    return Q.as_expr()
+        except Exception:
+            pass
+        return None
     except Exception:
         return None
 
