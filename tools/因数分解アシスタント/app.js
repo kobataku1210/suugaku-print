@@ -651,6 +651,7 @@ function askGCF() {
       <button class="btn btn-yes" onclick="answerGCF(true)">はい</button>
       <button class="btn btn-no" onclick="answerGCF(false)">いいえ</button>
       <button class="btn-tell" onclick="tellGCF()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
 }
@@ -697,6 +698,7 @@ function askGCFValue() {
       <math-field id="gcf-input" placeholder="共通因数を入力"></math-field>
       <button class="btn" onclick="submitGCF()">送信</button>
       <button class="btn-tell" onclick="tellGCFValue()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit('gcf-input', window.submitGCF);
@@ -770,6 +772,7 @@ function goToTermsStep() {
       <button class="btn" onclick="answerTerms(3, '3 項')">3 項</button>
       <button class="btn" onclick="answerTerms(4, '4 項以上')">4 項以上</button>
       <button class="btn-tell" onclick="tellTerms()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
 }
@@ -819,6 +822,7 @@ function askDiffOfSquares() {
       <button class="btn btn-yes" onclick="answerDiffSq(true)">はい</button>
       <button class="btn btn-no" onclick="answerDiffSq(false)">いいえ</button>
       <button class="btn-tell" onclick="tellDiffSq()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
 }
@@ -866,6 +870,7 @@ function askAB(ab) {
       <math-field id="b-input" placeholder="b"></math-field>
       <button class="btn" onclick="submitAB()">送信</button>
       <button class="btn-tell" onclick="tellAB()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit(['a-input', 'b-input'], window.submitAB);
@@ -911,6 +916,7 @@ function askFinalForm() {
       <math-field id="final-input" placeholder="例: (x+3)(x-3)"></math-field>
       <button class="btn" onclick="submitFinal()">送信</button>
       <button class="btn-tell" onclick="tellFinal()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit('final-input', window.submitFinal);
@@ -962,6 +968,7 @@ function askDoubleSquare() {
       <button class="btn btn-yes" onclick="answerDoubleSquare(true)">はい</button>
       <button class="btn btn-no" onclick="answerDoubleSquare(false)">いいえ</button>
       <button class="btn-tell" onclick="tellDoubleSquare()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
 }
@@ -1010,6 +1017,7 @@ function askFactorPair() {
       <math-field id="num2-input" placeholder="2つ目"></math-field>
       <button class="btn" onclick="submitFactorPair()">送信</button>
       <button class="btn-tell" onclick="tellFactorPair()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit(['num1-input', 'num2-input'], window.submitFactorPair);
@@ -1086,6 +1094,7 @@ function askFinal3Term() {
       <math-field id="final3-input" placeholder="例: (x+2)(x+3)"></math-field>
       <button class="btn" onclick="submitFinal3()">送信</button>
       <button class="btn-tell" onclick="tellFinal3()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit('final3-input', window.submitFinal3);
@@ -1152,6 +1161,7 @@ function askGrouping() {
       <math-field id="grouping-input" placeholder="例: (x+1)(y+1)"></math-field>
       <button class="btn" onclick="submitGrouping()">送信</button>
       <button class="btn-tell" onclick="tellGrouping()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
     </div>
   `);
   bindEnterSubmit('grouping-input', window.submitGrouping);

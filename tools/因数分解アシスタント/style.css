@@ -194,6 +194,18 @@ html, body {
   transition: background 0.2s;
 }
 .btn-tell:hover { background: #FFF2CC; }
+.btn-restart {
+  background: white;
+  color: #c0392b;
+  border: 2px dashed #c0392b;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-size: 0.95em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-restart:hover { background: #fdecea; }
 
 math-field {
   font-size: 1.2em;
