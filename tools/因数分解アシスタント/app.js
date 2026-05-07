@@ -222,7 +222,8 @@ def count_terms(expr_str):
     return 1
 
 def diff_of_squares(expr_str):
-    """a²-b² の (a, b) を返す。違えば None。factor() ベース。"""
+    """a²-b² の (a, b) を返す。違えば None。factor() ベース。
+    9 - 4y² (定数 -1 が前に出る形) にも対応"""
     expr = parse(expr_str)
     if expr is None:
         return None
@@ -245,15 +246,22 @@ def diff_of_squares(expr_str):
     if len(binomials) != 2:
         return None
     const = sp.Mul(*constants) if constants else sp.S.One
+    # 9 - 4y² = -(2y-3)(2y+3) のように const=-1 が前に出る場合は
+    # 片方の二項式に -1 を吸収させる
+    f1, f2 = binomials
+    if const == -1:
+        f1 = sp.expand(-f1)
+        const = sp.S.One
     if const != 1:
         return None
-    f1, f2 = binomials
     # (a+b)(a-b) なら a = (f1+f2)/2、b = (f1-f2)/2
     a = sp.simplify((f1 + f2) / 2)
     b = sp.simplify((f1 - f2) / 2)
     if b == 0:
         return None
-    # 符号を整える（b が負なら反転）
+    # a, b の符号を整える（負なら反転、自然な並びに）
+    if a.could_extract_minus_sign():
+        a, b = -a, -b
     if b.could_extract_minus_sign():
         b = -b
     if sp.expand((a + b) * (a - b)) == expr:
@@ -321,6 +329,39 @@ def sum_and_product(expr_str):
                 return [to_str(coeffs[1]), to_str(coeffs[2])]
         except Exception:
             continue
+    return None
+
+def perfect_square_pair(expr_str):
+    """(px+q)² の形なら [px, q] を返す。25a²+10a+1 → ['5a', 1] など。"""
+    expr = parse(expr_str)
+    if expr is None:
+        return None
+    expr_e = sp.expand(expr)
+    if not expr_e.is_Add or len(expr_e.args) != 3:
+        return None
+    factored = sp.factor(expr_e)
+    if not (factored.is_Pow and factored.exp == 2):
+        return None
+    base = factored.base
+    if not base.is_Add or len(base.args) != 2:
+        return None
+    # 二項を「文字を含む項」と「定数項」に振り分け
+    var_part = sp.S.Zero
+    const_part = sp.S.Zero
+    for t in base.args:
+        if t.free_symbols:
+            var_part = var_part + t
+        else:
+            const_part = const_part + t
+    if var_part == 0:
+        return None
+    # 文字項（var_part）が負なら符号を反転して見やすく（(-2y+3)² = (3-2y)² のような扱い）
+    if var_part.could_extract_minus_sign():
+        var_part = -var_part
+        const_part = -const_part
+    # 検算: (var_part + const_part)² == expr ？ (符号反転は2乗で同じ)
+    if sp.expand((var_part + const_part)**2) == expr_e:
+        return [to_str(var_part), to_str(const_part)]
     return None
 
 def factor_pair(expr_str):
@@ -1003,6 +1044,12 @@ function askFactorPair() {
   attempts = 0;
   const sumProd = py('sum_and_product', currentExpr);
   if (!sumProd) {
+    // x²+bx+c型ではない → (px+q)² の完全平方型を試す
+    const psPair = py('perfect_square_pair', currentExpr);
+    if (psPair && psPair.length === 2) {
+      askInnerPS(psPair);
+      return;
+    }
     bubble('うーん、未対応のパターンかも。', 'app');
     setTimeout(() => finalize(true), 1200);
     return;
@@ -1198,6 +1245,106 @@ window.submitGrouping = function() {
       setTimeout(() => finalize(), 1200);
     }
   }
+};
+
+// ===== (px+q)² 完全平方フロー =====
+let psInnerPair = null;
+
+function askInnerPS(correct) {
+  psInnerPair = correct;
+  bubbleHTML(`これは <b>(a + b)²</b> の形になりそうだね。<br>両端を見て、<b>a と b</b> はそれぞれ何かな？`, 'app');
+  setInputArea(`
+    <div class="input-row">
+      <span class="label">a:</span>
+      <math-field id="ps-a-input" placeholder="例: 5a"></math-field>
+      <span class="label">b:</span>
+      <math-field id="ps-b-input" placeholder="例: 1"></math-field>
+      <button class="btn" onclick="submitInnerPS()">送信</button>
+      <button class="btn-tell" onclick="tellInnerPS()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
+    </div>
+  `);
+  bindEnterSubmit(['ps-a-input', 'ps-b-input'], window.submitInnerPS);
+}
+
+window.submitInnerPS = function() {
+  const a = readMathField('ps-a-input');
+  const b = readMathField('ps-b-input');
+  if (!a || !b) return;
+  bubble(`a = ${pretty(a)},  b = ${pretty(b)}`, 'user');
+  pyodide.globals.set('_a', a);
+  pyodide.globals.set('_b', b);
+  pyodide.globals.set('_c1', psInnerPair[0]);
+  pyodide.globals.set('_c2', psInnerPair[1]);
+  const ok = pyodide.runPython(
+    '(equal_expr(_a, _c1) and equal_expr(_b, _c2)) or (equal_expr(_a, _c2) and equal_expr(_b, _c1))'
+  );
+  if (ok) {
+    bubble(`正解！${pretty(psInnerPair[0])} と ${pretty(psInnerPair[1])} だね。`, 'correct');
+    setTimeout(() => askFinalPS(), 1200);
+  } else {
+    attempts++;
+    if (attempts < 2) {
+      bubble('もう一度。両端それぞれの平方根を考えてみて。', 'hint');
+      askInnerPS(psInnerPair);
+    } else {
+      bubble(`正解は a = ${pretty(psInnerPair[0])}, b = ${pretty(psInnerPair[1])} だよ。`, 'hint');
+      setTimeout(() => askFinalPS(), 1500);
+    }
+  }
+};
+
+window.tellInnerPS = function() {
+  bubble('教えて！', 'user');
+  bubble(`a = ${pretty(psInnerPair[0])},  b = ${pretty(psInnerPair[1])} だよ。`, 'hint');
+  setTimeout(() => askFinalPS(), 1500);
+};
+
+function askFinalPS() {
+  attempts = 0;
+  bubbleHTML(`では <b>(a + b)²</b> に当てはめて、答えは？`, 'app');
+  setInputArea(`
+    <div class="input-row">
+      <math-field id="finalps-input" placeholder="例: (5a+1)^2"></math-field>
+      <button class="btn" onclick="submitFinalPS()">送信</button>
+      <button class="btn-tell" onclick="tellFinalPS()">教えて</button>
+      <button class="btn-restart" onclick="showStart()">最初から</button>
+    </div>
+  `);
+  bindEnterSubmit('finalps-input', window.submitFinalPS);
+}
+
+window.submitFinalPS = function() {
+  const ans = readMathField('finalps-input');
+  if (!ans) return;
+  bubble(pretty(ans), 'user');
+  pyodide.globals.set('_ans', ans);
+  pyodide.globals.set('_target', currentExpr);
+  pyodide.globals.set('_orig', problem);
+  const ok = pyodide.runPython(
+    'factored_eq_target(_ans, _target) or factored_eq_target(_ans, _orig)'
+  );
+  if (ok) {
+    bubble('正解！🎉', 'correct');
+    setTimeout(() => finalize(), 600);
+  } else {
+    attempts++;
+    if (attempts < 2) {
+      bubble(`もう一度。(${pretty(psInnerPair[0])} + ${pretty(psInnerPair[1])})² で書いてみて。`, 'hint');
+      askFinalPS();
+    } else {
+      const correct = py('factor_full', problem);
+      bubble(`答えは ${pretty(correct)} だよ。`, 'hint');
+      setTimeout(() => finalize(), 1500);
+    }
+  }
+};
+
+window.tellFinalPS = function() {
+  bubble('教えて！', 'user');
+  const ans = py('factor_full', currentExpr);
+  bubble(`${pretty(ans)} だよ。`, 'hint');
+  setTimeout(() => finalize(), 1500);
 };
 
 function finalize(unfinished) {
