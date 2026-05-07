@@ -1350,7 +1350,9 @@ function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPr
         ${getBlankHint(q) ? `<div class="bulk-q-hint"><span class="bulk-q-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
         <div class="bulk-q-input-wrap">
           <input class="bulk-q-input" id="${inputPrefix}-${i}"
-                 type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off">
+                 type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
+                 autocomplete="off"
+                 onkeydown="bulkInputKeydown(event,${i},'${inputPrefix}')">
         </div>
       </div>`;
   }).join('');
@@ -1367,6 +1369,28 @@ function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPr
         <button class="bulk-submit-btn" onclick="${submitFn}">採点する！</button>
       </div>
     </div>`;
+}
+
+// 一括クイズフォーム共通の Enter キー処理：次の入力欄 or 採点ボタンへ
+function bulkInputKeydown(e, i, prefix) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const next = document.getElementById(`${prefix}-${i + 1}`);
+  if (next) {
+    next.focus();
+    const row = next.closest('.bulk-q-row') || next;
+    // 問題カードの上端が画面中央より少し上（35%）に来るようスクロール
+    const rowTop = row.getBoundingClientRect().top + window.scrollY;
+    const targetScroll = rowTop - window.innerHeight * 0.35;
+    window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+  } else {
+    // 最終問題 → 採点ボタンへ
+    const btn = document.querySelector('.bulk-submit-btn');
+    if (btn) {
+      btn.focus();
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
 }
 
 function renderMiniTestQuizPhase(sec) {
