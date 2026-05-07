@@ -1347,7 +1347,7 @@ const game = {
     // 選択したレベルの問題を取得
     const customList = filterByLevel(customToProblems(), this.selectedLevel);
     this.usingCustom = customList.length > 0;
-    this.customQueue = this.usingCustom ? [...customList] : [];
+    this.customQueue = this.usingCustom ? shuffle(customList) : [];
     this.customCursor = 0;
     // CASUAL の問題数: 登録問題数 (フォールバックの自動生成は最大30)
     this.totalProblems = this.usingCustom ? customList.length : 30;
@@ -1398,7 +1398,7 @@ const game = {
     if (this.usingCustom && this.customQueue.length > 0) {
       // 自作問題: キューから順番に取り出し、最後まで来たら先頭に戻る (CHALLENGEは無限ループ)
       if (this.customCursor >= this.customQueue.length) {
-        this.customQueue = filterByLevel(customToProblems(), this.selectedLevel);
+        this.customQueue = shuffle(filterByLevel(customToProblems(), this.selectedLevel));
         this.customCursor = 0;
       }
       p = this.customQueue[this.customCursor];
