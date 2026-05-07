@@ -96,18 +96,22 @@ def factor_gcf_inside(expr_str):
     return to_str(expr)
 
 def _all_integer_coeffs(expr):
-    """式のすべての係数が整数か"""
+    """式のすべての係数が整数か（多項式・複数文字対応）"""
     try:
         e = sp.sympify(expr)
         if e.is_Number:
             return bool(e.is_integer)
-        syms = list(e.free_symbols)
-        if not syms:
+        # 各項の係数を直接チェック（Poly.all_coeffsは単変数のみ）
+        if e.is_Add:
+            for term in e.args:
+                c = term.as_coeff_Mul()[0]
+                if not c.is_integer:
+                    return False
+            return True
+        # 単項式 (Mul / Symbol / Pow)
+        c = e.as_coeff_Mul()[0]
+        if not c.is_integer:
             return False
-        poly = sp.Poly(e, *syms)
-        for c in poly.all_coeffs():
-            if not c.is_integer:
-                return False
         return True
     except Exception:
         return False
