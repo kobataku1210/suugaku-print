@@ -11,7 +11,7 @@
   const style1 = 'color:#ff3344;font-size:36px;font-weight:900;text-shadow:2px 2px 0 #000;background:#ffe;padding:6px 18px;border-radius:8px;';
   const warn2 = '%cここはプログラムを動かす画面だよ！';
   const style2 = 'color:#222;font-size:18px;font-weight:700;background:#ffd200;padding:4px 12px;border-radius:6px;';
-  const warn3 = '%c勝手にコードを書き換えたり、データをいじるのは絶対にダメ！\n見つけたら先生に報告するから、すぐ閉じてね。';
+  const warn3 = '%c勝手にコードを書き換えたり、データをいじるのは絶対にダメ！';
   const style3 = 'color:#c00;font-size:14px;font-weight:600;background:#fff;padding:6px 12px;border-radius:6px;line-height:1.6;';
   console.log(warn1, style1);
   console.log(warn2, style2);
