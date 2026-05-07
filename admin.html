@@ -160,6 +160,36 @@
     .student-best-save-btn:disabled { opacity: 0.5; cursor: default; }
     .student-best-save-status { font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 
+    /* ===== 生徒ベストランキング 上位3名 ===== */
+    .student-best-wrap.rk-wrap {
+      flex-wrap: wrap; align-items: center; gap: 0.4rem;
+      padding: 0.4rem 0.7rem;
+    }
+    .rk-slot {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(0,0,0,0.18); border-radius: 6px; padding: 0.15rem 0.4rem;
+    }
+    .rk-medal { font-size: 1rem; }
+    .rk-del-btn {
+      background: rgba(245,87,108,0.18); border: 1px solid rgba(245,87,108,0.5);
+      color: #ff8090; border-radius: 50%; width: 1.4rem; height: 1.4rem;
+      font-size: 0.75rem; font-weight: 800; cursor: pointer; line-height: 1;
+      padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .rk-del-btn:hover { background: rgba(245,87,108,0.35); }
+    .rk-add-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
+      width: 100%; margin-top: 0.3rem; padding-top: 0.3rem;
+      border-top: 1px dashed rgba(255,255,255,0.15);
+    }
+    .rk-add-label { color: #ffd200; font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+    .rk-add-btn {
+      background: #ffd200; color: #1a1a1a; border: none; border-radius: 6px;
+      padding: 0.15rem 0.7rem; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; white-space: nowrap;
+    }
+    .rk-add-btn:hover { background: #ffe24d; }
+
     /* ===== 小テストパスワード表示 ===== */
     .minitest-pw-wrap {
       margin-left: auto; display: flex; align-items: center; gap: 0.5rem;
@@ -464,18 +494,27 @@
     <span class="cm-ts-unit">秒</span>
     <button class="cm-ts-btn" onclick="saveCmTeacherTime()">更新</button>
     <span id="cm-ts-status" class="cm-ts-status"></span>
-    <span style="margin-left:1rem;color:rgba(255,255,255,0.2)">│</span>
-    <span class="cm-ts-label" style="color:#9ded62;">🏅 生徒ベスト</span>
-    <input type="text" id="cm-student-name-input" class="cm-ts-input"
-           style="width:80px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
-           placeholder="名前">
-    <input type="number" id="cm-student-time-input" class="cm-ts-input"
-           style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
-           min="1" max="300" step="1" placeholder="秒">
-    <span class="cm-ts-unit">秒</span>
-    <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
-            onclick="saveCmStudentBest()">更新</button>
-    <span id="cm-sb-status" class="cm-ts-status"></span>
+  </div>
+
+  <!-- カードマッチ 生徒ベスト 上位3名 -->
+  <div class="cm-teacher-setting" style="flex-wrap:wrap">
+    <span class="cm-ts-label" style="color:#9ded62;">🏅 カードマッチ 生徒ベスト 上位3名</span>
+    <div id="cm-rk-slots" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;width:100%"></div>
+    <div id="cm-rk-add-row" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.4rem">
+      <span class="cm-ts-label" style="color:#9ded62;font-size:0.85rem;">＋ 新記録追加</span>
+      <input type="text" id="cm-rk-add-name" class="cm-ts-input"
+             style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+             placeholder="名前">
+      <input type="number" id="cm-rk-add-time" class="cm-ts-input"
+             style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+             min="1" max="300" step="1" placeholder="秒">
+      <span class="cm-ts-unit">秒</span>
+      <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+              onclick="addCmRecord()">追加</button>
+      <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+              onclick="saveCmStudentBest()">保存</button>
+      <span id="cm-sb-status" class="cm-ts-status"></span>
+    </div>
   </div>
   <div class="admin-content">
     <div class="chapter-tabs" id="chapter-tabs"></div>
@@ -580,30 +619,131 @@ function updateTeacherTime(chIdx, si, val) {
   questionsData.chapters[chIdx].sections[si].teacherTime = isNaN(num) ? null : Math.round(num * 10) / 10;
 }
 
-function updateStudentBest(chIdx, si, field, val) {
-  const sec = questionsData.chapters[chIdx].sections[si];
-  if (field === 'name') {
-    sec.studentBestName = val.trim() || null;
-  } else {
-    const num = parseFloat(val);
-    sec.studentBestTime = isNaN(num) ? null : Math.round(num * 10) / 10;
+// ===== 生徒ベストランキング（最大3名） =====
+// list = [{name, time}, ...] （time昇順、最大3件、同名は1件のみ）
+function rkMerge(list, entry) {
+  const arr = Array.isArray(list) ? list.slice() : [];
+  if (!entry || !entry.name || entry.time == null) return arr;
+  const name = String(entry.name).trim();
+  const time = Math.round(parseFloat(entry.time) * 10) / 10;
+  if (!name || isNaN(time)) return arr;
+  const filtered = arr.filter(e => e && e.name && String(e.name).trim() !== name);
+  filtered.push({ name, time });
+  filtered.sort((a, b) => a.time - b.time);
+  return filtered.slice(0, 3);
+}
+function rkNormalize(slots) {
+  const arr = (Array.isArray(slots) ? slots : [])
+    .map(e => {
+      if (!e || !e.name || e.time == null) return null;
+      const name = String(e.name).trim();
+      const time = Math.round(parseFloat(e.time) * 10) / 10;
+      if (!name || isNaN(time)) return null;
+      return { name, time };
+    })
+    .filter(Boolean);
+  const byName = new Map();
+  for (const e of arr) {
+    if (!byName.has(e.name) || byName.get(e.name).time > e.time) byName.set(e.name, e);
   }
+  const dedup = Array.from(byName.values());
+  dedup.sort((a, b) => a.time - b.time);
+  return dedup.slice(0, 3);
+}
+function rkSyncTop(obj, nameKey, timeKey, listKey) {
+  const list = obj[listKey];
+  if (Array.isArray(list) && list.length > 0) {
+    obj[nameKey] = list[0].name; obj[timeKey] = list[0].time;
+  } else {
+    obj[nameKey] = null; obj[timeKey] = null;
+  }
+}
+// 旧形式 → 新形式（studentBestList / cardMatchStudentBestList）
+function migrateRankings(data) {
+  if (!data || !Array.isArray(data.chapters)) return data;
+  if (!Array.isArray(data.cardMatchStudentBestList)) {
+    if (data.cardMatchStudentBestName && data.cardMatchStudentBestTime != null) {
+      data.cardMatchStudentBestList = [{
+        name: String(data.cardMatchStudentBestName),
+        time: Math.round(parseFloat(data.cardMatchStudentBestTime) * 10) / 10
+      }];
+    } else { data.cardMatchStudentBestList = []; }
+  }
+  rkSyncTop(data, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  data.chapters.forEach(ch => {
+    (ch.sections || []).forEach(sec => {
+      if (!Array.isArray(sec.studentBestList)) {
+        if (sec.studentBestName && sec.studentBestTime != null) {
+          sec.studentBestList = [{
+            name: String(sec.studentBestName),
+            time: Math.round(parseFloat(sec.studentBestTime) * 10) / 10
+          }];
+        } else { sec.studentBestList = []; }
+      }
+      rkSyncTop(sec, 'studentBestName', 'studentBestTime', 'studentBestList');
+    });
+  });
+  return data;
+}
+
+// ----- 3スロットUI操作 -----
+// 3枠の入力欄を読んでリストに反映（直接編集対応）
+function readSectionSlots(chIdx, si) {
+  const slots = [];
+  for (let r = 0; r < 3; r++) {
+    const nameEl = document.getElementById(`sb-name-${chIdx}-${si}-${r}`);
+    const timeEl = document.getElementById(`sb-time-${chIdx}-${si}-${r}`);
+    if (!nameEl || !timeEl) continue;
+    slots.push({ name: nameEl.value, time: timeEl.value });
+  }
+  return rkNormalize(slots);
+}
+function refreshSectionSlots(chIdx, si) {
+  const sec = questionsData.chapters[chIdx].sections[si];
+  for (let r = 0; r < 3; r++) {
+    const nameEl = document.getElementById(`sb-name-${chIdx}-${si}-${r}`);
+    const timeEl = document.getElementById(`sb-time-${chIdx}-${si}-${r}`);
+    const entry  = sec.studentBestList[r];
+    if (nameEl) nameEl.value = entry ? entry.name : '';
+    if (timeEl) timeEl.value = entry ? entry.time : '';
+  }
+}
+function deleteSectionSlot(chIdx, si, r) {
+  const sec = questionsData.chapters[chIdx].sections[si];
+  // まず3枠の入力を反映してから、該当行のみ抜く
+  const slots = readSectionSlots(chIdx, si);
+  if (slots[r]) slots.splice(r, 1);
+  sec.studentBestList = rkNormalize(slots);
+  rkSyncTop(sec, 'studentBestName', 'studentBestTime', 'studentBestList');
+  refreshSectionSlots(chIdx, si);
+}
+function addSectionRecord(chIdx, si) {
+  const sec   = questionsData.chapters[chIdx].sections[si];
+  const nmEl  = document.getElementById(`sb-add-name-${chIdx}-${si}`);
+  const tmEl  = document.getElementById(`sb-add-time-${chIdx}-${si}`);
+  const sta   = document.getElementById(`sb-status-${chIdx}-${si}`);
+  const name  = (nmEl?.value || '').trim();
+  const time  = parseFloat(tmEl?.value);
+  if (!name) { sta.textContent = '❌ 名前を入力'; sta.style.color = '#e74c3c'; setTimeout(() => sta.textContent = '', 3000); return; }
+  if (isNaN(time) || time <= 0) { sta.textContent = '❌ タイムを入力'; sta.style.color = '#e74c3c'; setTimeout(() => sta.textContent = '', 3000); return; }
+  // 既存の3枠の編集も反映してから追加
+  sec.studentBestList = rkMerge(readSectionSlots(chIdx, si), { name, time });
+  rkSyncTop(sec, 'studentBestName', 'studentBestTime', 'studentBestList');
+  if (nmEl) nmEl.value = '';
+  if (tmEl) tmEl.value = '';
+  refreshSectionSlots(chIdx, si);
 }
 
 async function saveStudentBest(chIdx, si, btn) {
-  const sta = document.getElementById(`sb-status-${chIdx}-${si}`);
-  // 入力欄からその場の値を読み取って questionsData に反映
-  // （onchange未発火の状態でも確実に反映させる）
-  const wrap = btn.closest('.student-best-wrap');
-  if (wrap) {
-    const nameEl = wrap.querySelector('.student-best-name-input');
-    const timeEl = wrap.querySelector('.student-best-time-input');
-    if (nameEl) updateStudentBest(chIdx, si, 'name', nameEl.value);
-    if (timeEl) updateStudentBest(chIdx, si, 'time', timeEl.value);
-  }
+  const sec  = questionsData.chapters[chIdx].sections[si];
+  const sta  = document.getElementById(`sb-status-${chIdx}-${si}`);
+  // 3枠の直接編集を反映
+  sec.studentBestList = readSectionSlots(chIdx, si);
+  rkSyncTop(sec, 'studentBestName', 'studentBestTime', 'studentBestList');
+  refreshSectionSlots(chIdx, si);
+
   btn.textContent = '保存中...';
   btn.disabled = true;
-  // 変更を検出して NEWS に追加
   detectAndPushNews();
   try {
     const res = await fetch('/api/questions', {
@@ -619,7 +759,7 @@ async function saveStudentBest(chIdx, si, btn) {
     sta.textContent = '❌ エラー';
     sta.style.color = '#e74c3c';
   }
-  btn.textContent = '更新';
+  btn.textContent = '保存';
   btn.disabled = false;
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
@@ -653,16 +793,13 @@ async function hashAllPasswords(data) {
 // ===== 問題データ読み込み =====
 async function loadQuestions() {
   const res = await fetch('/api/questions');
-  questionsData = ensurePasswords(migrateToNewFormat(await res.json()));
+  questionsData = migrateRankings(ensurePasswords(migrateToNewFormat(await res.json())));
   // カードマッチ 小林Tタイムをフォームに反映
   const t = questionsData.cardMatchTeacherTime;
   const el = document.getElementById('cm-teacher-time-input');
   if (el && t != null) el.value = t;
-  // カードマッチ 生徒ベストをフォームに反映
-  const sn = document.getElementById('cm-student-name-input');
-  const st = document.getElementById('cm-student-time-input');
-  if (sn) sn.value = questionsData.cardMatchStudentBestName || '';
-  if (st && questionsData.cardMatchStudentBestTime != null) st.value = questionsData.cardMatchStudentBestTime;
+  // カードマッチ 生徒ベスト 上位3名をフォームに反映
+  renderCmRkSlots();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -862,16 +999,66 @@ async function saveCmTeacherTime() {
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
+// ===== カードマッチ：生徒ベストランキング =====
+function renderCmRkSlots() {
+  const wrap = document.getElementById('cm-rk-slots');
+  if (!wrap) return;
+  const list = questionsData.cardMatchStudentBestList || [];
+  const medals = ['🥇','🥈','🥉'];
+  wrap.innerHTML = [0,1,2].map(r => {
+    const e = list[r];
+    return `
+    <div class="rk-slot">
+      <span class="rk-medal">${medals[r]}</span>
+      <input type="text" id="cm-rk-name-${r}" class="cm-ts-input rk-name"
+             style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+             value="${escHtml(e ? e.name : '')}" placeholder="名前">
+      <input type="number" id="cm-rk-time-${r}" class="cm-ts-input rk-time"
+             style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+             min="1" max="300" step="1" value="${e ? e.time : ''}" placeholder="秒">
+      <span class="cm-ts-unit">秒</span>
+      <button class="rk-del-btn" title="この記録を削除" onclick="deleteCmSlot(${r})">✕</button>
+    </div>`;
+  }).join('');
+}
+function readCmSlots() {
+  const slots = [];
+  for (let r = 0; r < 3; r++) {
+    const nameEl = document.getElementById(`cm-rk-name-${r}`);
+    const timeEl = document.getElementById(`cm-rk-time-${r}`);
+    if (!nameEl || !timeEl) continue;
+    slots.push({ name: nameEl.value, time: timeEl.value });
+  }
+  return rkNormalize(slots);
+}
+function deleteCmSlot(r) {
+  const slots = readCmSlots();
+  if (slots[r]) slots.splice(r, 1);
+  questionsData.cardMatchStudentBestList = rkNormalize(slots);
+  rkSyncTop(questionsData, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  renderCmRkSlots();
+}
+function addCmRecord() {
+  const nmEl = document.getElementById('cm-rk-add-name');
+  const tmEl = document.getElementById('cm-rk-add-time');
+  const sta  = document.getElementById('cm-sb-status');
+  const name = (nmEl?.value || '').trim();
+  const time = parseFloat(tmEl?.value);
+  if (!name) { sta.textContent = '❌ 名前を入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  if (isNaN(time) || time <= 0) { sta.textContent = '❌ タイムを入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  questionsData.cardMatchStudentBestList = rkMerge(readCmSlots(), { name, time });
+  rkSyncTop(questionsData, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  if (nmEl) nmEl.value = '';
+  if (tmEl) tmEl.value = '';
+  renderCmRkSlots();
+}
+
 async function saveCmStudentBest() {
-  const nameEl = document.getElementById('cm-student-name-input');
-  const timeEl = document.getElementById('cm-student-time-input');
-  const sta    = document.getElementById('cm-sb-status');
-  const name   = nameEl.value.trim();
-  const val    = parseInt(timeEl.value);
-  if (!name) { sta.textContent = '❌ 名前を入力してください'; setTimeout(() => { sta.textContent = ''; }, 3000); return; }
-  if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; setTimeout(() => { sta.textContent = ''; }, 3000); return; }
-  questionsData.cardMatchStudentBestName = name;
-  questionsData.cardMatchStudentBestTime = val;
+  const sta = document.getElementById('cm-sb-status');
+  // 3スロットの直接編集を反映
+  questionsData.cardMatchStudentBestList = readCmSlots();
+  rkSyncTop(questionsData, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  renderCmRkSlots();
   detectAndPushNews();
   const res = await fetch('/api/questions', {
     method: 'POST',
@@ -880,7 +1067,7 @@ async function saveCmStudentBest() {
   });
   const r = await res.json();
   if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
-  sta.textContent = r.ok ? `✓ ${name} ${val}秒に更新しました` : '❌ 保存失敗';
+  sta.textContent = r.ok ? `✓ 保存しました` : '❌ 保存失敗';
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
@@ -927,21 +1114,33 @@ function renderSections(chIdx) {
                  title="タイムアタックで小林Tの記録として表示されます">
           <span class="teacher-time-unit">秒</span>
         </div>
-        <div class="student-best-wrap">
-          <span class="student-best-label">🏅 生徒ベスト</span>
-          <input type="text" class="student-best-name-input"
-                 value="${escHtml(sec.studentBestName || '')}"
-                 placeholder="名前"
-                 onchange="updateStudentBest(${chIdx},${si},'name',this.value)"
-                 title="生徒の名前を入力">
-          <input type="number" class="student-best-time-input" min="0" step="0.1"
-                 value="${sec.studentBestTime != null ? sec.studentBestTime : ''}"
-                 placeholder="秒"
-                 onchange="updateStudentBest(${chIdx},${si},'time',this.value)"
-                 title="生徒の自己ベストタイム（このタイムを超えると🌱×50）">
-          <span class="student-best-unit">秒</span>
-          <button class="student-best-save-btn" onclick="saveStudentBest(${chIdx},${si},this)">更新</button>
-          <span class="student-best-save-status" id="sb-status-${chIdx}-${si}"></span>
+        <div class="student-best-wrap rk-wrap">
+          <span class="student-best-label">🏅 生徒ベスト 上位3名</span>
+          ${[0,1,2].map(r => {
+            const e = (sec.studentBestList || [])[r];
+            const medals = ['🥇','🥈','🥉'];
+            return `
+            <div class="rk-slot">
+              <span class="rk-medal">${medals[r]}</span>
+              <input type="text" id="sb-name-${chIdx}-${si}-${r}" class="student-best-name-input rk-name"
+                     value="${escHtml(e ? e.name : '')}" placeholder="名前">
+              <input type="number" id="sb-time-${chIdx}-${si}-${r}" class="student-best-time-input rk-time"
+                     min="0" step="0.1" value="${e ? e.time : ''}" placeholder="秒">
+              <span class="student-best-unit">秒</span>
+              <button class="rk-del-btn" title="この記録を削除"
+                      onclick="deleteSectionSlot(${chIdx},${si},${r})">✕</button>
+            </div>`;
+          }).join('')}
+          <div class="rk-add-row">
+            <span class="rk-add-label">＋ 新記録追加</span>
+            <input type="text" id="sb-add-name-${chIdx}-${si}" class="student-best-name-input rk-name" placeholder="名前">
+            <input type="number" id="sb-add-time-${chIdx}-${si}" class="student-best-time-input rk-time"
+                   min="0" step="0.1" placeholder="秒">
+            <span class="student-best-unit">秒</span>
+            <button class="rk-add-btn" onclick="addSectionRecord(${chIdx},${si})">追加</button>
+            <button class="student-best-save-btn" onclick="saveStudentBest(${chIdx},${si},this)">保存</button>
+            <span class="student-best-save-status" id="sb-status-${chIdx}-${si}"></span>
+          </div>
         </div>
         <div class="minitest-pw-wrap">
           <span class="minitest-pw-label">小テストPW</span>

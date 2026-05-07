@@ -156,6 +156,96 @@ function initMathBackground() {
   document.body.prepend(bg);
 }
 
+// ============================================================
+// ===== 生徒ベストランキング（上位3名） =====
+// ============================================================
+// データ形式：list = [{ name, time }, ...]（最大3件、time昇順）
+// 同名は1エントリのみ（自己ベストで上書き）。新記録は速さに関わらず挿入し、
+// はみ出した記録は削除（=結果として最遅が落ちる）。
+function mergeRanking(list, entry) {
+  const arr = Array.isArray(list) ? list.slice() : [];
+  if (!entry || !entry.name || entry.time == null) return arr;
+  const name = String(entry.name).trim();
+  const time = Math.round(parseFloat(entry.time) * 10) / 10;
+  if (!name || isNaN(time)) return arr;
+  // 同名を除去（自己ベストで上書きするため）
+  const filtered = arr.filter(e => e && e.name && String(e.name).trim() !== name);
+  filtered.push({ name, time });
+  filtered.sort((a, b) => a.time - b.time);
+  return filtered.slice(0, 3);
+}
+
+// 3枠の入力（空欄含む）から正規化済みリストを作る
+// （管理画面で直接編集された3スロットを保存する時に使用）
+function normalizeRanking(slots) {
+  const arr = (Array.isArray(slots) ? slots : [])
+    .map(e => {
+      if (!e || !e.name || e.time == null) return null;
+      const name = String(e.name).trim();
+      const time = Math.round(parseFloat(e.time) * 10) / 10;
+      if (!name || isNaN(time)) return null;
+      return { name, time };
+    })
+    .filter(Boolean);
+  // 同名重複は速い方のみ残す
+  const byName = new Map();
+  for (const e of arr) {
+    if (!byName.has(e.name) || byName.get(e.name).time > e.time) byName.set(e.name, e);
+  }
+  const dedup = Array.from(byName.values());
+  dedup.sort((a, b) => a.time - b.time);
+  return dedup.slice(0, 3);
+}
+
+// 旧形式（studentBestName/studentBestTime 単数）を新形式（studentBestList 配列）に
+// 変換する。新形式が既にある場合はそのまま。
+// 同時に、旧形式のフィールドも 1位 と同期させて互換性を保つ
+// （既存の表示・🌱×50判定ロジックは1位＝旧フィールドを参照するため）
+function migrateRankings(data) {
+  if (!data || !Array.isArray(data.chapters)) return data;
+  // カードマッチ
+  if (!Array.isArray(data.cardMatchStudentBestList)) {
+    if (data.cardMatchStudentBestName && data.cardMatchStudentBestTime != null) {
+      data.cardMatchStudentBestList = [{
+        name: String(data.cardMatchStudentBestName),
+        time: Math.round(parseFloat(data.cardMatchStudentBestTime) * 10) / 10
+      }];
+    } else {
+      data.cardMatchStudentBestList = [];
+    }
+  }
+  syncTopFromList(data, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  // 各単元
+  data.chapters.forEach(ch => {
+    (ch.sections || []).forEach(sec => {
+      if (!Array.isArray(sec.studentBestList)) {
+        if (sec.studentBestName && sec.studentBestTime != null) {
+          sec.studentBestList = [{
+            name: String(sec.studentBestName),
+            time: Math.round(parseFloat(sec.studentBestTime) * 10) / 10
+          }];
+        } else {
+          sec.studentBestList = [];
+        }
+      }
+      syncTopFromList(sec, 'studentBestName', 'studentBestTime', 'studentBestList');
+    });
+  });
+  return data;
+}
+
+// list[0] を 旧フィールド（name/time）に同期する
+function syncTopFromList(obj, nameKey, timeKey, listKey) {
+  const list = obj[listKey];
+  if (Array.isArray(list) && list.length > 0) {
+    obj[nameKey] = list[0].name;
+    obj[timeKey] = list[0].time;
+  } else {
+    obj[nameKey] = null;
+    obj[timeKey] = null;
+  }
+}
+
 // ===== 進捗管理（localStorage） =====
 function getProgress() {
   try {
@@ -826,6 +916,17 @@ function renderHome() {
       <div class="tl-home-arrow">›</div>
     </div>`;
 
+  // ===== ランキングバナー =====
+  const rankingBanner = `
+    <div class="rk-home-banner" onclick="navigate('ranking')">
+      <span class="rk-home-icon">🏆</span>
+      <div class="rk-home-text">
+        <div class="rk-home-title">ランキング <span class="game-new-badge">NEW!</span></div>
+        <div class="rk-home-sub">各タイムアタック・カードマッチの上位3名をチェック！</div>
+      </div>
+      <div class="rk-home-arrow">›</div>
+    </div>`;
+
   // ===== NEWS セクション =====
   const newsItems = (mathData.news || []).slice(0, 10);
   const newsHTML = newsItems.length > 0 ? `
@@ -854,6 +955,7 @@ function renderHome() {
     ${sgBanner}
     ${gamesBanner}
     ${toolsBanner}
+    ${rankingBanner}
     <div class="chapters-grid">${cards}</div>
     ${newsHTML}`;
 }
@@ -905,6 +1007,82 @@ const GAME_ITEMS = [
     isNew: true,
   },
 ];
+// ===== ランキング画面 =====
+// 各単元のタイムアタック上位3名 ＋ カードマッチ上位3名を一覧表示
+function renderRanking() {
+  const medals = ['🥇','🥈','🥉'];
+  const renderRow = (e, i) => {
+    const name = escHtml(e.name);
+    return `<div class="rk-row">
+      <span class="rk-row-medal">${medals[i]}</span>
+      <span class="rk-row-name">${name}</span>
+      <span class="rk-row-time">${e.time.toFixed(1)}<span class="rk-row-unit">秒</span></span>
+    </div>`;
+  };
+  const renderListBlock = (list) => {
+    if (!list || list.length === 0) {
+      return `<div class="rk-row rk-row-empty">まだ記録なし</div>`;
+    }
+    return list.slice(0, 3).map(renderRow).join('');
+  };
+
+  // ===== カードマッチ =====
+  const cmList = mathData.cardMatchStudentBestList || [];
+  const cmCard = `
+    <div class="rk-card rk-card-cm">
+      <div class="rk-card-header">
+        <span class="rk-card-icon">🃏</span>
+        <span class="rk-card-title">カードマッチ</span>
+      </div>
+      <div class="rk-card-body">${renderListBlock(cmList)}</div>
+    </div>`;
+
+  // ===== 各章 → 各単元 =====
+  const chapterBlocks = mathData.chapters.map(ch => {
+    const sections = (ch.sections || []).filter(sec => Array.isArray(sec.studentBestList) && sec.studentBestList.length > 0);
+    if (!sections.length) return '';
+    const cards = (ch.sections || []).map(sec => {
+      const list = Array.isArray(sec.studentBestList) ? sec.studentBestList : [];
+      if (list.length === 0) return ''; // 記録なしの単元は省略
+      return `
+        <div class="rk-card">
+          <div class="rk-card-header">
+            <span class="rk-card-title">${escHtml(sec.title)}</span>
+          </div>
+          <div class="rk-card-body">${renderListBlock(list)}</div>
+        </div>`;
+    }).join('');
+    if (!cards.trim()) return '';
+    return `
+      <div class="rk-chapter">
+        <h3 class="rk-chapter-title">
+          <span class="rk-chapter-icon">${ch.icon || ''}</span>
+          第${ch.id}章 ${escHtml(ch.title)}
+        </h3>
+        <div class="rk-card-grid">${cards}</div>
+      </div>`;
+  }).join('');
+
+  const noTaRecords = !chapterBlocks.trim();
+
+  return `
+    <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+    <div class="section-title">
+      <h2>🏆 ランキング</h2>
+      <p>各タイムアタック・カードマッチの上位3名！</p>
+    </div>
+    <div class="rk-section">
+      <h3 class="rk-section-title">🃏 カードマッチ</h3>
+      <div class="rk-card-grid">${cmCard}</div>
+    </div>
+    <div class="rk-section">
+      <h3 class="rk-section-title">⏱ タイムアタック</h3>
+      ${noTaRecords
+        ? `<div class="rk-empty">まだ記録がありません</div>`
+        : chapterBlocks}
+    </div>`;
+}
+
 function renderGamesPage() {
   // カードマッチの自己ベストを取得
   const cmData    = cmLoad();
@@ -1118,6 +1296,12 @@ function renderDifficulty() {
       ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">🏅 ${taStudentBestName}撃破済み！</span>`
       : `<span class="ta-tier-badge-sm ta-student-badge">🏅 ${taStudentBestName} ${taStudentBestTime.toFixed(1)}秒 🌱×50</span>`
     : '';
+  // 上位3名（2位・3位がいれば）を追加バッジで表示
+  const taTop3List = Array.isArray(taSecData.studentBestList) ? taSecData.studentBestList : [];
+  const taExtraBadgesHtml = taTop3List.slice(1, 3).map((e, i) => {
+    const medal = i === 0 ? '🥈' : '🥉';
+    return `<span class="ta-tier-badge-sm ta-student-rank-badge">${medal} ${escHtml(e.name)} ${e.time.toFixed(1)}秒</span>`;
+  }).join('');
   const timeattackCard = `
     <div class="mt-extra-card mt-extra-timeattack fade-in" style="animation-delay:0.44s"
          onclick="startTimeAttack()">
@@ -1129,6 +1313,7 @@ function renderDifficulty() {
           <div class="ta-tier-badges-sm">
             ${taTeacherBadge}
             ${taStudentBestBadge}
+            ${taExtraBadgesHtml}
             ${taTierBadgesHtml}
           </div>
         </div>
@@ -1761,6 +1946,12 @@ function renderTimeAttack() {
       : studentBestTime !== null && isStudentBestBeaten(taCurrentData, studentBestTime)
       ? `<div class="ta-teacher-target ta-teacher-beaten-msg">🏅 ${studentBestName} 撃破済み！（${studentBestTime.toFixed(1)}秒）</div>`
       : '';
+    // 2位・3位（参考表示）
+    const studentRankList = Array.isArray(sec.studentBestList) ? sec.studentBestList : [];
+    const studentExtraTargetHtml = studentRankList.slice(1, 3).map((e, i) => {
+      const medal = i === 0 ? '🥈' : '🥉';
+      return `<div class="ta-teacher-target ta-student-target-extra">${medal} ${escHtml(e.name)}：<span>${e.time.toFixed(1)}秒</span></div>`;
+    }).join('');
     return `
       <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
       <div class="quiz-header">
@@ -1772,6 +1963,7 @@ function renderTimeAttack() {
         <div class="ta-timer-label">タイマー計測中…</div>
         ${targetHtml}
         ${studentTargetHtml}
+        ${studentExtraTargetHtml}
       </div>
       <div class="bulk-form-wrap">
         <div class="bulk-questions-list">${qRows}</div>
@@ -2677,6 +2869,7 @@ function render() {
   else if (state.view === 'timeattack') content = renderTimeAttack();
   else if (state.view === 'cardmatch')  content = renderCardMatch();
   else if (state.view === 'games')      content = renderGamesPage();
+  else if (state.view === 'ranking')    content = renderRanking();
   else if (state.view === 'tools')      content = renderToolsPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
   else if (state.view === 'shooting')   content = ''; // iframeで描画
@@ -2763,8 +2956,10 @@ createBowlWidget();
 fetch('./questions.json')
   .then(r => r.json())
   .then(data => {
+    migrateRankings(data);
     mathData.chapters = data.chapters;
     mathData.news = Array.isArray(data.news) ? data.news : [];
+    mathData.cardMatchStudentBestList = data.cardMatchStudentBestList || [];
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;
     if (data.cardMatchStudentBestName) cmStudentBestName = data.cardMatchStudentBestName;

@@ -1607,6 +1607,123 @@ body {
 .tl-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
 .tl-home-arrow { font-size: 1.4rem; color: #56ab2f; }
 
+/* ===== ランキングバナー（ホーム） ===== */
+.rk-home-banner {
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, rgba(255,210,0,0.20), rgba(255,159,67,0.18));
+  border: 1.5px solid rgba(255,210,0,0.55);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  gap: 0.9rem;
+}
+.rk-home-banner:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,210,0,0.35); }
+.rk-home-icon  { font-size: 2rem; flex-shrink: 0; }
+.rk-home-text  { flex: 1; }
+.rk-home-title { font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.rk-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
+.rk-home-arrow { font-size: 1.4rem; color: #ffd200; }
+
+/* ===== ランキングページ ===== */
+.rk-section {
+  max-width: 1200px;
+  margin: 1.5rem auto 2rem;
+  padding: 0 1rem;
+}
+.rk-section-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffd200;
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid rgba(255,210,0,0.35);
+}
+.rk-chapter { margin-bottom: 1.5rem; }
+.rk-chapter-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rk-chapter-icon { font-size: 1.2rem; }
+.rk-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.8rem;
+}
+.rk-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+}
+.rk-card-cm {
+  background: linear-gradient(135deg, rgba(162,155,254,0.18), rgba(108,92,231,0.12));
+  border-color: rgba(162,155,254,0.4);
+}
+.rk-card-header {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px dashed rgba(255,255,255,0.18);
+}
+.rk-card-icon { font-size: 1.1rem; }
+.rk-card-title { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.rk-card-body { display: flex; flex-direction: column; gap: 0.25rem; }
+.rk-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.18);
+}
+.rk-row-medal { font-size: 1rem; flex-shrink: 0; }
+.rk-row-name {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #9ded62;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-row-time {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #00d2ff;
+}
+.rk-row-unit { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-left: 0.15rem; }
+.rk-row-empty {
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.6rem;
+  font-style: italic;
+}
+.rk-empty {
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  padding: 2rem;
+  font-size: 0.95rem;
+}
+
+/* タイムアタックの追加バッジ（2位・3位 参考表示） */
+.ta-student-rank-badge {
+  background: rgba(157,237,98,0.10);
+  border: 1px dashed rgba(157,237,98,0.45);
+  color: #9ded62;
+}
+.ta-student-target-extra {
+  opacity: 0.85;
+  font-size: 0.92em;
+}
+
 /* ===== ゲーム選択画面 ===== */
 .games-grid {
   display: grid;

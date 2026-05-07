@@ -167,8 +167,14 @@
             }
           ],
           "miniTestPassword": "4206",
-          "studentBestName": null,
-          "studentBestTime": null
+          "studentBestName": "A君",
+          "studentBestTime": 20,
+          "studentBestList": [
+            {
+              "name": "A君",
+              "time": 20
+            }
+          ]
         },
         {
           "title": "式の除法",
@@ -329,7 +335,10 @@
               "b": "2"
             }
           ],
-          "miniTestPassword": "4036"
+          "miniTestPassword": "4036",
+          "studentBestList": [],
+          "studentBestName": null,
+          "studentBestTime": null
         },
         {
           "title": "式の展開",
@@ -490,7 +499,10 @@
               "b": "4"
             }
           ],
-          "miniTestPassword": "1183"
+          "miniTestPassword": "1183",
+          "studentBestList": [],
+          "studentBestName": null,
+          "studentBestTime": null
         },
         {
           "title": "乗法の公式",
@@ -651,7 +663,10 @@
               "b": "2"
             }
           ],
-          "miniTestPassword": "1785"
+          "miniTestPassword": "1785",
+          "studentBestList": [],
+          "studentBestName": null,
+          "studentBestTime": null
         },
         {
           "title": "いろいろな式の計算",
@@ -812,7 +827,10 @@
               "b": "7"
             }
           ],
-          "miniTestPassword": "4964"
+          "miniTestPassword": "4964",
+          "studentBestList": [],
+          "studentBestName": null,
+          "studentBestTime": null
         },
         {
           "title": "因数分解①",
@@ -974,8 +992,22 @@
             }
           ],
           "miniTestPassword": "9186",
-          "studentBestName": "8組　I君",
-          "studentBestTime": 3.8
+          "studentBestName": "8組 I君",
+          "studentBestTime": 3.8,
+          "studentBestList": [
+            {
+              "name": "8組 I君",
+              "time": 3.8
+            },
+            {
+              "name": "2組 N君",
+              "time": 6.2
+            },
+            {
+              "name": "8組 K君",
+              "time": 6.6
+            }
+          ]
         },
         {
           "title": "因数分解②",
@@ -1137,8 +1169,22 @@
             }
           ],
           "miniTestPassword": "2430",
-          "studentBestName": "2組　D君",
-          "studentBestTime": 3
+          "studentBestName": "2組 D君",
+          "studentBestTime": 3,
+          "studentBestList": [
+            {
+              "name": "2組 D君",
+              "time": 3
+            },
+            {
+              "name": "2組 H君",
+              "time": 5.3
+            },
+            {
+              "name": "2組 Tさん",
+              "time": 6.2
+            }
+          ]
         },
         {
           "title": "いろいろな因数分解",
@@ -1301,7 +1347,13 @@
           ],
           "miniTestPassword": "1672",
           "studentBestTime": 8.5,
-          "studentBestName": "2組　K君"
+          "studentBestName": "2組 K君",
+          "studentBestList": [
+            {
+              "name": "2組 K君",
+              "time": 8.5
+            }
+          ]
         },
         {
           "title": "式の計算の利用",
@@ -1462,7 +1514,10 @@
               "b": ""
             }
           ],
-          "miniTestPassword": "8142"
+          "miniTestPassword": "8142",
+          "studentBestList": [],
+          "studentBestName": null,
+          "studentBestTime": null
         }
       ]
     },
@@ -1519,6 +1574,13 @@
   "cardMatchStudentBestName": "6組S君",
   "cardMatchStudentBestTime": 10,
   "news": [
+    {
+      "id": "1778147989642-ii1ap",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "A君 が第1章「式の乗法」を 20秒 で更新！",
+      "date": "2026-05-07T09:59:49.637Z"
+    },
     {
       "id": "1778124041100-q8e4u",
       "type": "auto",
@@ -1778,6 +1840,20 @@
         "4ac",
         "2bc"
       ]
+    }
+  ],
+  "cardMatchStudentBestList": [
+    {
+      "name": "6組S君",
+      "time": 10
+    },
+    {
+      "name": "5組T君",
+      "time": 16
+    },
+    {
+      "name": "2組Hさん・6組N君",
+      "time": 17
     }
   ]
 }
