@@ -974,8 +974,8 @@
             }
           ],
           "miniTestPassword": "9186",
-          "studentBestName": "2組　N君",
-          "studentBestTime": 6.2
+          "studentBestName": "8組　I君",
+          "studentBestTime": 4.3
         },
         {
           "title": "因数分解②",
@@ -1516,7 +1516,22 @@
   ],
   "cardMatchStudentBestName": "5組T君",
   "cardMatchStudentBestTime": 16,
-  "news": [],
+  "news": [
+    {
+      "id": "1778112968460-pkyvk",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「因数分解①」を 4.3秒 で更新！",
+      "date": "2026-05-07T00:16:08.459Z"
+    },
+    {
+      "id": "1777860676053-xrp45",
+      "type": "manual",
+      "icon": "📌",
+      "title": "新ゲーム！共通因数ウォール出現！",
+      "date": "2026-05-04T02:11:16.053Z"
+    }
+  ],
   "wallProblems": [
     {
       "level": 1,
