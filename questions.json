@@ -1137,8 +1137,8 @@
             }
           ],
           "miniTestPassword": "2430",
-          "studentBestName": "2組　 H君",
-          "studentBestTime": 5.3
+          "studentBestName": "2組　D君",
+          "studentBestTime": 3
         },
         {
           "title": "いろいろな因数分解",
@@ -1517,6 +1517,13 @@
   "cardMatchStudentBestName": "6組S君",
   "cardMatchStudentBestTime": 10,
   "news": [
+    {
+      "id": "1778120990802-mi7sp",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "2組　D君 が第1章「因数分解②」を 3秒 で更新！",
+      "date": "2026-05-07T02:29:50.800Z"
+    },
     {
       "id": "1778113605247-gimg8",
       "type": "auto",
