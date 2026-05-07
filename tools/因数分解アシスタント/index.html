@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📘 因数分解アシスタント</title>
+<link rel="stylesheet" href="style.css">
+<script src="../../student-guard.js"></script>
+<script defer src="https://unpkg.com/mathlive"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.4/full/pyodide.js"></script>
+</head>
+<body>
+<div class="container">
+  <header class="app-header">
+    <h1>📘 因数分解アシスタント</h1>
+    <p class="subtitle">わからない問題を、ステップごとに一緒にやってみよう！</p>
+  </header>
+
+  <div id="progress" class="progress">
+    <div class="step" data-key="start">問題</div>
+    <div class="step-line"></div>
+    <div class="step" data-key="gcf">共通因数</div>
+    <div class="step-line"></div>
+    <div class="step" data-key="terms">項の数</div>
+    <div class="step-line"></div>
+    <div class="step" data-key="formula">公式</div>
+    <div class="step-line"></div>
+    <div class="step" data-key="done">完成</div>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p id="loading-text">⏳ ライブラリ準備中… (初回は10秒程度かかります)</p>
+  </div>
+
+  <div id="chat" class="chat" hidden></div>
+  <div id="input-area" class="input-area" hidden></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

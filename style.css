@@ -1588,6 +1588,25 @@ body {
 .gm-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
 .gm-home-arrow { font-size: 1.4rem; color: #ff6b6b; }
 
+/* ===== 数学便利グッズバナー（ホーム） ===== */
+.tl-home-banner {
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, rgba(86,171,47,0.18), rgba(168,224,99,0.18));
+  border: 1.5px solid rgba(86,171,47,0.45);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  gap: 0.9rem;
+}
+.tl-home-banner:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(86,171,47,0.3); }
+.tl-home-icon  { font-size: 2rem; flex-shrink: 0; }
+.tl-home-text  { flex: 1; }
+.tl-home-title { font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.tl-home-sub   { font-size: 0.78rem; color: #9ab; margin-top: 0.15rem; }
+.tl-home-arrow { font-size: 1.4rem; color: #56ab2f; }
+
 /* ===== ゲーム選択画面 ===== */
 .games-grid {
   display: grid;

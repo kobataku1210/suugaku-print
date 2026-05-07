@@ -1,0 +1,219 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Yu Gothic', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: #FBFAF4;
+  color: #212121;
+  line-height: 1.5;
+}
+.container {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ヘッダー */
+.app-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.app-header h1 {
+  color: #1F4E79;
+  font-size: 1.9em;
+  margin: 0;
+}
+.subtitle {
+  color: #5A7A99;
+  font-size: 0.95em;
+  margin-top: 4px;
+}
+
+/* 進捗バー */
+.progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 16px 0 24px;
+}
+.step {
+  background: #DEEBF7;
+  color: #5A7A99;
+  border: 2px solid #9CCBE8;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.9em;
+  font-weight: bold;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.step.active {
+  background: #1F4E79;
+  color: white;
+  border-color: #1F4E79;
+  transform: scale(1.05);
+}
+.step.done {
+  background: #E2EFDA;
+  color: #385723;
+  border-color: #548235;
+}
+.step-line {
+  width: 18px;
+  height: 2px;
+  background: #9CCBE8;
+}
+
+/* ロード中 */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #5A7A99;
+}
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #DEEBF7;
+  border-top-color: #1F4E79;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* チャット */
+.chat {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid #DEEBF7;
+  min-height: 320px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  margin: 8px 0;
+  border-radius: 16px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: pop 0.3s;
+  font-size: 1em;
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.bubble.app {
+  background: #DEEBF7;
+  color: #1F4E79;
+  border-bottom-left-radius: 4px;
+  margin-right: auto;
+}
+.bubble.app::before {
+  content: "📘 ";
+  font-size: 1.1em;
+}
+.bubble.user {
+  background: #1F4E79;
+  color: white;
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+  text-align: right;
+}
+.bubble.correct {
+  background: #E2EFDA;
+  color: #385723;
+}
+.bubble.correct::before { content: "✅ "; }
+.bubble.hint {
+  background: #FFF2CC;
+  color: #7A5A1F;
+  border-left: 4px solid #BF8F00;
+}
+.bubble.hint::before { content: "💡 "; }
+.bubble.final {
+  background: linear-gradient(135deg, #1F4E79, #2E75B6);
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  font-size: 1.15em;
+  max-width: 100%;
+}
+.bubble.final::before { content: "🎉 "; }
+
+/* 入力エリア */
+.input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+.input-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn {
+  background: #1F4E79;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 28px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+.btn:hover { background: #2E75B6; }
+.btn:active { transform: scale(0.96); }
+.btn-yes { background: #548235; }
+.btn-yes:hover { background: #6A9A3F; }
+.btn-no { background: #C00000; }
+.btn-no:hover { background: #D33; }
+.btn-secondary {
+  background: white;
+  color: #1F4E79;
+  border: 2px solid #1F4E79;
+}
+.btn-secondary:hover { background: #DEEBF7; }
+.btn-tell {
+  background: white;
+  color: #BF8F00;
+  border: 2px dashed #BF8F00;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-size: 0.95em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-tell:hover { background: #FFF2CC; }
+
+math-field {
+  font-size: 1.2em;
+  padding: 10px;
+  border: 2px solid #9CCBE8;
+  border-radius: 8px;
+  background: white;
+  min-height: 48px;
+}
+math-field:focus-within { border-color: #1F4E79; }
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.input-row math-field { flex: 1; min-width: 200px; }
+.input-row .label {
+  padding: 6px;
+  font-weight: bold;
+  color: #1F4E79;
+  font-size: 1.1em;
+}

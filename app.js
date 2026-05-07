@@ -815,6 +815,17 @@ function renderHome() {
       <div class="gm-home-arrow">›</div>
     </div>`;
 
+  // ===== 数学便利グッズバナー =====
+  const toolsBanner = `
+    <div class="tl-home-banner" onclick="navigate('tools')">
+      <span class="tl-home-icon">🧰</span>
+      <div class="tl-home-text">
+        <div class="tl-home-title">数学便利グッズ <span class="game-new-badge">NEW!</span></div>
+        <div class="tl-home-sub">学習を助けるツールを使ってみよう！</div>
+      </div>
+      <div class="tl-home-arrow">›</div>
+    </div>`;
+
   // ===== NEWS セクション =====
   const newsItems = (mathData.news || []).slice(0, 10);
   const newsHTML = newsItems.length > 0 ? `
@@ -842,6 +853,7 @@ function renderHome() {
     </div>
     ${sgBanner}
     ${gamesBanner}
+    ${toolsBanner}
     <div class="chapters-grid">${cards}</div>
     ${newsHTML}`;
 }
@@ -924,6 +936,36 @@ function renderGamesPage() {
     <div class="section-title">
       <h2>🎮 数学ゲーム</h2>
       <p>遊びたいゲームを選んでね</p>
+    </div>
+    <div class="games-grid">${cards}</div>`;
+}
+
+// ===== 数学便利グッズ画面 =====
+// 今後ツールを追加する場合は TOOL_ITEMS に1要素加えるだけ。
+const TOOL_ITEMS = [
+  {
+    title: '因数分解アシスタント',
+    desc: '係数をスライドさせて因数分解を体験！手順を一緒に確認できる',
+    icon: '🧩',
+    onclick: "window.location.href='tools/因数分解アシスタント/index.html'",
+    gradient: 'linear-gradient(135deg, #56ab2f, #a8e063)',
+    isNew: true,
+  },
+];
+function renderToolsPage() {
+  const cards = TOOL_ITEMS.map(t => `
+    <div class="game-card" style="--gradient:${t.gradient}"
+         onclick="${t.onclick}">
+      <span class="game-card-icon">${t.icon}</span>
+      <div class="game-card-title">${t.title}${t.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
+      <div class="game-card-desc">${t.desc}</div>
+      <div class="game-card-cta">使う ›</div>
+    </div>`).join('');
+  return `
+    <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+    <div class="section-title">
+      <h2>🧰 数学便利グッズ</h2>
+      <p>学習を助けるツールを選んでね</p>
     </div>
     <div class="games-grid">${cards}</div>`;
 }
@@ -2635,6 +2677,7 @@ function render() {
   else if (state.view === 'timeattack') content = renderTimeAttack();
   else if (state.view === 'cardmatch')  content = renderCardMatch();
   else if (state.view === 'games')      content = renderGamesPage();
+  else if (state.view === 'tools')      content = renderToolsPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
   else if (state.view === 'shooting')   content = ''; // iframeで描画
 
