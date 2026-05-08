@@ -167,12 +167,12 @@
             }
           ],
           "miniTestPassword": "4206",
-          "studentBestName": "A君",
-          "studentBestTime": 20,
+          "studentBestName": "8組　I君",
+          "studentBestTime": 5.3,
           "studentBestList": [
             {
-              "name": "A君",
-              "time": 20
+              "name": "8組　I君",
+              "time": 5.3
             }
           ]
         },
@@ -336,9 +336,14 @@
             }
           ],
           "miniTestPassword": "4036",
-          "studentBestList": [],
-          "studentBestName": null,
-          "studentBestTime": null
+          "studentBestList": [
+            {
+              "name": "8組　I君",
+              "time": 4.9
+            }
+          ],
+          "studentBestName": "8組　I君",
+          "studentBestTime": 4.9
         },
         {
           "title": "式の展開",
@@ -500,9 +505,14 @@
             }
           ],
           "miniTestPassword": "1183",
-          "studentBestList": [],
-          "studentBestName": null,
-          "studentBestTime": null
+          "studentBestList": [
+            {
+              "name": "8組　I君",
+              "time": 5.3
+            }
+          ],
+          "studentBestName": "8組　I君",
+          "studentBestTime": 5.3
         },
         {
           "title": "乗法の公式",
@@ -664,9 +674,14 @@
             }
           ],
           "miniTestPassword": "1785",
-          "studentBestList": [],
-          "studentBestName": null,
-          "studentBestTime": null
+          "studentBestList": [
+            {
+              "name": "8組　I君",
+              "time": 5.5
+            }
+          ],
+          "studentBestName": "8組　I君",
+          "studentBestTime": 5.5
         },
         {
           "title": "いろいろな式の計算",
@@ -992,9 +1007,13 @@
             }
           ],
           "miniTestPassword": "9186",
-          "studentBestName": "8組 I君",
-          "studentBestTime": 3.8,
+          "studentBestName": "2組 H君",
+          "studentBestTime": 3.4,
           "studentBestList": [
+            {
+              "name": "2組 H君",
+              "time": 3.4
+            },
             {
               "name": "8組 I君",
               "time": 3.8
@@ -1002,10 +1021,6 @@
             {
               "name": "2組 N君",
               "time": 6.2
-            },
-            {
-              "name": "8組 K君",
-              "time": 6.6
             }
           ]
         },
@@ -1177,12 +1192,12 @@
               "time": 3
             },
             {
-              "name": "2組 H君",
-              "time": 5.3
+              "name": "8組　I君",
+              "time": 4.4
             },
             {
-              "name": "2組 Tさん",
-              "time": 6.2
+              "name": "2組 H君",
+              "time": 5.3
             }
           ]
         },
@@ -1346,9 +1361,13 @@
             }
           ],
           "miniTestPassword": "1672",
-          "studentBestTime": 8.5,
-          "studentBestName": "2組 K君",
+          "studentBestTime": 5.5,
+          "studentBestName": "8組　I君",
           "studentBestList": [
+            {
+              "name": "8組　I君",
+              "time": 5.5
+            },
             {
               "name": "2組 K君",
               "time": 8.5
@@ -1515,9 +1534,14 @@
             }
           ],
           "miniTestPassword": "8142",
-          "studentBestList": [],
-          "studentBestName": null,
-          "studentBestTime": null
+          "studentBestList": [
+            {
+              "name": "8組　I君",
+              "time": 5.9
+            }
+          ],
+          "studentBestName": "8組　I君",
+          "studentBestTime": 5.9
         }
       ]
     },
@@ -1575,6 +1599,55 @@
   "cardMatchStudentBestTime": 10,
   "news": [
     {
+      "id": "1778207250934-whkz3",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "2組 H君 が第1章「因数分解①」を 3.4秒 で更新！",
+      "date": "2026-05-08T02:27:30.934Z"
+    },
+    {
+      "id": "1778206934807-m59yd",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「式の計算の利用」を 5.9秒 で更新！",
+      "date": "2026-05-08T02:22:14.807Z"
+    },
+    {
+      "id": "1778206918633-24kvu",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「いろいろな因数分解」を 5.5秒 で更新！",
+      "date": "2026-05-08T02:21:58.633Z"
+    },
+    {
+      "id": "1778206888137-afas3",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「乗法の公式」を 5.5秒 で更新！",
+      "date": "2026-05-08T02:21:28.136Z"
+    },
+    {
+      "id": "1778206879653-a8cu9",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「式の展開」を 5.3秒 で更新！",
+      "date": "2026-05-08T02:21:19.653Z"
+    },
+    {
+      "id": "1778206869853-4o1xk",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「式の除法」を 4.9秒 で更新！",
+      "date": "2026-05-08T02:21:09.852Z"
+    },
+    {
+      "id": "1778203724707-zmz9b",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組　I君 が第1章「式の乗法」を 5.3秒 で更新！",
+      "date": "2026-05-08T01:28:44.704Z"
+    },
+    {
       "id": "1778147989642-ii1ap",
       "type": "auto",
       "icon": "🏅",
@@ -1592,36 +1665,8 @@
       "id": "1778122610674-dx6fc",
       "type": "manual",
       "icon": "📌",
-      "title": "2組　R君が共通因数ウォールのレベル１を15.5秒でクリア",
+      "title": "2組　R君が共通因数ウォールのレベル１を15.2秒でクリア",
       "date": "2026-05-07T02:56:50.674Z"
-    },
-    {
-      "id": "1778120990802-mi7sp",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組　D君 が第1章「因数分解②」を 3秒 で更新！",
-      "date": "2026-05-07T02:29:50.800Z"
-    },
-    {
-      "id": "1778113605247-gimg8",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 がカードマッチを 10秒 で更新！",
-      "date": "2026-05-07T00:26:45.241Z"
-    },
-    {
-      "id": "1778113278855-4y955",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「因数分解①」を 3.8秒 で更新！",
-      "date": "2026-05-07T00:21:18.855Z"
-    },
-    {
-      "id": "1777860676053-xrp45",
-      "type": "manual",
-      "icon": "📌",
-      "title": "新ゲーム！共通因数ウォール出現！",
-      "date": "2026-05-04T02:11:16.053Z"
     }
   ],
   "wallProblems": [
@@ -1848,12 +1893,12 @@
       "time": 10
     },
     {
-      "name": "5組T君",
-      "time": 16
+      "name": "3組O君",
+      "time": 12
     },
     {
-      "name": "2組Hさん・6組N君",
-      "time": 17
+      "name": "5組T君",
+      "time": 16
     }
   ]
 }
