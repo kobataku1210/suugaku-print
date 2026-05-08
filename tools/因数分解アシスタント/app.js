@@ -298,6 +298,32 @@ def factor_full(expr_str):
         return ""
     return to_str(sp.factor(expr))
 
+def get_endpoints(expr_str):
+    """3項式の両端 (x²の項, 定数項) を返す。失敗時 None。"""
+    expr = parse(expr_str)
+    if expr is None:
+        return None
+    expr_e = sp.expand(expr)
+    if not expr_e.is_Add or len(expr_e.args) != 3:
+        return None
+    syms = list(expr_e.free_symbols)
+    if not syms:
+        return None
+    # x優先、その後アルファベット順
+    syms.sort(key=lambda s: (0 if str(s) == 'x' else 1, str(s)))
+    for x in syms:
+        try:
+            poly = sp.Poly(expr_e, x)
+            coeffs = poly.all_coeffs()
+            if len(coeffs) == 3:
+                # 最高次項 (係数 × x^2) と 定数項
+                top = coeffs[0] * x**2
+                bot = coeffs[2]
+                return [to_str(top), to_str(bot)]
+        except Exception:
+            continue
+    return None
+
 def is_perfect_square_form(expr_str):
     """expr が (x+a)² の形か"""
     expr = parse(expr_str)
@@ -1003,7 +1029,15 @@ let isSameNumbers = false;
 function askDoubleSquare() {
   setProgress('formula', ['start', 'gcf', 'terms']);
   attempts = 0;
-  bubbleHTML(`3 項なら、まず両端を見よう！<br><b>${pretty(currentExpr)}</b> の両端は「2乗の数」になっている？`, 'app');
+  // 両端の項を取り出して質問文に埋め込む
+  const ends = py('get_endpoints', currentExpr);
+  let endsLabel;
+  if (ends && ends.length === 2) {
+    endsLabel = `<b>${pretty(ends[0])}</b> と <b>${pretty(ends[1])}</b>`;
+  } else {
+    endsLabel = '両端';
+  }
+  bubbleHTML(`3 項なら、まず両端を見よう！<br><b>${pretty(currentExpr)}</b> の両端、${endsLabel} は何かの「2乗の数」になっている？`, 'app');
   setInputArea(`
     <div class="input-buttons">
       <button class="btn btn-yes" onclick="answerDoubleSquare(true)">はい</button>
