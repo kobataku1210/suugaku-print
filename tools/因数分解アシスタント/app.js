@@ -1029,11 +1029,15 @@ let isSameNumbers = false;
 function askDoubleSquare() {
   setProgress('formula', ['start', 'gcf', 'terms']);
   attempts = 0;
-  // 両端の項を取り出して質問文に埋め込む
+  // 両端の項を取り出して質問文に埋め込む（定数項は符号を必ず表示）
   const ends = py('get_endpoints', currentExpr);
+  const withSign = (s) => {
+    const t = String(s).trim();
+    return (t.startsWith('-') || t.startsWith('−')) ? t : '+' + t;
+  };
   let endsLabel;
   if (ends && ends.length === 2) {
-    endsLabel = `<b>${pretty(ends[0])}</b> と <b>${pretty(ends[1])}</b>`;
+    endsLabel = `<b>${pretty(ends[0])}</b> と <b>${withSign(pretty(ends[1]))}</b>`;
   } else {
     endsLabel = '両端';
   }
