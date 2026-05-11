@@ -824,7 +824,9 @@ function addRipple(e, el) {
 // ===== ホーム =====
 function renderHome() {
   const cards = mathData.chapters.map((ch, i) => {
-    const has = ch.sections.length > 0;
+    // draft: true の章は生徒画面では「準備中」扱い（中身があっても見せない）
+    const isDraft = !!ch.draft;
+    const has = !isDraft && ch.sections.length > 0;
     return `
       <div class="chapter-card" style="--gradient:${ch.gradient}"
            onclick="handleChapterClick(event,this,${i})">
@@ -1150,7 +1152,9 @@ function renderToolsPage() {
 
 function handleChapterClick(e, el, idx) {
   addRipple(e, el);
-  if (!mathData.chapters[idx].sections.length) return;
+  const ch = mathData.chapters[idx];
+  if (!ch.sections.length) return;
+  if (ch.draft) return; // draft の章は生徒画面からは開けない
   setTimeout(() => navigate('sections', { chapterIdx: idx }), 180);
 }
 

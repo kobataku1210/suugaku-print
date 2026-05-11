@@ -103,6 +103,25 @@
       font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .chapter-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); border-color: transparent; color: white; font-weight: 700; }
+    .chapter-tab.draft { border-color: rgba(255,165,0,0.6); color: rgba(255,200,100,0.95); background: rgba(255,165,0,0.08); }
+    .chapter-tab.draft.active { background: linear-gradient(135deg, #f7971e, #ffd200); color: #2a1a00; }
+    /* draft 状態の表示・切替バー */
+    .draft-toggle-bar {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.9rem; margin-bottom: 1rem;
+      background: rgba(255,165,0,0.12); border: 1px solid rgba(255,165,0,0.35);
+      border-radius: 10px; font-size: 0.86rem; color: #ffd180;
+    }
+    .draft-toggle-bar.published {
+      background: rgba(86,171,47,0.10); border-color: rgba(86,171,47,0.35); color: #aef0a0;
+    }
+    .draft-toggle-bar button {
+      margin-left: auto; padding: 0.32rem 0.9rem;
+      border-radius: 6px; border: 1px solid currentColor;
+      background: rgba(0,0,0,0.25); color: inherit;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .draft-toggle-bar button:hover { filter: brightness(1.2); }
 
     /* ===== 節パネル ===== */
     .section-panel { margin-bottom: 2rem; }
@@ -1073,14 +1092,33 @@ async function saveCmStudentBest() {
 }
 
 // ===== 章タブ =====
+// 章の draft 状態を切り替え（保存は別途「保存」ボタンで）
+function toggleChapterDraft(chIdx) {
+  const ch = questionsData.chapters[chIdx];
+  if (!ch) return;
+  if (ch.draft) {
+    if (!confirm(`第${ch.id}章「${ch.title}」を公開しますか？\n（保存後、生徒画面に表示されます）`)) return;
+    delete ch.draft;
+  } else {
+    if (!confirm(`第${ch.id}章「${ch.title}」を下書きに戻しますか？\n（保存後、生徒画面では「準備中」表示になります）`)) return;
+    ch.draft = true;
+  }
+  renderChapterTabs();
+  renderSections(chIdx);
+  // タブをアクティブ状態に保つ
+  document.querySelectorAll('.chapter-tab').forEach((t, i) => t.classList.toggle('active', i === chIdx));
+  alert('変更しました。「💾 保存する」または「🚀 GitHubに反映」で保存してください。');
+}
+
 function renderChapterTabs() {
   const area = document.getElementById('chapter-tabs');
-  area.innerHTML = questionsData.chapters.map((ch, i) =>
-    `<button class="chapter-tab${i === 0 ? ' active' : ''}"
+  area.innerHTML = questionsData.chapters.map((ch, i) => {
+    const draftBadge = ch.draft ? ' 🚧下書き' : '';
+    return `<button class="chapter-tab${i === 0 ? ' active' : ''}${ch.draft ? ' draft' : ''}"
              onclick="switchChapter(${i})" id="chtab-${i}">
-       第${ch.id}章 ${ch.title}
-     </button>`
-  ).join('');
+       第${ch.id}章 ${ch.title}${draftBadge}
+     </button>`;
+  }).join('');
 }
 
 function switchChapter(idx) {
@@ -1096,12 +1134,23 @@ function renderSections(chIdx) {
   const ch = questionsData.chapters[chIdx];
   const area = document.getElementById('sections-area');
 
+  // draft 状態の切替バー
+  const isDraft = !!ch.draft;
+  const draftBar = `
+    <div class="draft-toggle-bar ${isDraft ? '' : 'published'}">
+      ${isDraft
+        ? `<span>🚧 この章は <b>下書き状態</b>（生徒画面では「準備中」表示）</span>
+           <button onclick="toggleChapterDraft(${chIdx})">✅ 公開する</button>`
+        : `<span>✅ この章は <b>公開中</b>（生徒画面に表示）</span>
+           <button onclick="toggleChapterDraft(${chIdx})">🚧 下書きに戻す</button>`}
+    </div>`;
+
   if (!ch.sections || ch.sections.length === 0) {
-    area.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:3rem">この章はまだ問題がありません</p>';
+    area.innerHTML = draftBar + '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:3rem">この章はまだ問題がありません</p>';
     return;
   }
 
-  area.innerHTML = ch.sections.map((sec, si) => `
+  area.innerHTML = draftBar + ch.sections.map((sec, si) => `
     <div class="section-panel">
       <div class="section-heading">
         <span style="opacity:0.45">${String(si+1).padStart(2,'0')}</span>

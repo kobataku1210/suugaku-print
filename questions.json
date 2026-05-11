@@ -167,12 +167,16 @@
             }
           ],
           "miniTestPassword": "4206",
-          "studentBestName": "8組　I君",
+          "studentBestName": "8組I君",
           "studentBestTime": 5.3,
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 5.3
+            },
+            {
+              "name": "2組S君",
+              "time": 7.1
             }
           ]
         },
@@ -338,11 +342,11 @@
           "miniTestPassword": "4036",
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 4.9
             }
           ],
-          "studentBestName": "8組　I君",
+          "studentBestName": "8組I君",
           "studentBestTime": 4.9
         },
         {
@@ -507,11 +511,11 @@
           "miniTestPassword": "1183",
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 5.3
             }
           ],
-          "studentBestName": "8組　I君",
+          "studentBestName": "8組I君",
           "studentBestTime": 5.3
         },
         {
@@ -676,11 +680,11 @@
           "miniTestPassword": "1785",
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 5.5
             }
           ],
-          "studentBestName": "8組　I君",
+          "studentBestName": "8組I君",
           "studentBestTime": 5.5
         },
         {
@@ -1007,19 +1011,19 @@
             }
           ],
           "miniTestPassword": "9186",
-          "studentBestName": "2組 H君",
+          "studentBestName": "2組H君",
           "studentBestTime": 3.4,
           "studentBestList": [
             {
-              "name": "2組 H君",
+              "name": "2組H君",
               "time": 3.4
             },
             {
-              "name": "8組 I君",
+              "name": "8組I君",
               "time": 3.8
             },
             {
-              "name": "2組 N君",
+              "name": "2組N君",
               "time": 6.2
             }
           ]
@@ -1184,19 +1188,19 @@
             }
           ],
           "miniTestPassword": "2430",
-          "studentBestName": "2組 D君",
+          "studentBestName": "2組D君",
           "studentBestTime": 3,
           "studentBestList": [
             {
-              "name": "2組 D君",
+              "name": "2組D君",
               "time": 3
             },
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 4.4
             },
             {
-              "name": "2組 H君",
+              "name": "2組H君",
               "time": 5.3
             }
           ]
@@ -1361,15 +1365,19 @@
             }
           ],
           "miniTestPassword": "1672",
-          "studentBestTime": 5.5,
-          "studentBestName": "8組　I君",
+          "studentBestTime": 4.6,
+          "studentBestName": "6組S君",
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "6組S君",
+              "time": 4.6
+            },
+            {
+              "name": "8組I君",
               "time": 5.5
             },
             {
-              "name": "2組 K君",
+              "name": "2組K君",
               "time": 8.5
             }
           ]
@@ -1536,11 +1544,11 @@
           "miniTestPassword": "8142",
           "studentBestList": [
             {
-              "name": "8組　I君",
+              "name": "8組I君",
               "time": 5.9
             }
           ],
-          "studentBestName": "8組　I君",
+          "studentBestName": "8組I君",
           "studentBestTime": 5.9
         }
       ]
@@ -3399,7 +3407,8 @@
           "studentBestTime": null,
           "studentBestList": []
         }
-      ]
+      ],
+      "draft": true
     },
     {
       "id": 3,
@@ -3448,74 +3457,74 @@
   "cardMatchStudentBestTime": 10,
   "news": [
     {
+      "id": "1778472290918-b9n0l",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「いろいろな因数分解」を 4.6秒 で更新！",
+      "date": "2026-05-11T04:04:50.916Z"
+    },
+    {
+      "id": "1778465191157-i7f4t",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「式の計算の利用」を 5.9秒 で更新！",
+      "date": "2026-05-11T02:06:31.157Z"
+    },
+    {
+      "id": "1778465187727-yqvr6",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「いろいろな因数分解」を 5.5秒 で更新！",
+      "date": "2026-05-11T02:06:27.727Z"
+    },
+    {
+      "id": "1778465179547-dzt8b",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "2組D君 が第1章「因数分解②」を 3秒 で更新！",
+      "date": "2026-05-11T02:06:19.547Z"
+    },
+    {
+      "id": "1778465172585-qmllb",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "2組H君 が第1章「因数分解①」を 3.4秒 で更新！",
+      "date": "2026-05-11T02:06:12.585Z"
+    },
+    {
+      "id": "1778465162615-vub9p",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「乗法の公式」を 5.5秒 で更新！",
+      "date": "2026-05-11T02:06:02.615Z"
+    },
+    {
+      "id": "1778465157459-qp4kt",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「式の展開」を 5.3秒 で更新！",
+      "date": "2026-05-11T02:05:57.459Z"
+    },
+    {
+      "id": "1778465154503-sly9w",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「式の除法」を 4.9秒 で更新！",
+      "date": "2026-05-11T02:05:54.503Z"
+    },
+    {
+      "id": "1778465145376-jpgry",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "8組I君 が第1章「式の乗法」を 5.3秒 で更新！",
+      "date": "2026-05-11T02:05:45.373Z"
+    },
+    {
       "id": "1778207250934-whkz3",
       "type": "auto",
       "icon": "🏅",
       "title": "2組 H君 が第1章「因数分解①」を 3.4秒 で更新！",
       "date": "2026-05-08T02:27:30.934Z"
-    },
-    {
-      "id": "1778206934807-m59yd",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「式の計算の利用」を 5.9秒 で更新！",
-      "date": "2026-05-08T02:22:14.807Z"
-    },
-    {
-      "id": "1778206918633-24kvu",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「いろいろな因数分解」を 5.5秒 で更新！",
-      "date": "2026-05-08T02:21:58.633Z"
-    },
-    {
-      "id": "1778206888137-afas3",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「乗法の公式」を 5.5秒 で更新！",
-      "date": "2026-05-08T02:21:28.136Z"
-    },
-    {
-      "id": "1778206879653-a8cu9",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「式の展開」を 5.3秒 で更新！",
-      "date": "2026-05-08T02:21:19.653Z"
-    },
-    {
-      "id": "1778206869853-4o1xk",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「式の除法」を 4.9秒 で更新！",
-      "date": "2026-05-08T02:21:09.852Z"
-    },
-    {
-      "id": "1778203724707-zmz9b",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組　I君 が第1章「式の乗法」を 5.3秒 で更新！",
-      "date": "2026-05-08T01:28:44.704Z"
-    },
-    {
-      "id": "1778147989642-ii1ap",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "A君 が第1章「式の乗法」を 20秒 で更新！",
-      "date": "2026-05-07T09:59:49.637Z"
-    },
-    {
-      "id": "1778124041100-q8e4u",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組　K君 が第1章「いろいろな因数分解」を 8.5秒 で更新！",
-      "date": "2026-05-07T03:20:41.098Z"
-    },
-    {
-      "id": "1778122610674-dx6fc",
-      "type": "manual",
-      "icon": "📌",
-      "title": "2組　R君が共通因数ウォールのレベル１を15.2秒でクリア",
-      "date": "2026-05-07T02:56:50.674Z"
     }
   ],
   "wallProblems": [
