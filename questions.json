@@ -1550,7 +1550,173 @@
       "title": "平方根",
       "gradient": "linear-gradient(135deg, #4ECDC4, #45B7D1)",
       "icon": "√",
-      "sections": []
+      "sections": [
+        {
+          "title": "平方根の基礎①",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "4515",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "平方根の基礎②",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "4475",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "平方根の大小",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "4856",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "平方根の値",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "4840",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "有理数と無理数",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "6627",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "真の値と近似値",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "6961",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "ルートのついた数の積と商",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "6887",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "ルートの中を簡単な数にする",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "2717",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "工夫して計算する",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "6763",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "有理化",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "4820",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "式の値",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "2269",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "ルートをふくむ和と差",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "3306",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "ルートをふくむ積と商",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "8747",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "ルートをふくむ式の展開",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "1867",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        },
+        {
+          "title": "平方根の利用",
+          "teacherTime": null,
+          "basic": [],
+          "standard": [],
+          "advanced": [],
+          "miniTestPassword": "7955",
+          "studentBestName": null,
+          "studentBestTime": null,
+          "studentBestList": []
+        }
+      ]
     },
     {
       "id": 3,
