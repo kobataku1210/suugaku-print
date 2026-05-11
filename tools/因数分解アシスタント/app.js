@@ -298,6 +298,23 @@ def factor_full(expr_str):
         return ""
     return to_str(sp.factor(expr))
 
+def substitute_display(expr_str, gcf_str, var_name='A'):
+    """expr 中で gcf を 1 文字に置き換えた表示文字列を返す。
+    例: (a+b)x + (a+b)y, gcf=a+b → 'A*x + A*y'"""
+    e = parse(expr_str)
+    g = parse(gcf_str)
+    if e is None or g is None:
+        return ''
+    try:
+        inside = _safe_quotient(e, g)
+        if inside is None:
+            return ''
+        v = sp.Symbol(var_name)
+        substituted = sp.expand(v * inside)
+        return to_str(substituted)
+    except Exception:
+        return ''
+
 def get_endpoints(expr_str):
     """3項式の両端 (x²の項, 定数項) を返す。失敗時 None。"""
     expr = parse(expr_str)
@@ -810,7 +827,12 @@ function factorOut() {
   const useGCF = userGCF || py('gcf', currentExpr);
   const inside = py('factor_with_gcf', currentExpr, useGCF);
   const wrap = py('needs_parens', useGCF);
-  const gcfDisplay = wrap ? `(${pretty(useGCF)})` : pretty(useGCF);
+  // 共通因数が多項式 (a+b など) なら「置き換え」フローへ
+  if (wrap) {
+    askSubstitutionInside(useGCF, inside);
+    return;
+  }
+  const gcfDisplay = pretty(useGCF);
   bubbleHTML(
     `共通因数 <b>${gcfDisplay}</b> でくくると：<br>` +
     `<b>${pretty(currentExpr)} = ${gcfDisplay}(${pretty(inside)})</b>`,
@@ -824,6 +846,95 @@ function factorOut() {
     setTimeout(() => finalize(), 1500);
   } else {
     setTimeout(() => goToTermsStep(), 1500);
+  }
+}
+
+// ===== 多項式 GCF の置き換えフロー =====
+let substGCF = null;
+let substInside = null;
+
+function askSubstitutionInside(gcf, inside) {
+  substGCF = gcf;
+  substInside = inside;
+  attempts = 0;
+  // (a+b)x + (a+b)y → Ax + Ay の表示を取得
+  const substDisp = py('substitute_display', currentExpr, gcf, 'A');
+  bubbleHTML(
+    `共通因数は <b>(${pretty(gcf)})</b> だね。<br>` +
+    `<b>(${pretty(gcf)})</b> をひとまとめにして <b>A</b> と置きかえると：<br>` +
+    `<b>${pretty(currentExpr)} = ${pretty(substDisp)}</b>`,
+    'app'
+  );
+  setTimeout(() => {
+    bubbleHTML(
+      `共通因数 <b>A</b> でくくると <b>A(?)</b> の形になるよ。<br>` +
+      `<b>?</b> に入るのは何かな？`,
+      'app'
+    );
+    setInputArea(`
+      <div class="input-row">
+        <math-field id="subst-inside-input" placeholder="例: x+y"></math-field>
+        <button class="btn" onclick="submitSubstitutionInside()">送信</button>
+        <button class="btn-tell" onclick="tellSubstitutionInside()">教えて</button>
+        <button class="btn-restart" onclick="showStart()">最初から</button>
+      </div>
+    `);
+    bindEnterSubmit('subst-inside-input', window.submitSubstitutionInside);
+  }, 1800);
+}
+
+window.submitSubstitutionInside = function() {
+  const ans = readMathField('subst-inside-input');
+  if (!ans) return;
+  bubble(pretty(ans), 'user');
+  pyodide.globals.set('_ua', ans);
+  pyodide.globals.set('_uc', substInside);
+  const ok = pyodide.runPython('equal_expr(_ua, _uc)');
+  if (ok) {
+    bubble(`正解！A(${pretty(substInside)}) だね。`, 'correct');
+    setTimeout(() => showSubstitutionResult(), 1200);
+  } else {
+    attempts++;
+    if (attempts < 2) {
+      bubble('もう一度。A(◯) の ◯ を考えてみて。', 'hint');
+      const substDisp = py('substitute_display', currentExpr, substGCF, 'A');
+      setInputArea(`
+        <div class="input-row">
+          <math-field id="subst-inside-input" placeholder="例: x+y"></math-field>
+          <button class="btn" onclick="submitSubstitutionInside()">送信</button>
+          <button class="btn-tell" onclick="tellSubstitutionInside()">教えて</button>
+          <button class="btn-restart" onclick="showStart()">最初から</button>
+        </div>
+      `);
+      bindEnterSubmit('subst-inside-input', window.submitSubstitutionInside);
+    } else {
+      bubble(`正解は ${pretty(substInside)} だよ。`, 'hint');
+      setTimeout(() => showSubstitutionResult(), 1500);
+    }
+  }
+};
+
+window.tellSubstitutionInside = function() {
+  bubble('教えて！', 'user');
+  bubble(`${pretty(substInside)} だよ。`, 'hint');
+  setTimeout(() => showSubstitutionResult(), 1500);
+};
+
+function showSubstitutionResult() {
+  // A を元の (a+b) に戻して最終形を表示
+  const gcfDisp = `(${pretty(substGCF)})`;
+  bubbleHTML(
+    `A を <b>${gcfDisp}</b> に戻すと：<br>` +
+    `<b>A(${pretty(substInside)}) = ${gcfDisp}(${pretty(substInside)})</b>`,
+    'app'
+  );
+  currentExpr = substInside;
+  userGCF = null;
+  const done = py('is_already_factored', substInside);
+  if (done) {
+    setTimeout(() => finalize(), 1700);
+  } else {
+    setTimeout(() => goToTermsStep(), 1700);
   }
 }
 
