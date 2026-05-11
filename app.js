@@ -822,10 +822,13 @@ function addRipple(e, el) {
 }
 
 // ===== ホーム =====
+// URL に ?preview=draft が付いていればプレビューモード（draft 章も見られる）
+const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === 'draft';
+
 function renderHome() {
   const cards = mathData.chapters.map((ch, i) => {
-    // draft: true の章は生徒画面では「準備中」扱い（中身があっても見せない）
-    const isDraft = !!ch.draft;
+    // draft: true の章は生徒画面では「準備中」扱い（プレビューモードでは見せる）
+    const isDraft = !!ch.draft && !PREVIEW_MODE;
     const has = !isDraft && ch.sections.length > 0;
     return `
       <div class="chapter-card" style="--gradient:${ch.gradient}"
@@ -1154,7 +1157,7 @@ function handleChapterClick(e, el, idx) {
   addRipple(e, el);
   const ch = mathData.chapters[idx];
   if (!ch.sections.length) return;
-  if (ch.draft) return; // draft の章は生徒画面からは開けない
+  if (ch.draft && !PREVIEW_MODE) return; // draft の章は通常モードでは開けない（プレビュー時は可）
   setTimeout(() => navigate('sections', { chapterIdx: idx }), 180);
 }
 
@@ -2954,6 +2957,28 @@ function render() {
 // ===== 初期化 =====
 initMathBackground();
 createBowlWidget();
+
+// プレビューモードバナーを表示
+if (PREVIEW_MODE) {
+  const banner = document.createElement('div');
+  banner.id = 'preview-banner';
+  banner.innerHTML = '👁 プレビューモード（下書き章も表示中）<button onclick="window.location.search=\'\'">通常モードに戻る</button>';
+  banner.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #2a1a00; font-weight: 800; padding: 8px 16px;
+    text-align: center; font-size: 0.95rem;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3); letter-spacing: 1px;
+  `;
+  banner.querySelector('button').style.cssText = `
+    margin-left: 12px; padding: 3px 12px;
+    background: rgba(0,0,0,0.2); color: white;
+    border: 1px solid rgba(0,0,0,0.4); border-radius: 5px;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  `;
+  document.body.appendChild(banner);
+  document.body.style.paddingTop = '46px';
+}
 
 // 問題データを読み込む
 // ローカルサーバー・GitHub Pages どちらでも questions.json を直接参照

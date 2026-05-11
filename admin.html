@@ -1136,10 +1136,12 @@ function renderSections(chIdx) {
 
   // draft 状態の切替バー
   const isDraft = !!ch.draft;
+  const previewLink = `index.html?preview=draft`;
   const draftBar = `
     <div class="draft-toggle-bar ${isDraft ? '' : 'published'}">
       ${isDraft
         ? `<span>🚧 この章は <b>下書き状態</b>（生徒画面では「準備中」表示）</span>
+           <a href="${previewLink}" target="_blank" rel="noopener" style="margin-left:auto;padding:0.32rem 0.9rem;border-radius:6px;border:1px solid currentColor;background:rgba(0,0,0,0.25);color:inherit;font-size:0.82rem;font-weight:700;text-decoration:none;">👁 プレビュー</a>
            <button onclick="toggleChapterDraft(${chIdx})">✅ 公開する</button>`
         : `<span>✅ この章は <b>公開中</b>（生徒画面に表示）</span>
            <button onclick="toggleChapterDraft(${chIdx})">🚧 下書きに戻す</button>`}
