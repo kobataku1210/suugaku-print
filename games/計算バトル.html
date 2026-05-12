@@ -768,8 +768,9 @@ function gen四則演算() {
     return { display: `${a}+${b}`, answer: a + b, hint: null };
   }
   if (r < 0.55) {
-    // 引き算
-    const a = ri(15, 60), b = ri(2, 30);
+    // 引き算 (必ず正の答えになるよう b < a を保証)
+    const a = ri(20, 60);
+    const b = ri(2, a - 1);
     return { display: `${a}−${b}`, answer: a - b, hint: null };
   }
   if (r < 0.80) {
