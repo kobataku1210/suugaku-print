@@ -1011,6 +1011,14 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
     isNew: true,
   },
+  {
+    title: '計算バトル',
+    desc: '1台で2人対戦！因数分解で計算を一気に終わらせて相手のHPを削れ',
+    icon: '⚔️',
+    onclick: "window.location.href='games/計算バトル.html'",
+    gradient: 'linear-gradient(135deg, #3a8aff, #ff3a6a)',
+    isNew: true,
+  },
 ];
 // ===== ランキング画面 =====
 // 各単元のタイムアタック上位3名 ＋ カードマッチ上位3名を一覧表示
