@@ -212,90 +212,6 @@
   .level-badge.lv-hard   { background: #ff8a2a; }
   .level-badge.lv-legend { background: linear-gradient(135deg, #ff3a6a, #b01040); }
 
-  /* 報酬表示 */
-  .reward-display {
-    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-    color: #fff;
-    padding: 14px 36px;
-    border-radius: 16px;
-    font-size: clamp(32px, 7vw, 52px);
-    font-weight: 900;
-    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
-    letter-spacing: 3px;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    animation: rewardPop 0.6s ease-out;
-  }
-  .reward-display .pea { font-size: 0.7em; }
-  .reward-display .label {
-    font-size: 0.45em;
-    opacity: 0.9;
-    letter-spacing: 2px;
-    font-weight: bold;
-  }
-  @keyframes rewardPop {
-    0% { transform: scale(0.3); opacity: 0; }
-    60% { transform: scale(1.15); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  .upset-banner {
-    background: linear-gradient(135deg, #ffd56a 0%, #ff8a2a 100%);
-    color: #2a1810;
-    padding: 8px 22px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: clamp(14px, 2.5vw, 18px);
-    letter-spacing: 2px;
-    box-shadow: 0 4px 14px rgba(255,138,42,0.6);
-    animation: upsetPulse 0.8s ease-in-out infinite alternate;
-  }
-  @keyframes upsetPulse {
-    0% { transform: scale(1); box-shadow: 0 4px 14px rgba(255,138,42,0.6); }
-    100% { transform: scale(1.06); box-shadow: 0 4px 22px rgba(255,138,42,0.9); }
-  }
-
-  /* 報酬一覧テーブル */
-  .reward-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    text-align: center;
-    margin-top: 6px;
-  }
-  .reward-table th, .reward-table td {
-    padding: 6px 4px;
-    border: 1px solid rgba(255,255,255,0.18);
-    color: #fff;
-    font-family: 'Consolas','Menlo',monospace;
-  }
-  .reward-table th {
-    background: rgba(255,255,255,0.08);
-    font-weight: bold;
-    color: #ffaad0;
-    font-family: inherit;
-    font-size: 11px;
-  }
-  .reward-table th.row-h {
-    background: rgba(170,207,255,0.12);
-    color: #aacfff;
-  }
-  .reward-table td.same {
-    background: rgba(255,255,255,0.04);
-    color: #aaa;
-  }
-  .reward-table td.up1 {
-    background: rgba(76,175,80,0.35);
-    color: #fff; font-weight: bold;
-  }
-  .reward-table td.up2 {
-    background: rgba(255,138,42,0.45);
-    color: #fff; font-weight: bold;
-  }
-  .reward-table td.up3 {
-    background: linear-gradient(135deg, rgba(255,58,106,0.6), rgba(255,221,90,0.5));
-    color: #fff; font-weight: bold;
-  }
 
   /* 問題カード */
   .problem-card {
@@ -723,40 +639,6 @@
       </ul>
     </div>
 
-    <div class="setup-block">
-      <h4>🟢 ご褒美(勝者の獲得ピース)</h4>
-      <table class="reward-table">
-        <tr>
-          <th></th>
-          <th colspan="4" style="background:rgba(255,170,208,0.15);font-size:11px">相手の難易度 →</th>
-        </tr>
-        <tr>
-          <th></th>
-          <th>見習い</th><th>標準</th><th>大将</th><th>レジェンド</th>
-        </tr>
-        <tr>
-          <th class="row-h">見習い</th>
-          <td class="same">30</td><td class="same">30</td><td class="same">30</td><td class="same">30</td>
-        </tr>
-        <tr>
-          <th class="row-h">標準</th>
-          <td class="up1">45</td><td class="same">30</td><td class="same">30</td><td class="same">30</td>
-        </tr>
-        <tr>
-          <th class="row-h">大将</th>
-          <td class="up2">60</td><td class="up1">45</td><td class="same">30</td><td class="same">30</td>
-        </tr>
-        <tr>
-          <th class="row-h">レジェンド</th>
-          <td class="up3">75 ⚡</td><td class="up2">60</td><td class="up1">45</td><td class="same">30</td>
-        </tr>
-      </table>
-      <div style="font-size:11px;color:#ddd;margin-top:8px;line-height:1.5">
-        ※ 自分の方が <strong style="color:#ffdd5a">難しい問題</strong> を解いて勝つほどボーナス!
-        (難しい問題のハンデを覆した褒美) / ⚡ 最大ボーナス(レジェンドが見習いに勝利) / 敗者は 0 ピース
-      </div>
-    </div>
-
     <div style="display:flex;gap:12px;margin-top:8px">
       <button class="btn btn-back" onclick="showScreen('title-screen')">戻る</button>
       <button class="btn btn-go" onclick="startGame()">対戦開始!</button>
@@ -810,16 +692,6 @@
   <div id="result-screen" class="screen">
     <div class="title-emoji" id="r-emoji">🏆</div>
     <div class="winner-banner" id="winner-banner">P1 WIN!</div>
-
-    <!-- 報酬 -->
-    <div class="reward-display" id="reward-display" style="display:none">
-      <span class="pea">🟢</span>
-      <span id="reward-amount">+30</span>
-      <span class="label">ピース</span>
-    </div>
-    <div class="upset-banner" id="upset-banner" style="display:none">
-      ⚡ 番狂わせボーナス! ×<span id="upset-mult">1.5</span>
-    </div>
 
     <div class="stat-grid">
       <div class="stat-block">
@@ -1251,42 +1123,7 @@ function endGame(winnerIdx) {
     el.style.padding = '1px 8px';
   });
 
-  // ===== 報酬計算 =====
-  const winner = STATE.players[winnerIdx];
-  const loser  = STATE.players[1 - winnerIdx];
-  const reward = calculateReward(winner, loser);
-  const rewardEl = document.getElementById('reward-display');
-  const upsetEl  = document.getElementById('upset-banner');
-  document.getElementById('reward-amount').textContent = '+' + reward.amount;
-  rewardEl.style.display = 'inline-flex';
-  // アニメーション再トリガ
-  rewardEl.style.animation = 'none'; void rewardEl.offsetWidth;
-  rewardEl.style.animation = '';
-  if (reward.isUpset) {
-    document.getElementById('upset-mult').textContent = reward.multiplier;
-    upsetEl.style.display = 'inline-block';
-  } else {
-    upsetEl.style.display = 'none';
-  }
-
   showScreen('result-screen');
-}
-
-// ===== 報酬計算 =====
-const LEVEL_RANKS = { easy: 1, normal: 2, hard: 3, legend: 4 };
-const REWARD_BASE = 30;
-
-function calculateReward(winner, loser) {
-  const wr = LEVEL_RANKS[winner.level] || 2;
-  const lr = LEVEL_RANKS[loser.level]  || 2;
-  // 自分の方がレベル(=問題の難しさ)が上 → ハンデを覆した分ボーナス
-  const diff = Math.max(0, wr - lr);
-  const mult = 1 + 0.5 * diff;
-  return {
-    amount: Math.round(REWARD_BASE * mult),
-    multiplier: mult,
-    isUpset: mult >= 1.5,
-  };
 }
 
 function quitGame() {
