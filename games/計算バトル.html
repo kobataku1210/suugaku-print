@@ -29,6 +29,12 @@
     padding: 24px;
     overflow-y: auto;
   }
+  /* 内容が多い画面は上寄せ(中央寄せだとはみ出して上が見えなくなる) */
+  #setup-screen, #practice-setup-screen {
+    justify-content: flex-start;
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
   .title-logo {
     font-size: clamp(38px, 9vw, 68px);
     font-weight: 900;
