@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>計算バトル</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #222;
+    user-select: none;
+    background: #1a0e2a;
+    touch-action: manipulation;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル/設定/結果 共通 ===== */
+  #title-screen, #setup-screen, #practice-setup-screen, #result-screen {
+    background: linear-gradient(180deg, #2a1840 0%, #1a0e2a 100%);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .title-logo {
+    font-size: clamp(38px, 9vw, 68px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 3px 0 #ff3a6a, 0 0 20px rgba(255,58,106,0.6), 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .title-sub {
+    font-size: clamp(13px, 2.5vw, 18px);
+    color: #fff;
+    background: linear-gradient(90deg, #3a8aff, #ff3a6a);
+    padding: 6px 24px;
+    border-radius: 999px;
+    margin-top: -4px;
+    font-weight: bold;
+    letter-spacing: 3px;
+  }
+  .title-desc {
+    font-size: 14px; color: #ddd; text-align: center;
+    max-width: 360px; line-height: 1.7; margin-top: 8px;
+  }
+  .title-emoji { font-size: 72px; margin-bottom: 4px; }
+
+  .btn {
+    border: none;
+    background: linear-gradient(180deg, #ff3a6a, #d01a4a);
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    padding: 14px 48px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(255,58,106,0.5);
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: transform 0.1s;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-secondary { background: #fff; color: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .btn-back {
+    background: rgba(255,255,255,0.1); color: #ddd; border: 1px solid #555;
+    padding: 8px 24px; font-size: 14px; letter-spacing: 2px;
+    box-shadow: none;
+  }
+  .btn-go {
+    background: linear-gradient(180deg, #ff3a6a, #b01040);
+    font-size: 22px;
+    padding: 16px 60px;
+  }
+
+  /* 設定 */
+  .setup-block {
+    width: min(90vw, 460px);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+  .setup-block h4 {
+    font-size: 15px; color: #ffaad0; letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ff3a6a; padding-left: 8px;
+  }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 8px 18px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 999px; font-size: 14px; cursor: pointer;
+    font-weight: bold; color: #ddd;
+  }
+  .chip.selected {
+    background: #ff3a6a; border-color: #ff3a6a; color: #fff;
+  }
+  /* ランダムチップ専用 */
+  .chip[data-val="random"] {
+    background: linear-gradient(90deg,#3a8aff,#ff3a6a);
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+  }
+  .chip[data-val="random"].selected {
+    background: linear-gradient(90deg,#3a8aff,#ff3a6a);
+    border-color: #ffdd5a;
+    box-shadow: 0 0 0 3px #ffdd5a, 0 4px 16px rgba(255,221,90,0.6);
+    transform: scale(1.05);
+  }
+  /* 個別チップ専用 */
+  .chip[data-val="individual"] {
+    background: linear-gradient(90deg,#00b894,#0984e3);
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+  }
+  .chip[data-val="individual"].selected {
+    background: linear-gradient(90deg,#00b894,#0984e3);
+    border-color: #ffdd5a;
+    box-shadow: 0 0 0 3px #ffdd5a, 0 4px 16px rgba(255,221,90,0.6);
+    transform: scale(1.05);
+  }
+
+  /* ===== ゲーム画面 (横画面・縦割り) ===== */
+  #game-screen {
+    flex-direction: row;
+    background: #0a0518;
+  }
+
+  .player-area {
+    flex: 1 1 50%;
+    width: 50%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .p1-area {
+    background: linear-gradient(135deg, #1a3a8a 0%, #0a1a4a 100%);
+    border-right: 3px solid #ffdd5a;
+  }
+  .p2-area {
+    background: linear-gradient(135deg, #4a0a2a 0%, #8a1a3a 100%);
+    border-left: 3px solid #ffdd5a;
+  }
+
+  /* 各プレイヤーの内側コンテンツを90°回転 */
+  .inner-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100vh;
+    height: 50vw;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  .p1-area .inner-wrap {
+    /* P1 = 左側に座る。コンテンツを CW 90° 回転(180°反転後の向き) */
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .p2-area .inner-wrap {
+    /* P2 = 右側に座る。CCW 90° 回転(180°反転後の向き) */
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
+
+  /* HUD */
+  .player-hud {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 6px;
+    color: #fff; font-weight: bold;
+  }
+  .player-name { font-size: 18px; letter-spacing: 2px; }
+  .p1-area .player-name { color: #aacfff; }
+  .p2-area .player-name { color: #ffaad0; }
+  .hp-bar { display: flex; gap: 4px; font-size: 22px; }
+  .hp-bar .heart.lost { opacity: 0.2; filter: grayscale(1); }
+  .combo-display {
+    font-size: 14px;
+    color: #ffdd5a;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .combo-display .num {
+    font-size: 20px;
+    margin-left: 4px;
+    font-family: 'Consolas', 'Menlo', monospace;
+  }
+  .level-badge {
+    background: #ff8a2a;
+    color: #fff;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .level-badge.lv-easy   { background: #4caf50; }
+  .level-badge.lv-normal { background: #2196f3; }
+  .level-badge.lv-hard   { background: #ff8a2a; }
+  .level-badge.lv-legend { background: linear-gradient(135deg, #ff3a6a, #b01040); }
+
+  /* 報酬表示 */
+  .reward-display {
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    color: #fff;
+    padding: 14px 36px;
+    border-radius: 16px;
+    font-size: clamp(32px, 7vw, 52px);
+    font-weight: 900;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    letter-spacing: 3px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    animation: rewardPop 0.6s ease-out;
+  }
+  .reward-display .pea { font-size: 0.7em; }
+  .reward-display .label {
+    font-size: 0.45em;
+    opacity: 0.9;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+  @keyframes rewardPop {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .upset-banner {
+    background: linear-gradient(135deg, #ffd56a 0%, #ff8a2a 100%);
+    color: #2a1810;
+    padding: 8px 22px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: clamp(14px, 2.5vw, 18px);
+    letter-spacing: 2px;
+    box-shadow: 0 4px 14px rgba(255,138,42,0.6);
+    animation: upsetPulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes upsetPulse {
+    0% { transform: scale(1); box-shadow: 0 4px 14px rgba(255,138,42,0.6); }
+    100% { transform: scale(1.06); box-shadow: 0 4px 22px rgba(255,138,42,0.9); }
+  }
+
+  /* 報酬一覧テーブル */
+  .reward-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 6px;
+  }
+  .reward-table th, .reward-table td {
+    padding: 6px 4px;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    font-family: 'Consolas','Menlo',monospace;
+  }
+  .reward-table th {
+    background: rgba(255,255,255,0.08);
+    font-weight: bold;
+    color: #ffaad0;
+    font-family: inherit;
+    font-size: 11px;
+  }
+  .reward-table th.row-h {
+    background: rgba(170,207,255,0.12);
+    color: #aacfff;
+  }
+  .reward-table td.same {
+    background: rgba(255,255,255,0.04);
+    color: #aaa;
+  }
+  .reward-table td.up1 {
+    background: rgba(76,175,80,0.35);
+    color: #fff; font-weight: bold;
+  }
+  .reward-table td.up2 {
+    background: rgba(255,138,42,0.45);
+    color: #fff; font-weight: bold;
+  }
+  .reward-table td.up3 {
+    background: linear-gradient(135deg, rgba(255,58,106,0.6), rgba(255,221,90,0.5));
+    color: #fff; font-weight: bold;
+  }
+
+  /* 問題カード */
+  .problem-card {
+    margin: 6px auto;
+    background: linear-gradient(180deg, #fffceb 0%, #ffe7b8 100%);
+    border: 3px solid #8b5a2b;
+    border-radius: 12px;
+    padding: 10px 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    text-align: center;
+    min-width: 200px;
+  }
+  .problem-card .formula {
+    font-size: clamp(28px, 7vw, 44px);
+    font-weight: 900;
+    color: #1a0e2a;
+    line-height: 1.1;
+    letter-spacing: 1px;
+    font-family: 'Cambria Math', 'Cambria', serif;
+  }
+  .problem-card .formula sup { font-size: 0.65em; vertical-align: super; }
+  .problem-card.shake-wrong { animation: shakeWrong 0.3s; }
+  @keyframes shakeWrong {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); background: #ffd5d5; }
+    75% { transform: translateX(10px); background: #ffd5d5; }
+  }
+  .problem-card.solved-pop { animation: solvedPop 0.3s ease-out; }
+  @keyframes solvedPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); background: #d4f4d2; }
+    100% { transform: scale(1); }
+  }
+
+  /* 入力ディスプレイ */
+  .input-display {
+    margin: 4px auto 6px;
+    background: #000;
+    color: #ffdd5a;
+    font-family: 'Consolas', 'Menlo', monospace;
+    font-size: 28px;
+    font-weight: bold;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 2px solid #444;
+    min-width: 160px;
+    text-align: right;
+    min-height: 44px;
+    letter-spacing: 3px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .input-display.empty::before {
+    content: '_';
+    color: #555;
+  }
+
+  /* 数字パッド */
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 0 auto;
+    width: min(90%, 320px);
+    flex: 1;
+    max-height: 240px;
+  }
+  .num-btn {
+    background: linear-gradient(180deg, #fff 0%, #e0e4ea 100%);
+    border: 2px solid #aab;
+    border-radius: 10px;
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 900;
+    color: #1a0e2a;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.05s;
+    box-shadow: 0 3px 0 #889, 0 4px 6px rgba(0,0,0,0.2);
+    user-select: none;
+  }
+  .num-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #889;
+  }
+  .num-btn.special { background: linear-gradient(180deg, #ffd56a 0%, #e8a84a 100%); color: #2a1810; border-color: #b8842a; box-shadow: 0 3px 0 #946420, 0 4px 6px rgba(0,0,0,0.2); }
+  .num-btn.enter { background: linear-gradient(180deg, #ff3a6a 0%, #d01a4a 100%); color: #fff; border-color: #80042a; box-shadow: 0 3px 0 #60001a, 0 4px 6px rgba(0,0,0,0.3); }
+  .num-btn.locked { opacity: 0.3; pointer-events: none; }
+
+  /* バトルゾーン (中央縦バー) */
+  #battle-zone {
+    position: absolute;
+    top: 0; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+  }
+  .attack-fx {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 56px;
+    pointer-events: none;
+    text-shadow: 0 0 16px rgba(255,221,90,0.9), 0 0 32px rgba(255,138,42,0.7);
+  }
+  .attack-fx.attack-right { animation: attackRight 0.5s ease-in forwards; }
+  .attack-fx.attack-left { animation: attackLeft 0.5s ease-in forwards; }
+  @keyframes attackRight {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; left: 50%; }
+    20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; left: 1000%; }
+  }
+  @keyframes attackLeft {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; left: 50%; }
+    20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; left: -900%; }
+  }
+  .crit-text {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(32px, 8vw, 56px);
+    font-weight: 900;
+    color: #ffdd5a;
+    text-shadow: 0 0 12px #ff3a6a, 0 0 24px #ff3a6a, 0 4px 0 #b01040;
+    letter-spacing: 4px;
+    z-index: 8;
+    animation: critPop 0.8s ease-out forwards;
+  }
+  @keyframes critPop {
+    0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+    30% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+  }
+
+  /* ダメージフラッシュ */
+  .damage-flash {
+    position: absolute; inset: 0;
+    background: rgba(255,30,30,0.4);
+    pointer-events: none;
+    animation: dmgFlash 0.4s ease-out;
+  }
+  @keyframes dmgFlash {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .heart.broken { animation: heartBreak 0.5s ease-in forwards; }
+  @keyframes heartBreak {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.4); }
+    100% { transform: scale(0); opacity: 0; }
+  }
+
+  /* 上部 終了ボタン */
+  .quit-btn {
+    position: absolute;
+    top: 4px; right: 6px;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: 1px solid #777;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 6;
+    font-family: inherit;
+  }
+  .p2-area .quit-btn { display: none; }
+
+  /* カウントダウン */
+  #countdown {
+    position: absolute; inset: 0;
+    display: none;
+    justify-content: center; align-items: center;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: clamp(80px, 20vw, 160px);
+    font-weight: 900;
+    z-index: 100;
+    text-shadow: 0 0 30px #ff3a6a;
+  }
+  #countdown.active { display: flex; }
+  #countdown .label {
+    font-size: clamp(20px, 4vw, 32px);
+    margin-top: 20px;
+    letter-spacing: 4px;
+    color: #ffdd5a;
+  }
+
+  /* 結果 */
+  .winner-banner {
+    background: linear-gradient(135deg, #ffd56a, #ff3a6a);
+    color: #fff;
+    padding: 20px 50px;
+    border-radius: 16px;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    box-shadow: 0 8px 30px rgba(255,58,106,0.5);
+    text-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  }
+  .stat-grid {
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  }
+  .stat-block {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 14px 22px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .stat-block .label { font-size: 12px; color: #ffaad0; letter-spacing: 2px; }
+  .stat-block .label.p1 { color: #aacfff; }
+  .stat-block .value { font-size: 28px; font-weight: 900; color: #fff; margin-top: 4px; }
+  .stat-block .sub { font-size: 12px; color: #ccc; margin-top: 2px; }
+
+  /* 横画面警告 */
+  #orient-warn {
+    display: none;
+    position: absolute; inset: 0;
+    background: #000c;
+    color: #fff;
+    z-index: 200;
+    justify-content: center; align-items: center;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 18px;
+    text-align: center;
+    padding: 20px;
+  }
+  #orient-warn .icon { font-size: 64px; }
+
+  /* ===== 練習モード画面 ===== */
+  #practice-screen {
+    background: linear-gradient(180deg, #2a1840 0%, #1a0e2a 100%);
+    align-items: center;
+    padding: 0;
+    gap: 0;
+  }
+  .practice-hud {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-weight: bold;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    justify-content: center;
+  }
+  .pr-stat {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 16px;
+    font-family: 'Consolas','Menlo',monospace;
+    color: #ffdd5a;
+  }
+  .pr-badge {
+    background: #555; color: #fff;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; letter-spacing: 1px;
+    font-family: inherit;
+  }
+  .pr-badge.ok { background: #2a8a3a; }
+  .pr-badge.ng { background: #b03030; }
+  .pr-badge.cm { background: #ff8a2a; }
+
+  .practice-stage {
+    flex: 1;
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 18px;
+  }
+  .problem-card.large {
+    padding: 24px 40px;
+    min-width: 240px;
+  }
+  .problem-card.large .formula {
+    font-size: clamp(48px, 12vw, 84px);
+  }
+  .hint-box {
+    background: rgba(255,221,90,0.95);
+    color: #1a0e2a;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: clamp(13px, 2.5vw, 16px);
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 95%;
+    line-height: 1.6;
+  }
+  .hint-box sup { font-size: 0.7em; vertical-align: super; }
+  .hint-box .head { color: #b03030; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <div id="title-screen" class="screen active">
+    <div class="title-emoji">⚔️</div>
+    <div class="title-logo">計算バトル</div>
+    <div class="title-sub">CALC DUEL</div>
+    <div class="title-desc">
+      1台で2人対戦。<br>
+      <strong style="color:#ffaa6a">相手のHPを削り切れ!</strong><br>
+      <small style="color:#aaa">※ タブレット横向き、左右に座って対戦</small>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-secondary" onclick="showScreen('practice-setup-screen')">📚 練習モード</button>
+      <button class="btn btn-go" onclick="showScreen('setup-screen')">⚔ 対戦モード</button>
+    </div>
+  </div>
+
+  <!-- 練習モード設定 -->
+  <div id="practice-setup-screen" class="screen">
+    <div class="title-logo" style="font-size:clamp(24px,5vw,36px)">📚 練習モード</div>
+    <div class="title-desc" style="color:#ddd;background:transparent;padding:0">
+      レベルを選んで一人で練習。<br>
+      間違えたら因数分解のヒントが表示されます。
+    </div>
+
+    <div class="setup-block">
+      <h4>レベル選択</h4>
+      <div class="chip-group" id="practice-level-chips">
+        <div class="chip" data-val="easy">見習い</div>
+        <div class="chip selected" data-val="normal">標準</div>
+        <div class="chip" data-val="hard">大将</div>
+        <div class="chip" data-val="legend">レジェンド</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <button class="btn btn-back" onclick="showScreen('title-screen')">戻る</button>
+      <button class="btn btn-go" onclick="startPractice()">練習開始!</button>
+    </div>
+  </div>
+
+  <!-- 練習モード ゲーム画面 -->
+  <div id="practice-screen" class="screen">
+    <div class="practice-hud">
+      <button class="btn btn-back" style="padding:6px 14px;font-size:12px" onclick="quitPractice()">終了</button>
+      <div class="pr-stat"><span class="pr-badge">LEVEL</span><span id="pr-level">標準</span></div>
+      <div class="pr-stat"><span class="pr-badge ok">正解</span><span id="pr-correct">0</span></div>
+      <div class="pr-stat"><span class="pr-badge ng">ミス</span><span id="pr-wrong">0</span></div>
+      <div class="pr-stat"><span class="pr-badge cm">連続</span><span id="pr-combo">×0</span></div>
+    </div>
+    <div class="practice-stage">
+      <div class="problem-card large" id="pr-card">
+        <div class="formula" id="pr-formula">―</div>
+      </div>
+      <div id="pr-hint-slot"></div>
+      <div class="input-display empty" id="pr-display"></div>
+      <div class="numpad" id="pr-numpad"></div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="setup-screen" class="screen">
+    <div class="title-logo" style="font-size:clamp(24px,5vw,36px)">対戦設定</div>
+
+    <div class="setup-block">
+      <h4>難易度</h4>
+      <div class="chip-group" id="level-chips">
+        <div class="chip" data-val="easy">見習い</div>
+        <div class="chip selected" data-val="normal">標準</div>
+        <div class="chip" data-val="hard">大将</div>
+        <div class="chip" data-val="legend">レジェンド</div>
+        <div class="chip" data-val="random">🎲 ランダム</div>
+        <div class="chip" data-val="individual">👥 個別</div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:6px;line-height:1.5">
+        ※ <strong style="color:#ffaad0">ランダム</strong>: 各プレイヤーの難易度がランダム抽選 ／
+        <strong style="color:#aaffd5">個別</strong>: 各プレイヤーが好きな難易度を選択
+      </div>
+
+      <!-- 個別選択(個別モードの時だけ表示) -->
+      <div id="individual-selectors" style="display:none;margin-top:12px;border-top:1px dashed #666;padding-top:10px">
+        <div style="margin-bottom:10px">
+          <div style="font-size:13px;color:#aacfff;font-weight:bold;margin-bottom:6px">⚔ P1 (左) の難易度</div>
+          <div class="chip-group" id="p1-level-chips">
+            <div class="chip" data-val="easy">見習い</div>
+            <div class="chip selected" data-val="normal">標準</div>
+            <div class="chip" data-val="hard">大将</div>
+            <div class="chip" data-val="legend">レジェンド</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:#ffaad0;font-weight:bold;margin-bottom:6px">⚔ P2 (右) の難易度</div>
+          <div class="chip-group" id="p2-level-chips">
+            <div class="chip" data-val="easy">見習い</div>
+            <div class="chip selected" data-val="normal">標準</div>
+            <div class="chip" data-val="hard">大将</div>
+            <div class="chip" data-val="legend">レジェンド</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-block">
+      <h4>HP(ハート数)</h4>
+      <div class="chip-group" id="hp-chips">
+        <div class="chip" data-val="3">3 (短期決戦)</div>
+        <div class="chip selected" data-val="5">5 (標準)</div>
+        <div class="chip" data-val="7">7 (じっくり)</div>
+      </div>
+    </div>
+
+    <div class="setup-block">
+      <h4>ルール</h4>
+      <ul style="font-size:13px;color:#ddd;line-height:1.8;padding-left:16px">
+        <li>正解 → 相手に <strong style="color:#ffdd5a">1ダメージ</strong></li>
+        <li>3コンボで <strong style="color:#ff3a6a">クリティカル(2ダメージ)</strong></li>
+        <li>間違い → コンボ切れ + 0.5秒入力ロック</li>
+        <li>相手のHPを0にしたら勝ち!</li>
+      </ul>
+    </div>
+
+    <div class="setup-block">
+      <h4>🟢 ご褒美(勝者の獲得ピース)</h4>
+      <table class="reward-table">
+        <tr>
+          <th></th>
+          <th colspan="4" style="background:rgba(255,170,208,0.15);font-size:11px">相手の難易度 →</th>
+        </tr>
+        <tr>
+          <th></th>
+          <th>見習い</th><th>標準</th><th>大将</th><th>レジェンド</th>
+        </tr>
+        <tr>
+          <th class="row-h">見習い</th>
+          <td class="same">30</td><td class="same">30</td><td class="same">30</td><td class="same">30</td>
+        </tr>
+        <tr>
+          <th class="row-h">標準</th>
+          <td class="up1">45</td><td class="same">30</td><td class="same">30</td><td class="same">30</td>
+        </tr>
+        <tr>
+          <th class="row-h">大将</th>
+          <td class="up2">60</td><td class="up1">45</td><td class="same">30</td><td class="same">30</td>
+        </tr>
+        <tr>
+          <th class="row-h">レジェンド</th>
+          <td class="up3">75 ⚡</td><td class="up2">60</td><td class="up1">45</td><td class="same">30</td>
+        </tr>
+      </table>
+      <div style="font-size:11px;color:#ddd;margin-top:8px;line-height:1.5">
+        ※ 自分の方が <strong style="color:#ffdd5a">難しい問題</strong> を解いて勝つほどボーナス!
+        (難しい問題のハンデを覆した褒美) / ⚡ 最大ボーナス(レジェンドが見習いに勝利) / 敗者は 0 ピース
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <button class="btn btn-back" onclick="showScreen('title-screen')">戻る</button>
+      <button class="btn btn-go" onclick="startGame()">対戦開始!</button>
+    </div>
+  </div>
+
+  <!-- ゲーム -->
+  <div id="game-screen" class="screen">
+    <!-- P1 (左) -->
+    <div class="player-area p1-area" id="p1-area">
+      <div class="inner-wrap">
+        <button class="quit-btn" onclick="quitGame()">終了</button>
+        <div class="player-hud">
+          <div class="player-name">⚔ P1</div>
+          <div class="combo-display">COMBO<span class="num" id="p1-combo">×0</span></div>
+          <div class="level-badge" id="p1-level-badge">標準</div>
+          <div class="hp-bar" id="p1-hp"></div>
+        </div>
+        <div class="problem-card" id="p1-card">
+          <div class="formula" id="p1-formula">―</div>
+        </div>
+        <div class="input-display empty" id="p1-display"></div>
+        <div class="numpad" id="p1-numpad"></div>
+      </div>
+    </div>
+
+    <!-- バトルゾーン -->
+    <div id="battle-zone"></div>
+
+    <!-- P2 (右) -->
+    <div class="player-area p2-area" id="p2-area">
+      <div class="inner-wrap">
+        <div class="player-hud">
+          <div class="player-name">⚔ P2</div>
+          <div class="combo-display">COMBO<span class="num" id="p2-combo">×0</span></div>
+          <div class="level-badge" id="p2-level-badge">標準</div>
+          <div class="hp-bar" id="p2-hp"></div>
+        </div>
+        <div class="problem-card" id="p2-card">
+          <div class="formula" id="p2-formula">―</div>
+        </div>
+        <div class="input-display empty" id="p2-display"></div>
+        <div class="numpad" id="p2-numpad"></div>
+      </div>
+    </div>
+
+    <div id="countdown"></div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-screen" class="screen">
+    <div class="title-emoji" id="r-emoji">🏆</div>
+    <div class="winner-banner" id="winner-banner">P1 WIN!</div>
+
+    <!-- 報酬 -->
+    <div class="reward-display" id="reward-display" style="display:none">
+      <span class="pea">🟢</span>
+      <span id="reward-amount">+30</span>
+      <span class="label">ピース</span>
+    </div>
+    <div class="upset-banner" id="upset-banner" style="display:none">
+      ⚡ 番狂わせボーナス! ×<span id="upset-mult">1.5</span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-block">
+        <div class="label p1">P1 <span class="level-badge" id="r-p1-level" style="font-size:10px;padding:1px 8px">―</span></div>
+        <div class="value" id="r-p1-correct">0</div>
+        <div class="sub">正解 / ミス <span id="r-p1-wrong">0</span></div>
+        <div class="sub">最大コンボ ×<span id="r-p1-combo">0</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="label">P2 <span class="level-badge" id="r-p2-level" style="font-size:10px;padding:1px 8px">―</span></div>
+        <div class="value" id="r-p2-correct">0</div>
+        <div class="sub">正解 / ミス <span id="r-p2-wrong">0</span></div>
+        <div class="sub">最大コンボ ×<span id="r-p2-combo">0</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px">
+      <button class="btn" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="showScreen('setup-screen')">設定変更</button>
+      <button class="btn btn-back" onclick="showScreen('title-screen')">タイトル</button>
+    </div>
+  </div>
+
+  <div id="orient-warn">
+    <div class="icon">📱</div>
+    <div>横向き(ランドスケープ)推奨です</div>
+  </div>
+</div>
+
+<script>
+// ========== 画面遷移 ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ========== チップ選択 ==========
+function setupChips(groupId) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('#' + groupId + ' .chip').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+    });
+  });
+}
+setupChips('level-chips');
+setupChips('hp-chips');
+setupChips('p1-level-chips');
+setupChips('p2-level-chips');
+
+// 個別モードの時だけ各プレイヤーの選択肢を表示
+document.querySelectorAll('#level-chips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    const isIndividual = c.dataset.val === 'individual';
+    document.getElementById('individual-selectors').style.display = isIndividual ? 'block' : 'none';
+  });
+});
+
+function getChipValue(groupId) {
+  const sel = document.querySelector('#' + groupId + ' .chip.selected');
+  return sel ? sel.dataset.val : null;
+}
+
+// ========== 問題生成 ==========
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function ri(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// 見習い: 簡単な四則演算
+// 見習い: 基本的な四則演算(やさしめ)
+function gen四則演算() {
+  const r = Math.random();
+  if (r < 0.30) {
+    // 足し算: 2桁+1〜2桁 (やさしめ)
+    const a = ri(8, 40), b = ri(2, 40);
+    return { display: `${a}+${b}`, answer: a + b, hint: null };
+  }
+  if (r < 0.55) {
+    // 引き算
+    const a = ri(15, 60), b = ri(2, 30);
+    return { display: `${a}−${b}`, answer: a - b, hint: null };
+  }
+  if (r < 0.80) {
+    // 九九
+    const a = ri(2, 9), b = ri(2, 9);
+    return { display: `${a}×${b}`, answer: a * b, hint: null };
+  }
+  // 割り算 (九九の逆)
+  const b = ri(2, 9), ans = ri(2, 9);
+  return { display: `${b * ans}÷${b}`, answer: ans, hint: null };
+}
+
+// 標準: x²−y² 形のみ
+function gen平方の差() {
+  const sumPool = [20, 30, 40, 50, 60, 80, 100];
+  const diffPool = [2, 4, 6, 10, 20];
+  let sum, diff, a, b, tries = 0;
+  do {
+    sum = rand(sumPool);
+    diff = rand(diffPool);
+    a = (sum + diff) / 2;
+    b = (sum - diff) / 2;
+    tries++;
+  } while ((b <= 0 || !Number.isInteger(a) || sum === diff) && tries < 20);
+  return {
+    display: `${a}<sup>2</sup>−${b}<sup>2</sup>`,
+    answer: a*a - b*b,
+    hint: `(${a}+${b})(${a}−${b}) = ${a+b}×${a-b} = ${(a+b)*(a-b)}`
+  };
+}
+
+// 大将: (a+b)(a−b) 形 (例 41×39 = (40+1)(40−1))
+function gen積の形() {
+  const cPool = [20, 30, 40, 50, 60, 100, 200];
+  const dPool = [1, 2, 3, 4, 5];
+  const c = rand(cPool), d = rand(dPool);
+  return {
+    display: `${c+d}×${c-d}`,
+    answer: (c+d)*(c-d),
+    hint: `(${c}+${d})(${c}−${d}) = ${c}<sup>2</sup>−${d}<sup>2</sup> = ${c*c}−${d*d} = ${c*c - d*d}`
+  };
+}
+
+// レジェンド: (10±d)², (100±d)² など
+function gen大2乗() {
+  const cPool = [10, 50, 100, 200];
+  const dPool = [1, 2, 3, 4, 5];
+  const c = rand(cPool), d = rand(dPool);
+  const sign = Math.random() < 0.5 ? 1 : -1;
+  const a = c + sign * d;
+  const opSym = sign > 0 ? '+' : '−';
+  return {
+    display: `${a}<sup>2</sup>`,
+    answer: a*a,
+    hint: `(${c}${opSym}${d})<sup>2</sup> = ${c}<sup>2</sup>${opSym}${2*c*d}+${d*d} = ${a*a}`
+  };
+}
+
+function generateProblem(level) {
+  switch (level) {
+    case 'easy':   return gen四則演算();
+    case 'normal': return gen平方の差();
+    case 'hard':   return gen積の形();
+    case 'legend': return gen大2乗();
+  }
+  return gen平方の差();
+}
+
+// ========== ゲーム状態 ==========
+const STATE = {
+  level: 'normal',
+  maxHp: 5,
+  players: [],
+  running: false,
+};
+
+function makePlayer(idx) {
+  let lv;
+  if (STATE.level === 'random') {
+    lv = rand(['easy','normal','hard','legend']);
+  } else if (STATE.level === 'individual') {
+    lv = getChipValue(idx === 0 ? 'p1-level-chips' : 'p2-level-chips');
+  } else {
+    lv = STATE.level;
+  }
+  return {
+    idx,
+    id: 'p' + (idx + 1),
+    other: idx === 0 ? 1 : 0,
+    hp: STATE.maxHp,
+    combo: 0,
+    maxCombo: 0,
+    correct: 0,
+    wrong: 0,
+    input: '',
+    locked: false,
+    problem: null,
+    recent: [],
+    level: lv,
+  };
+}
+
+// ========== 数字パッドビルド ==========
+function buildNumpad(containerId, playerIdx) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = '';
+  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','⏎'];
+  keys.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'num-btn';
+    if (k === '⌫') btn.classList.add('special');
+    if (k === '⏎') btn.classList.add('enter');
+    btn.textContent = k;
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      handleKey(playerIdx, k);
+    });
+    c.appendChild(btn);
+  });
+}
+buildNumpad('p1-numpad', 0);
+buildNumpad('p2-numpad', 1);
+
+// ========== 入力ハンドリング ==========
+function handleKey(playerIdx, key) {
+  if (!STATE.running) return;
+  const p = STATE.players[playerIdx];
+  if (p.locked) return;
+  if (key === '⌫') {
+    p.input = p.input.slice(0, -1);
+  } else if (key === '⏎') {
+    submit(p);
+    return;
+  } else {
+    if (p.input.length >= 7) return;
+    p.input += key;
+  }
+  refreshInputDisplay(p);
+}
+
+function refreshInputDisplay(p) {
+  const d = document.getElementById(p.id + '-display');
+  d.textContent = p.input;
+  d.classList.toggle('empty', p.input === '');
+}
+
+function submit(p) {
+  if (p.input === '') return;
+  const num = parseInt(p.input, 10);
+  if (isNaN(num)) { p.input = ''; refreshInputDisplay(p); return; }
+  if (num === p.problem.answer) {
+    onCorrect(p);
+  } else {
+    onWrong(p);
+  }
+}
+
+function onCorrect(attacker) {
+  attacker.correct++;
+  attacker.combo++;
+  attacker.maxCombo = Math.max(attacker.maxCombo, attacker.combo);
+  attacker.input = '';
+  refreshInputDisplay(attacker);
+
+  // クリティカル判定
+  const isCrit = attacker.combo > 0 && attacker.combo % 3 === 0;
+  const dmg = isCrit ? 2 : 1;
+
+  // 攻撃エフェクト
+  flyAttack(attacker.idx, isCrit);
+  if (isCrit) showCrit();
+
+  // 問題カード演出
+  const card = document.getElementById(attacker.id + '-card');
+  card.classList.add('solved-pop');
+  setTimeout(() => card.classList.remove('solved-pop'), 300);
+
+  // ダメージ適用
+  const defender = STATE.players[attacker.other];
+  applyDamage(defender, dmg);
+
+  // 次の問題
+  setTimeout(() => giveProblem(attacker), 200);
+
+  // 勝敗チェック
+  if (defender.hp <= 0) {
+    setTimeout(() => endGame(attacker.idx), 700);
+  }
+}
+
+function onWrong(p) {
+  p.wrong++;
+  p.combo = 0;
+  p.input = '';
+  refreshInputDisplay(p);
+  updateCombo(p);
+  const card = document.getElementById(p.id + '-card');
+  card.classList.add('shake-wrong');
+  setTimeout(() => card.classList.remove('shake-wrong'), 300);
+  // 0.5秒ロック
+  p.locked = true;
+  document.getElementById(p.id + '-numpad').classList.add('locked-overlay');
+  document.querySelectorAll('#' + p.id + '-numpad .num-btn').forEach(b => b.classList.add('locked'));
+  setTimeout(() => {
+    p.locked = false;
+    document.querySelectorAll('#' + p.id + '-numpad .num-btn').forEach(b => b.classList.remove('locked'));
+  }, 500);
+}
+
+function applyDamage(target, dmg) {
+  target.hp = Math.max(0, target.hp - dmg);
+  // ハート割れる演出
+  const hpBar = document.getElementById(target.id + '-hp');
+  const hearts = hpBar.querySelectorAll('.heart');
+  let toBreak = dmg;
+  for (let i = hearts.length - 1; i >= 0 && toBreak > 0; i--) {
+    if (!hearts[i].classList.contains('lost')) {
+      hearts[i].classList.add('broken');
+      const idx = i;
+      setTimeout(() => {
+        hearts[idx].classList.remove('broken');
+        hearts[idx].classList.add('lost');
+      }, 500);
+      toBreak--;
+    }
+  }
+  // ダメージフラッシュ
+  const area = document.getElementById(target.id + '-area');
+  const flash = document.createElement('div');
+  flash.className = 'damage-flash';
+  area.appendChild(flash);
+  setTimeout(() => flash.remove(), 400);
+}
+
+function updateHp(p) {
+  const bar = document.getElementById(p.id + '-hp');
+  bar.innerHTML = '';
+  for (let i = 0; i < STATE.maxHp; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart' + (i >= p.hp ? ' lost' : '');
+    h.textContent = '❤';
+    bar.appendChild(h);
+  }
+}
+
+function updateCombo(p) {
+  document.getElementById(p.id + '-combo').textContent = '×' + p.combo;
+}
+
+function giveProblem(p) {
+  let prob, tries = 0;
+  do {
+    prob = generateProblem(p.level);
+    tries++;
+  } while (p.recent.includes(prob.answer) && tries < 10);
+  p.recent.push(prob.answer);
+  if (p.recent.length > 4) p.recent.shift();
+  p.problem = prob;
+  document.getElementById(p.id + '-formula').innerHTML = prob.display;
+  updateCombo(p);
+}
+
+// ========== 攻撃エフェクト ==========
+function flyAttack(attackerIdx, crit) {
+  const zone = document.getElementById('battle-zone');
+  const fx = document.createElement('div');
+  // P1(左)→右へ攻撃、P2(右)→左へ攻撃
+  fx.className = 'attack-fx ' + (attackerIdx === 0 ? 'attack-right' : 'attack-left');
+  fx.textContent = crit ? '💥' : '⚔️';
+  zone.appendChild(fx);
+  setTimeout(() => fx.remove(), 600);
+}
+
+function showCrit() {
+  const zone = document.getElementById('battle-zone');
+  const t = document.createElement('div');
+  t.className = 'crit-text';
+  t.textContent = 'CRITICAL!';
+  zone.appendChild(t);
+  setTimeout(() => t.remove(), 800);
+}
+
+// ========== ゲーム制御 ==========
+function startGame() {
+  STATE.level = getChipValue('level-chips');
+  STATE.maxHp = parseInt(getChipValue('hp-chips'), 10);
+  STATE.players = [makePlayer(0), makePlayer(1)];
+  STATE.running = false;
+
+  showScreen('game-screen');
+  STATE.players.forEach(p => {
+    updateHp(p);
+    updateCombo(p);
+    updateLevelBadge(p);
+    p.input = '';
+    refreshInputDisplay(p);
+  });
+
+  runCountdown(() => {
+    STATE.running = true;
+    STATE.players.forEach(p => giveProblem(p));
+  });
+}
+
+function updateLevelBadge(p) {
+  const badge = document.getElementById(p.id + '-level-badge');
+  if (!badge) return;
+  badge.textContent = LEVEL_LABELS[p.level] || p.level;
+  badge.className = 'level-badge lv-' + p.level;
+}
+
+function runCountdown(done) {
+  const cd = document.getElementById('countdown');
+  cd.classList.add('active');
+  let n = 3;
+  cd.innerHTML = `<div>${n}</div><div class="label">準備!</div>`;
+  const t = setInterval(() => {
+    n--;
+    if (n > 0) cd.innerHTML = `<div>${n}</div><div class="label">準備!</div>`;
+    else if (n === 0) cd.innerHTML = `<div style="font-size:0.7em">FIGHT!</div>`;
+    else {
+      clearInterval(t);
+      cd.classList.remove('active');
+      done();
+    }
+  }, 700);
+}
+
+function endGame(winnerIdx) {
+  STATE.running = false;
+  document.getElementById('r-emoji').textContent = '🏆';
+  const banner = document.getElementById('winner-banner');
+  banner.textContent = `P${winnerIdx + 1} WIN!`;
+  banner.style.background = winnerIdx === 0
+    ? 'linear-gradient(135deg, #3a8aff, #1a3a8a)'
+    : 'linear-gradient(135deg, #ff3a6a, #8a1a3a)';
+
+  document.getElementById('r-p1-correct').textContent = STATE.players[0].correct;
+  document.getElementById('r-p1-wrong').textContent = STATE.players[0].wrong;
+  document.getElementById('r-p1-combo').textContent = STATE.players[0].maxCombo;
+  document.getElementById('r-p2-correct').textContent = STATE.players[1].correct;
+  document.getElementById('r-p2-wrong').textContent = STATE.players[1].wrong;
+  document.getElementById('r-p2-combo').textContent = STATE.players[1].maxCombo;
+  // レベル表示
+  ['p1','p2'].forEach((id, i) => {
+    const el = document.getElementById('r-' + id + '-level');
+    const lv = STATE.players[i].level;
+    el.textContent = LEVEL_LABELS[lv] || lv;
+    el.className = 'level-badge lv-' + lv;
+    el.style.fontSize = '10px';
+    el.style.padding = '1px 8px';
+  });
+
+  // ===== 報酬計算 =====
+  const winner = STATE.players[winnerIdx];
+  const loser  = STATE.players[1 - winnerIdx];
+  const reward = calculateReward(winner, loser);
+  const rewardEl = document.getElementById('reward-display');
+  const upsetEl  = document.getElementById('upset-banner');
+  document.getElementById('reward-amount').textContent = '+' + reward.amount;
+  rewardEl.style.display = 'inline-flex';
+  // アニメーション再トリガ
+  rewardEl.style.animation = 'none'; void rewardEl.offsetWidth;
+  rewardEl.style.animation = '';
+  if (reward.isUpset) {
+    document.getElementById('upset-mult').textContent = reward.multiplier;
+    upsetEl.style.display = 'inline-block';
+  } else {
+    upsetEl.style.display = 'none';
+  }
+
+  showScreen('result-screen');
+}
+
+// ===== 報酬計算 =====
+const LEVEL_RANKS = { easy: 1, normal: 2, hard: 3, legend: 4 };
+const REWARD_BASE = 30;
+
+function calculateReward(winner, loser) {
+  const wr = LEVEL_RANKS[winner.level] || 2;
+  const lr = LEVEL_RANKS[loser.level]  || 2;
+  // 自分の方がレベル(=問題の難しさ)が上 → ハンデを覆した分ボーナス
+  const diff = Math.max(0, wr - lr);
+  const mult = 1 + 0.5 * diff;
+  return {
+    amount: Math.round(REWARD_BASE * mult),
+    multiplier: mult,
+    isUpset: mult >= 1.5,
+  };
+}
+
+function quitGame() {
+  if (confirm('対戦を終了しますか?')) {
+    STATE.running = false;
+    showScreen('setup-screen');
+  }
+}
+
+// 物理キーボードでも入力できるように(P1のみ)
+document.addEventListener('keydown', e => {
+  if (STATE.running) {
+    if (e.key >= '0' && e.key <= '9') handleKey(0, e.key);
+    else if (e.key === 'Backspace') handleKey(0, '⌫');
+    else if (e.key === 'Enter') handleKey(0, '⏎');
+    return;
+  }
+  // 練習モード時のキーボード対応
+  if (PRACTICE.running) {
+    if (e.key >= '0' && e.key <= '9') handlePracticeKey(e.key);
+    else if (e.key === 'Backspace') handlePracticeKey('⌫');
+    else if (e.key === 'Enter') handlePracticeKey('⏎');
+  }
+});
+
+// ========== 練習モード ==========
+setupChips('practice-level-chips');
+
+const PRACTICE = {
+  level: 'normal',
+  problem: null,
+  input: '',
+  correct: 0,
+  wrong: 0,
+  combo: 0,
+  recent: [],
+  running: false,
+};
+
+const LEVEL_LABELS = { easy: '見習い', normal: '標準', hard: '大将', legend: 'レジェンド' };
+
+function startPractice() {
+  PRACTICE.level = getChipValue('practice-level-chips');
+  PRACTICE.correct = 0;
+  PRACTICE.wrong = 0;
+  PRACTICE.combo = 0;
+  PRACTICE.recent = [];
+  PRACTICE.input = '';
+  PRACTICE.running = true;
+  document.getElementById('pr-level').textContent = LEVEL_LABELS[PRACTICE.level];
+  showScreen('practice-screen');
+  buildPracticeNumpad();
+  givePracticeProblem();
+  updatePracticeHud();
+  refreshPracticeDisplay();
+}
+
+function buildPracticeNumpad() {
+  const c = document.getElementById('pr-numpad');
+  if (c.childNodes.length > 0) return; // 1度だけ
+  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','⏎'];
+  keys.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'num-btn';
+    if (k === '⌫') btn.classList.add('special');
+    if (k === '⏎') btn.classList.add('enter');
+    btn.textContent = k;
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      handlePracticeKey(k);
+    });
+    c.appendChild(btn);
+  });
+}
+
+function handlePracticeKey(key) {
+  if (!PRACTICE.running) return;
+  if (key === '⌫') {
+    PRACTICE.input = PRACTICE.input.slice(0, -1);
+  } else if (key === '⏎') {
+    submitPractice();
+    return;
+  } else {
+    if (PRACTICE.input.length >= 7) return;
+    PRACTICE.input += key;
+  }
+  refreshPracticeDisplay();
+}
+
+function refreshPracticeDisplay() {
+  const d = document.getElementById('pr-display');
+  d.textContent = PRACTICE.input;
+  d.classList.toggle('empty', PRACTICE.input === '');
+}
+
+function submitPractice() {
+  if (PRACTICE.input === '' || !PRACTICE.problem) return;
+  const num = parseInt(PRACTICE.input, 10);
+  if (isNaN(num)) { PRACTICE.input = ''; refreshPracticeDisplay(); return; }
+  const card = document.getElementById('pr-card');
+  if (num === PRACTICE.problem.answer) {
+    PRACTICE.correct++;
+    PRACTICE.combo++;
+    PRACTICE.input = '';
+    refreshPracticeDisplay();
+    document.getElementById('pr-hint-slot').innerHTML = '';
+    card.classList.add('solved-pop');
+    setTimeout(() => card.classList.remove('solved-pop'), 300);
+    setTimeout(() => givePracticeProblem(), 350);
+  } else {
+    PRACTICE.wrong++;
+    PRACTICE.combo = 0;
+    PRACTICE.input = '';
+    refreshPracticeDisplay();
+    card.classList.add('shake-wrong');
+    setTimeout(() => card.classList.remove('shake-wrong'), 300);
+    showPracticeHint();
+  }
+  updatePracticeHud();
+}
+
+function showPracticeHint() {
+  const slot = document.getElementById('pr-hint-slot');
+  if (!PRACTICE.problem) return;
+  if (PRACTICE.problem.hint) {
+    slot.innerHTML =
+      `<div class="hint-box"><span class="head">💡 ヒント</span>${PRACTICE.problem.hint}<br>`
+      + `<span style="color:#b03030">答え: ${PRACTICE.problem.answer}</span></div>`;
+  } else {
+    slot.innerHTML =
+      `<div class="hint-box"><span class="head">💡</span>答え: ${PRACTICE.problem.answer}</div>`;
+  }
+}
+
+function givePracticeProblem() {
+  let p, tries = 0;
+  do {
+    p = generateProblem(PRACTICE.level);
+    tries++;
+  } while (PRACTICE.recent.includes(p.answer) && tries < 10);
+  PRACTICE.recent.push(p.answer);
+  if (PRACTICE.recent.length > 4) PRACTICE.recent.shift();
+  PRACTICE.problem = p;
+  document.getElementById('pr-formula').innerHTML = p.display;
+}
+
+function updatePracticeHud() {
+  document.getElementById('pr-correct').textContent = PRACTICE.correct;
+  document.getElementById('pr-wrong').textContent = PRACTICE.wrong;
+  document.getElementById('pr-combo').textContent = '×' + PRACTICE.combo;
+}
+
+function quitPractice() {
+  const msg = `練習を終了しますか?\n正解 ${PRACTICE.correct} / ミス ${PRACTICE.wrong}`;
+  if (confirm(msg)) {
+    PRACTICE.running = false;
+    showScreen('title-screen');
+  }
+}
+</script>
+</body>
+</html>
