@@ -453,6 +453,7 @@
     align-items: center;
     padding: 0;
     gap: 0;
+    overflow-y: auto;
   }
   .practice-hud {
     width: 100%;
@@ -483,15 +484,15 @@
   .pr-badge.cm { background: #ff8a2a; }
 
   .practice-stage {
-    flex: 1;
+    flex: 1 0 auto;
     width: 100%;
     max-width: 520px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 14px;
-    padding: 18px;
+    padding: 24px 18px 32px;
   }
   .problem-card.large {
     padding: 24px 40px;
