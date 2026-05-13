@@ -346,20 +346,20 @@
           "miniTestPassword": "4036",
           "studentBestList": [
             {
+              "name": "6組S君",
+              "time": 4.3
+            },
+            {
               "name": "2組H君",
               "time": 4.4
             },
             {
               "name": "8組I君",
               "time": 4.9
-            },
-            {
-              "name": "6組S君",
-              "time": 5.3
             }
           ],
-          "studentBestName": "2組H君",
-          "studentBestTime": 4.4
+          "studentBestName": "6組S君",
+          "studentBestTime": 4.3
         },
         {
           "title": "式の展開",
@@ -700,20 +700,20 @@
           "miniTestPassword": "1785",
           "studentBestList": [
             {
+              "name": "6組S君",
+              "time": 4.6
+            },
+            {
               "name": "2組H君",
               "time": 4.8
             },
             {
               "name": "8組I君",
               "time": 5.5
-            },
-            {
-              "name": "6組U君",
-              "time": 8.3
             }
           ],
-          "studentBestName": "2組H君",
-          "studentBestTime": 4.8
+          "studentBestName": "6組S君",
+          "studentBestTime": 4.6
         },
         {
           "title": "いろいろな式の計算",
@@ -877,12 +877,20 @@
           "miniTestPassword": "4964",
           "studentBestList": [
             {
+              "name": "6組S君",
+              "time": 5.8
+            },
+            {
               "name": "2組H君",
               "time": 7.6
+            },
+            {
+              "name": "6組U君",
+              "time": 29.8
             }
           ],
-          "studentBestName": "2組H君",
-          "studentBestTime": 7.6
+          "studentBestName": "6組S君",
+          "studentBestTime": 5.8
         },
         {
           "title": "因数分解①",
@@ -1577,6 +1585,10 @@
           "miniTestPassword": "8142",
           "studentBestList": [
             {
+              "name": "6組S君",
+              "time": 4
+            },
+            {
               "name": "2組H君",
               "time": 4.9
             },
@@ -1585,8 +1597,8 @@
               "time": 5.9
             }
           ],
-          "studentBestName": "2組H君",
-          "studentBestTime": 4.9
+          "studentBestName": "6組S君",
+          "studentBestTime": 4
         }
       ]
     },
@@ -3494,6 +3506,34 @@
   "cardMatchStudentBestTime": 10,
   "news": [
     {
+      "id": "1778640108278-tn9a5",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「いろいろな式の計算」を 5.8秒 で更新！",
+      "date": "2026-05-13T02:41:48.278Z"
+    },
+    {
+      "id": "1778640088972-n8nh9",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「式の計算の利用」を 4秒 で更新！",
+      "date": "2026-05-13T02:41:28.972Z"
+    },
+    {
+      "id": "1778640072315-agihf",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「乗法の公式」を 4.6秒 で更新！",
+      "date": "2026-05-13T02:41:12.315Z"
+    },
+    {
+      "id": "1778640054973-qlqen",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「式の除法」を 4.3秒 で更新！",
+      "date": "2026-05-13T02:40:54.972Z"
+    },
+    {
       "id": "1778545393892-zcnzd",
       "type": "auto",
       "icon": "🏅",
@@ -3534,34 +3574,6 @@
       "icon": "🏅",
       "title": "2組H君 が第1章「式の展開」を 4.6秒 で更新！",
       "date": "2026-05-12T00:21:35.980Z"
-    },
-    {
-      "id": "1778545277648-1tt8v",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組H君 が第1章「式の除法」を 4.4秒 で更新！",
-      "date": "2026-05-12T00:21:17.648Z"
-    },
-    {
-      "id": "1778472932157-crfsg",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「いろいろな因数分解」を 4秒 で更新！",
-      "date": "2026-05-11T04:15:32.157Z"
-    },
-    {
-      "id": "1778472290918-b9n0l",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「いろいろな因数分解」を 4.6秒 で更新！",
-      "date": "2026-05-11T04:04:50.916Z"
-    },
-    {
-      "id": "1778465191157-i7f4t",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "8組I君 が第1章「式の計算の利用」を 5.9秒 で更新！",
-      "date": "2026-05-11T02:06:31.157Z"
     }
   ],
   "wallProblems": [
