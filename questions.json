@@ -1406,16 +1406,16 @@
             }
           ],
           "miniTestPassword": "1672",
-          "studentBestTime": 3.8,
-          "studentBestName": "2組H君",
+          "studentBestTime": 3.4,
+          "studentBestName": "6組S君",
           "studentBestList": [
+            {
+              "name": "6組S君",
+              "time": 3.4
+            },
             {
               "name": "2組H君",
               "time": 3.8
-            },
-            {
-              "name": "6組S君",
-              "time": 4
             },
             {
               "name": "8組I君",
@@ -3506,6 +3506,13 @@
   "cardMatchStudentBestTime": 10,
   "news": [
     {
+      "id": "1778640266088-u4mc1",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「いろいろな因数分解」を 3.4秒 で更新！",
+      "date": "2026-05-13T02:44:26.086Z"
+    },
+    {
       "id": "1778640108278-tn9a5",
       "type": "auto",
       "icon": "🏅",
@@ -3567,13 +3574,6 @@
       "icon": "🏅",
       "title": "2組H君 が第1章「乗法の公式」を 4.8秒 で更新！",
       "date": "2026-05-12T00:21:50.385Z"
-    },
-    {
-      "id": "1778545295980-jodx9",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組H君 が第1章「式の展開」を 4.6秒 で更新！",
-      "date": "2026-05-12T00:21:35.980Z"
     }
   ],
   "wallProblems": [
