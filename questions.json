@@ -877,7 +877,7 @@
           "miniTestPassword": "4964",
           "studentBestList": [
             {
-              "name": "6組S君",
+              "name": "6組SH君",
               "time": 5.8
             },
             {
@@ -889,7 +889,7 @@
               "time": 29.8
             }
           ],
-          "studentBestName": "6組S君",
+          "studentBestName": "6組SH君",
           "studentBestTime": 5.8
         },
         {
@@ -3506,6 +3506,13 @@
   "cardMatchStudentBestTime": 9,
   "news": [
     {
+      "id": "1778640442506-ugm2f",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組SH君 が第1章「いろいろな式の計算」を 5.8秒 で更新！",
+      "date": "2026-05-13T02:47:22.506Z"
+    },
+    {
       "id": "1778640414968-bkbxf",
       "type": "auto",
       "icon": "🏅",
@@ -3567,13 +3574,6 @@
       "icon": "🏅",
       "title": "2組H君 が第1章「因数分解①」を 3秒 で更新！",
       "date": "2026-05-12T00:22:24.015Z"
-    },
-    {
-      "id": "1778545330398-fbsd9",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組H君 が第1章「いろいろな式の計算」を 7.6秒 で更新！",
-      "date": "2026-05-12T00:22:10.398Z"
     }
   ],
   "wallProblems": [
