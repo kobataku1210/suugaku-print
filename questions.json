@@ -523,20 +523,20 @@
           "miniTestPassword": "1183",
           "studentBestList": [
             {
+              "name": "6組S君",
+              "time": 4.4
+            },
+            {
               "name": "2組H君",
               "time": 4.6
             },
             {
               "name": "8組I君",
               "time": 5.3
-            },
-            {
-              "name": "5組S君",
-              "time": 5.8
             }
           ],
-          "studentBestName": "2組H君",
-          "studentBestTime": 4.6
+          "studentBestName": "6組S君",
+          "studentBestTime": 4.4
         },
         {
           "title": "乗法の公式",
@@ -701,7 +701,7 @@
           "studentBestList": [
             {
               "name": "6組S君",
-              "time": 4.6
+              "time": 4.2
             },
             {
               "name": "2組H君",
@@ -713,7 +713,7 @@
             }
           ],
           "studentBestName": "6組S君",
-          "studentBestTime": 4.6
+          "studentBestTime": 4.2
         },
         {
           "title": "いろいろな式の計算",
@@ -878,7 +878,7 @@
           "studentBestList": [
             {
               "name": "6組SH君",
-              "time": 5.8
+              "time": 5.5
             },
             {
               "name": "2組H君",
@@ -890,7 +890,7 @@
             }
           ],
           "studentBestName": "6組SH君",
-          "studentBestTime": 5.8
+          "studentBestTime": 5.5
         },
         {
           "title": "因数分解①",
@@ -1052,9 +1052,13 @@
             }
           ],
           "miniTestPassword": "9186",
-          "studentBestName": "2組H君",
-          "studentBestTime": 3,
+          "studentBestName": "6組S君",
+          "studentBestTime": 2.9,
           "studentBestList": [
+            {
+              "name": "6組S君",
+              "time": 2.9
+            },
             {
               "name": "2組H君",
               "time": 3
@@ -1062,10 +1066,6 @@
             {
               "name": "8組I君",
               "time": 3.8
-            },
-            {
-              "name": "6組U君",
-              "time": 5.6
             }
           ]
         },
@@ -3506,6 +3506,34 @@
   "cardMatchStudentBestTime": 9,
   "news": [
     {
+      "id": "1778721121282-z84rd",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組SH君 が第1章「いろいろな式の計算」を 5.5秒 で更新！",
+      "date": "2026-05-14T01:12:01.282Z"
+    },
+    {
+      "id": "1778721078392-rnum2",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「因数分解①」を 2.9秒 で更新！",
+      "date": "2026-05-14T01:11:18.392Z"
+    },
+    {
+      "id": "1778721056842-8vbgk",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「乗法の公式」を 4.2秒 で更新！",
+      "date": "2026-05-14T01:10:56.842Z"
+    },
+    {
+      "id": "1778721041802-vlf3w",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組S君 が第1章「式の展開」を 4.4秒 で更新！",
+      "date": "2026-05-14T01:10:41.801Z"
+    },
+    {
       "id": "1778640876830-gp0vy",
       "type": "manual",
       "icon": "📌",
@@ -3546,34 +3574,6 @@
       "icon": "🏅",
       "title": "6組S君 が第1章「式の計算の利用」を 4秒 で更新！",
       "date": "2026-05-13T02:41:28.972Z"
-    },
-    {
-      "id": "1778640072315-agihf",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「乗法の公式」を 4.6秒 で更新！",
-      "date": "2026-05-13T02:41:12.315Z"
-    },
-    {
-      "id": "1778640054973-qlqen",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「式の除法」を 4.3秒 で更新！",
-      "date": "2026-05-13T02:40:54.972Z"
-    },
-    {
-      "id": "1778545393892-zcnzd",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組H君 が第1章「式の計算の利用」を 4.9秒 で更新！",
-      "date": "2026-05-12T00:23:13.892Z"
-    },
-    {
-      "id": "1778545382671-hxlui",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "2組H君 が第1章「いろいろな因数分解」を 3.8秒 で更新！",
-      "date": "2026-05-12T00:23:02.671Z"
     }
   ],
   "wallProblems": [
