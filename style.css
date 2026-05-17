@@ -1172,6 +1172,67 @@ body {
 }
 .quiz-submit-btn:hover { filter: brightness(1.12); transform: scale(1.04); }
 
+/* 4択ボタン */
+.quiz-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.4rem 0;
+}
+.quiz-choice-btn {
+  padding: 1rem 1.1rem;
+  min-height: 70px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  color: white;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  word-break: break-word;
+  line-height: 1.4;
+}
+.quiz-choice-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.5);
+  transform: translateY(-2px);
+}
+.quiz-choice-btn:active { transform: scale(0.97); }
+.quiz-choice-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.quiz-choice-btn.correct {
+  background: rgba(86,171,47,0.4);
+  border-color: #56ab2f;
+  color: white;
+  animation: choiceCorrect 0.4s ease;
+}
+.quiz-choice-btn.wrong {
+  background: rgba(245,87,108,0.4);
+  border-color: #f5576c;
+  animation: choiceWrong 0.5s ease;
+}
+@keyframes choiceCorrect {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes choiceWrong {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-8px); }
+  50%  { transform: translateX(8px); }
+  75%  { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+@media (max-width: 600px) {
+  .quiz-choices { grid-template-columns: 1fr; gap: 0.7rem; }
+  .quiz-choice-btn { min-height: 60px; font-size: 1.05rem; padding: 0.8rem 1rem; }
+}
+
 /* 正解フラッシュ */
 @keyframes correctFlash {
   0%   { background: #16163a; }

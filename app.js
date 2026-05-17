@@ -1359,6 +1359,9 @@ function startQuiz(levelIdx) {
 }
 
 // ===== クイズ画面（1問ずつ） =====
+// 4択モードの現在の選択肢順（シャッフル後）を保持
+let currentShuffledChoices = [];
+
 function renderQuiz() {
   const ch        = mathData.chapters[state.chapterIdx];
   const sec       = ch.sections[state.sectionIdx];
@@ -1368,6 +1371,30 @@ function renderQuiz() {
   const q         = questions[qIdx];
   const totalQ    = questions.length;
   const progress  = totalQ > 0 ? Math.round((qIdx / totalQ) * 100) : 0;
+  const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+
+  // 4択モード：選択肢をシャッフル
+  let answerArea;
+  if (hasChoices) {
+    currentShuffledChoices = [...q.choices].sort(() => Math.random() - 0.5);
+    answerArea = `
+      <div class="quiz-choices">
+        ${currentShuffledChoices.map((c, i) => `
+          <button class="quiz-choice-btn" id="quiz-choice-${i}"
+                  onclick="submitQuizChoice(${i})">${formatQuestion(c)}</button>
+        `).join('')}
+      </div>`;
+  } else {
+    answerArea = `
+      <input type="text" id="quiz-input" class="quiz-input"
+             placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
+             autocomplete="off"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();submitQuizAnswer();}">
+      <div class="quiz-btns">
+        <button class="quiz-submit-btn" style="--lv-color:${lv.color}"
+                onclick="submitQuizAnswer()">答え合わせ！</button>
+      </div>`;
+  }
 
   return `
     <button class="back-btn" onclick="navigate('difficulty')">← 難易度選択に戻る</button>
@@ -1384,16 +1411,52 @@ function renderQuiz() {
     <div class="quiz-card" id="quiz-card">
       <div class="quiz-question">${formatQuestion(q.q)}</div>
       ${getBlankHint(q) ? `<div class="quiz-blank-hint"><span class="quiz-blank-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
-      <input type="text" id="quiz-input" class="quiz-input"
-             placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
-             autocomplete="off"
-             onkeydown="if(event.key==='Enter'){event.preventDefault();submitQuizAnswer();}">
+      ${answerArea}
       <div id="quiz-msg" class="quiz-msg"></div>
-      <div class="quiz-btns">
-        <button class="quiz-submit-btn" style="--lv-color:${lv.color}"
-                onclick="submitQuizAnswer()">答え合わせ！</button>
-      </div>
     </div>`;
+}
+
+// 4択モード用：選択肢をクリックしたとき
+function submitQuizChoice(idx) {
+  if (quizLocked) return;
+  const choice = currentShuffledChoices[idx];
+  if (choice === undefined) return;
+  const ch = mathData.chapters[state.chapterIdx];
+  const sec = ch.sections[state.sectionIdx];
+  const lv = LEVELS[state.quizLevelIdx];
+  const questions = sec[lv.key];
+  const q = questions[state.quizQIdx];
+  // 正解は q.a と比較（穴埋め b があってもMC問題では a 全体と比較）
+  const isCorrect = normalizeAnswer(choice) === normalizeAnswer(q.a);
+  const btn = document.getElementById(`quiz-choice-${idx}`);
+
+  if (isCorrect) {
+    quizLocked = true;
+    if (btn) btn.classList.add('correct');
+    const card = document.getElementById('quiz-card');
+    card.classList.add('quiz-correct-flash');
+    card.addEventListener('animationend', () => card.classList.remove('quiz-correct-flash'), { once: true });
+
+    const isLast = state.quizQIdx === questions.length - 1;
+    if (isLast) {
+      setTimeout(() => showLevelComplete(), 500);
+    } else {
+      setTimeout(() => {
+        state.quizQIdx++;
+        render();
+      }, 500);
+    }
+  } else {
+    if (btn) {
+      btn.classList.add('wrong');
+      btn.disabled = true;
+      setTimeout(() => { btn.classList.remove('wrong'); btn.disabled = false; }, 800);
+    }
+    const card = document.getElementById('quiz-card');
+    card.classList.add('shake');
+    card.addEventListener('animationend', () => card.classList.remove('shake'), { once: true });
+    showQuizMsg('ざんねん！もう一度考えてみよう', true);
+  }
 }
 
 // ===== 全角・半角を統一して正誤判定 =====
