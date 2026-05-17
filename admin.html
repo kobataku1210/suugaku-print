@@ -299,6 +299,90 @@
     }
     .del-btn:hover { background: rgba(255,80,80,0.35); color: #ff6b6b; border-color: #ff6b6b; }
 
+    /* 4択編集ボタン */
+    .choices-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.55rem; height: 1.55rem; border-radius: 8px;
+      background: rgba(102,126,234,0.15); border: 1px solid rgba(102,126,234,0.3);
+      color: rgba(180,200,255,0.7); font-size: 0.85rem; cursor: pointer;
+      font-family: inherit; line-height: 1; transition: all 0.15s;
+      margin-right: 4px; padding: 0;
+    }
+    .choices-btn:hover { background: rgba(102,126,234,0.35); color: #c7d2fe; border-color: #c7d2fe; }
+    .choices-btn.has-choices {
+      background: rgba(86,171,47,0.25); border-color: rgba(86,171,47,0.55); color: #aef0a0;
+    }
+    .choices-btn.has-choices:hover { background: rgba(86,171,47,0.45); border-color: #aef0a0; }
+
+    /* 4択編集モーダル */
+    #choices-modal {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.65);
+      display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #choices-modal.show { display: flex; }
+    .choices-modal-card {
+      background: #16163a;
+      border-radius: 18px; padding: 1.4rem 1.6rem 1.2rem;
+      width: min(540px, 92vw);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .choices-modal-card h3 {
+      font-size: 1.05rem; font-weight: 800; margin-bottom: 0.4rem;
+      color: white; letter-spacing: 1px;
+    }
+    .choices-modal-card .sub {
+      color: rgba(255,255,255,0.5); font-size: 0.82rem; margin-bottom: 1rem;
+    }
+    .choices-modal-card .qtext {
+      background: rgba(255,255,255,0.05); padding: 0.6rem 0.9rem;
+      border-radius: 8px; color: white; font-size: 0.95rem; margin-bottom: 1rem;
+    }
+    .choices-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .choices-row label {
+      min-width: 4.5rem; font-size: 0.85rem; font-weight: 700;
+      color: rgba(255,255,255,0.55);
+    }
+    .choices-row.correct label { color: #9ded62; }
+    .choices-row.wrong   label { color: #ff8a8a; }
+    .choices-row input {
+      flex: 1; padding: 0.5rem 0.7rem;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; color: white; font-size: 0.95rem;
+      font-family: inherit; outline: none;
+    }
+    .choices-row input:focus { border-color: rgba(255,255,255,0.4); }
+    .choices-row.correct input { color: #9ded62; border-color: rgba(157,237,98,0.35); }
+    .choices-modal-buttons {
+      display: flex; gap: 0.6rem; margin-top: 1.1rem; justify-content: flex-end;
+    }
+    .choices-modal-buttons button {
+      padding: 0.55rem 1.4rem; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; border: 1px solid transparent;
+    }
+    .choices-modal-buttons .cancel {
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+      border-color: rgba(255,255,255,0.15);
+    }
+    .choices-modal-buttons .cancel:hover { background: rgba(255,255,255,0.15); }
+    .choices-modal-buttons .save {
+      background: linear-gradient(135deg, #56ab2f, #a8e063);
+      color: #0d3a08;
+    }
+    .choices-modal-buttons .save:hover { filter: brightness(1.1); }
+    .choices-modal-buttons .remove {
+      background: rgba(255,80,80,0.18); color: #ff8a8a;
+      border-color: rgba(255,100,100,0.35); margin-right: auto;
+    }
+    .choices-modal-buttons .remove:hover { background: rgba(255,80,80,0.35); }
+
     /* ===== 生徒プレビュー列 ===== */
     .prev-th { min-width: 180px; }
     .prev-cell { padding: 0.4rem 0.8rem !important; vertical-align: middle; }
@@ -1245,7 +1329,10 @@ function renderSections(chIdx) {
                     <td class="prev-cell">
                       <div class="prev-box" id="prev-${chIdx}-${si}-${li}-${qi}">${buildPreview(item)}</div>
                     </td>
-                    <td class="del-cell">
+                    <td class="del-cell" style="white-space:nowrap;">
+                      <button class="choices-btn ${Array.isArray(item.choices) && item.choices.length === 4 ? 'has-choices' : ''}"
+                              title="4択の選択肢を編集"
+                              onclick="openChoicesEditor(${chIdx},${si},${li},${qi})">📝</button>
                       <button class="del-btn" title="この問題を削除"
                               onclick="deleteQuestion(${chIdx},${si},${li},${qi})">×</button>
                     </td>
@@ -1883,6 +1970,110 @@ function dragEnd() {
   document.querySelectorAll('.q-row').forEach(r => r.classList.remove('drag-over', 'dragging'));
   dragFromHandle = false;
 }
+
+// ===== 4択編集モーダル =====
+let _editingChoicesCtx = null; // {chIdx, si, li, qi}
+
+function openChoicesEditor(chIdx, si, li, qi) {
+  const sec = questionsData.chapters[chIdx].sections[si];
+  const item = sec[LEVEL_KEYS[li]][qi];
+  _editingChoicesCtx = { chIdx, si, li, qi };
+  const correct = item.a || '';
+  const choices = Array.isArray(item.choices) && item.choices.length === 4 ? item.choices : [correct, '', '', ''];
+  // correct以外の3つを誤答として展開（順不同で入っているはず）
+  const distractors = choices.filter(c => c !== correct).slice(0, 3);
+  while (distractors.length < 3) distractors.push('');
+
+  document.getElementById('choices-modal-q').textContent = item.q || '';
+  document.getElementById('choices-modal-correct').value = correct;
+  document.getElementById('choices-modal-d1').value = distractors[0] || '';
+  document.getElementById('choices-modal-d2').value = distractors[1] || '';
+  document.getElementById('choices-modal-d3').value = distractors[2] || '';
+  document.getElementById('choices-modal-remove').style.display =
+    (Array.isArray(item.choices) && item.choices.length === 4) ? '' : 'none';
+  document.getElementById('choices-modal').classList.add('show');
+  setTimeout(() => document.getElementById('choices-modal-d1').focus(), 50);
+}
+
+function closeChoicesModal() {
+  document.getElementById('choices-modal').classList.remove('show');
+  _editingChoicesCtx = null;
+}
+
+function saveChoicesEditor() {
+  if (!_editingChoicesCtx) return;
+  const { chIdx, si, li, qi } = _editingChoicesCtx;
+  const item = questionsData.chapters[chIdx].sections[si][LEVEL_KEYS[li]][qi];
+  const correct = document.getElementById('choices-modal-correct').value.trim();
+  const d1 = document.getElementById('choices-modal-d1').value.trim();
+  const d2 = document.getElementById('choices-modal-d2').value.trim();
+  const d3 = document.getElementById('choices-modal-d3').value.trim();
+
+  // 検証
+  if (!correct) { alert('正解（a）が空です。先に問題の答えを設定してください。'); return; }
+  if (!d1 || !d2 || !d3) { alert('誤答3つすべてを入力してください。'); return; }
+  if ([d1, d2, d3].some(d => d === correct)) {
+    alert('誤答の中に正解と同じものがあります。違う値にしてください。');
+    return;
+  }
+  if (d1 === d2 || d2 === d3 || d1 === d3) {
+    alert('誤答に重複があります。3つとも違う値にしてください。');
+    return;
+  }
+
+  // a 自体も編集可能にしたので、a を更新
+  if (correct !== item.a) item.a = correct;
+  item.choices = [correct, d1, d2, d3];
+  closeChoicesModal();
+  // 行の選択肢ボタンに has-choices クラスを反映するため再描画
+  const activeLevels = (typeof captureActiveLevels === 'function') ? captureActiveLevels() : {};
+  renderSections(currentChapter);
+  if (typeof restoreActiveLevels === 'function') restoreActiveLevels(activeLevels);
+  alert('選択肢を保存しました。「💾 保存する」でサーバーに反映してください。');
+}
+
+function removeChoicesFromQuestion() {
+  if (!_editingChoicesCtx) return;
+  if (!confirm('この問題から4択を削除しますか？\n（自由入力の問題に戻ります）')) return;
+  const { chIdx, si, li, qi } = _editingChoicesCtx;
+  const item = questionsData.chapters[chIdx].sections[si][LEVEL_KEYS[li]][qi];
+  delete item.choices;
+  closeChoicesModal();
+  const activeLevels = (typeof captureActiveLevels === 'function') ? captureActiveLevels() : {};
+  renderSections(currentChapter);
+  if (typeof restoreActiveLevels === 'function') restoreActiveLevels(activeLevels);
+}
 </script>
+
+<!-- 4択編集モーダル -->
+<div id="choices-modal" onclick="if(event.target.id==='choices-modal')closeChoicesModal()">
+  <div class="choices-modal-card">
+    <h3>📝 4択の選択肢を編集</h3>
+    <div class="sub">正解と3つの誤答を編集できます。生徒画面ではランダムにシャッフルして表示されます。</div>
+    <div class="qtext" id="choices-modal-q"></div>
+    <div class="choices-row correct">
+      <label>✅ 正解</label>
+      <input type="text" id="choices-modal-correct" placeholder="正解（a）">
+    </div>
+    <div class="choices-row wrong">
+      <label>❌ 誤答①</label>
+      <input type="text" id="choices-modal-d1" placeholder="誤答1">
+    </div>
+    <div class="choices-row wrong">
+      <label>❌ 誤答②</label>
+      <input type="text" id="choices-modal-d2" placeholder="誤答2">
+    </div>
+    <div class="choices-row wrong">
+      <label>❌ 誤答③</label>
+      <input type="text" id="choices-modal-d3" placeholder="誤答3">
+    </div>
+    <div class="choices-modal-buttons">
+      <button class="remove" id="choices-modal-remove" onclick="removeChoicesFromQuestion()">🗑 4択を解除</button>
+      <button class="cancel" onclick="closeChoicesModal()">キャンセル</button>
+      <button class="save" onclick="saveChoicesEditor()">💾 反映</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
