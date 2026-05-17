@@ -5,6 +5,9 @@
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
 
+// URL に ?preview=draft が付いていればプレビューモード（draft 章 & 全レベル開放）
+const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === 'draft';
+
 // ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
 (function() {
   const H = 'c81b8146c567dfe6cc166ffc1963130bd559c77a987b6e0196e17b71ee48194c';
@@ -272,6 +275,7 @@ function isLevelDone(chIdx, secIdx, levelIdx) {
 }
 
 function isLevelUnlocked(chIdx, secIdx, levelIdx) {
+  if (PREVIEW_MODE) return true; // プレビューモードは全レベル開放
   if (levelIdx === 0) return true;
   return isLevelDone(chIdx, secIdx, levelIdx - 1);
 }
@@ -822,9 +826,6 @@ function addRipple(e, el) {
 }
 
 // ===== ホーム =====
-// URL に ?preview=draft が付いていればプレビューモード（draft 章も見られる）
-const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === 'draft';
-
 function renderHome() {
   const cards = mathData.chapters.map((ch, i) => {
     // draft: true の章は生徒画面では「準備中」扱い（プレビューモードでは見せる）
@@ -1361,6 +1362,9 @@ function startQuiz(levelIdx) {
 // ===== クイズ画面（1問ずつ） =====
 // 4択モードの現在の選択肢順（シャッフル後）を保持
 let currentShuffledChoices = [];
+// 4択モードのライフ（その節を開始したときに3にリセット）
+let quizLives = 3;
+const QUIZ_MAX_LIVES = 3;
 
 function renderQuiz() {
   const ch        = mathData.chapters[state.chapterIdx];
@@ -1373,10 +1377,14 @@ function renderQuiz() {
   const progress  = totalQ > 0 ? Math.round((qIdx / totalQ) * 100) : 0;
   const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
 
-  // 4択モード：選択肢をシャッフル
+  // 4択モード：選択肢をシャッフル + ライフ表示
   let answerArea;
+  let livesArea = '';
   if (hasChoices) {
+    // 最初の問題に来たときライフを満タンにリセット
+    if (qIdx === 0) quizLives = QUIZ_MAX_LIVES;
     currentShuffledChoices = [...q.choices].sort(() => Math.random() - 0.5);
+    livesArea = `<div class="quiz-lives" id="quiz-lives">${renderLivesHearts(quizLives)}</div>`;
     answerArea = `
       <div class="quiz-choices">
         ${currentShuffledChoices.map((c, i) => `
@@ -1409,11 +1417,21 @@ function renderQuiz() {
       </div>
     </div>
     <div class="quiz-card" id="quiz-card">
+      ${livesArea}
       <div class="quiz-question">${formatQuestion(q.q)}</div>
       ${getBlankHint(q) ? `<div class="quiz-blank-hint"><span class="quiz-blank-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
       ${answerArea}
       <div id="quiz-msg" class="quiz-msg"></div>
     </div>`;
+}
+
+// ライフ表示 ♥♥♥
+function renderLivesHearts(lives) {
+  let s = '';
+  for (let i = 0; i < QUIZ_MAX_LIVES; i++) {
+    s += i < lives ? '<span class="quiz-heart">♥</span>' : '<span class="quiz-heart empty">♡</span>';
+  }
+  return s;
 }
 
 // 4択モード用：選択肢をクリックしたとき
@@ -1447,15 +1465,39 @@ function submitQuizChoice(idx) {
       }, 500);
     }
   } else {
+    // 不正解 → ライフ -1
+    quizLives = Math.max(0, quizLives - 1);
+    const livesEl = document.getElementById('quiz-lives');
+    if (livesEl) {
+      livesEl.innerHTML = renderLivesHearts(quizLives);
+      livesEl.classList.remove('lost');
+      void livesEl.offsetWidth;
+      livesEl.classList.add('lost');
+    }
     if (btn) {
       btn.classList.add('wrong');
       btn.disabled = true;
-      setTimeout(() => { btn.classList.remove('wrong'); btn.disabled = false; }, 800);
     }
     const card = document.getElementById('quiz-card');
     card.classList.add('shake');
     card.addEventListener('animationend', () => card.classList.remove('shake'), { once: true });
-    showQuizMsg('ざんねん！もう一度考えてみよう', true);
+
+    if (quizLives === 0) {
+      // ゲームオーバー → 最初の問題からやり直し
+      quizLocked = true;
+      showQuizMsg('💀 ライフが尽きました... 最初からやり直しです！', true);
+      setTimeout(() => {
+        state.quizQIdx = 0;
+        quizLives = QUIZ_MAX_LIVES;
+        render();
+      }, 1800);
+    } else {
+      showQuizMsg(`ざんねん！残りライフ ${quizLives}/${QUIZ_MAX_LIVES}`, true);
+      // 1秒後にボタン再有効化
+      setTimeout(() => {
+        if (btn) { btn.classList.remove('wrong'); btn.disabled = false; }
+      }, 800);
+    }
   }
 }
 

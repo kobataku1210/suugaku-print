@@ -1172,6 +1172,23 @@ body {
 }
 .quiz-submit-btn:hover { filter: brightness(1.12); transform: scale(1.04); }
 
+/* 4択モード ライフ表示 */
+.quiz-lives {
+  display: flex; justify-content: center; gap: 8px;
+  margin-bottom: 0.8rem;
+  font-size: 1.6rem;
+  transition: transform 0.2s;
+}
+.quiz-lives.lost { animation: livesShake 0.5s; }
+@keyframes livesShake {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.25); }
+  50%  { transform: scale(0.95) rotate(-3deg); }
+  100% { transform: scale(1); }
+}
+.quiz-heart { color: #ff5577; text-shadow: 0 2px 4px rgba(255,85,119,0.4); }
+.quiz-heart.empty { color: rgba(255,255,255,0.25); }
+
 /* 4択ボタン */
 .quiz-choices {
   display: grid;
