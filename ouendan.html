@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闘魂祭 応援団 隊形移動アニメーション</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Yu Gothic", "游ゴシック", "Hiragino Sans", sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .header {
+    border-left: 6px solid #c8102e;
+    padding-left: 16px;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .header .subtitle {
+    color: #c8102e;
+    font-size: 14px;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+
+  .phase-display {
+    background: #2a2a2a;
+    border-left: 4px solid #c8102e;
+    padding: 12px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .phase-label {
+    color: #c8102e;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .phase-title {
+    font-size: 22px;
+    font-weight: bold;
+  }
+  .phase-description {
+    color: #ccc;
+    font-size: 14px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .count-display {
+    background: #c8102e;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 18px;
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .ground-wrapper {
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .ground-labels {
+    display: flex;
+    justify-content: center;
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .ground {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: #f5f5f5;
+    border: 2px solid #888;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ground-labels.bottom {
+    margin-top: 4px;
+    margin-bottom: 0;
+    justify-content: space-between;
+    padding: 0 10px;
+  }
+
+  .card {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    border: 1px solid #1a1a1a;
+    border-radius: 3px;
+    transition: all 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .card.year3 { background: #c8102e; }
+  .card.year2 { background: #f39c12; }
+  .card.year1 { background: #f1c40f; color: #1a1a1a; }
+  .card.year19 { background: #8e44ad; font-size: 10px; }
+
+  .dot {
+    position: absolute;
+    border: 1px solid #1a1a1a;
+    border-radius: 50%;
+    transition: all 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .dot.year3 { background: #c8102e; }
+  .dot.year2 { background: #f39c12; }
+  .dot.year1 { background: #f1c40f; }
+  .dot.year19 { background: #8e44ad; }
+
+  .controls {
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: #c8102e;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  .btn:hover { background: #a00d24; }
+  .btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+  .btn.secondary {
+    background: #444;
+  }
+  .btn.secondary:hover { background: #555; }
+
+  .phase-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .phase-btn {
+    background: #444;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .phase-btn:hover { background: #555; }
+  .phase-btn.active {
+    background: #c8102e;
+  }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .speed-control label {
+    color: #ccc;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .speed-control select {
+    background: #444;
+    color: #fff;
+    border: 1px solid #666;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ccc;
+  }
+  .legend-swatch {
+    width: 20px;
+    height: 14px;
+    border: 1px solid #1a1a1a;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 20px; }
+    .phase-title { font-size: 18px; }
+    .ground { height: 400px; }
+    .btn { padding: 10px 16px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="subtitle">RED TEAM FORMATION</div>
+    <h1>闘魂祭 応援団 隊形移動</h1>
+  </div>
+
+  <div class="phase-display">
+    <div>
+      <div class="phase-label" id="phaseLabel">フェーズ 0</div>
+      <div class="phase-title" id="phaseTitle">初期隊形</div>
+    </div>
+    <div class="phase-description" id="phaseDescription">
+      8列縦隊。前から3年→2年→1年→1-9担当の順。各クラスの後ろに5×2の○(人)、1-9のみ1×2の○。右端が1組、左端が8組。
+    </div>
+    <div class="count-display" id="countDisplay">START</div>
+  </div>
+
+  <div class="ground-wrapper">
+    <div class="ground-labels">前(観客側)</div>
+    <div class="ground" id="ground"></div>
+    <div class="ground-labels bottom">
+      <span>← 横幅 45m →</span>
+      <span>後</span>
+      <span>奥行き 35m</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#c8102e"></div>3年生</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f39c12"></div>2年生</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f1c40f"></div>1年生</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#8e44ad"></div>1-9メンバー</div>
+  </div>
+
+  <div class="controls">
+    <div class="control-row">
+      <button class="btn" id="playBtn">▶ 再生</button>
+      <button class="btn secondary" id="resetBtn">⏮ 最初に戻る</button>
+      <div class="speed-control">
+        <label>速度</label>
+        <select id="speedSelect">
+          <option value="0.5">ゆっくり (0.5x)</option>
+          <option value="1" selected>標準 (1x)</option>
+          <option value="2">速い (2x)</option>
+        </select>
+      </div>
+    </div>
+    <div class="control-row">
+      <span style="color:#aaa; font-size:13px;">フェーズ切替:</span>
+      <div class="phase-buttons">
+        <button class="phase-btn active" data-phase="0">0. 初期隊形</button>
+        <button class="phase-btn" data-phase="1">1. 同時展開(完成)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 隊形データ
+// ============================================================
+const GROUND_W_M = 45;
+const GROUND_H_M = 35;
+
+const phases = {
+  0: {
+    label: "フェーズ 0",
+    title: "初期隊形",
+    description: "8列縦隊。前から3年→2年→1年→1-9担当の順。各クラスの後ろに5×2の○(人)、1-9のみ1×2の○。右端が1組、左端が8組。",
+    count: "START"
+  },
+  1: {
+    label: "フェーズ 1",
+    title: "同時展開で完成",
+    description: "3年生は動かず中央に残り、2年生は左へ・1年生(と1-9)は右へ同時に展開。横長一列隊形の完成。",
+    count: "1-2-3-4-5-6-7-8"
+  }
+};
+
+// 各クラスの位置をフェーズごとに計算
+function getPositions(phase) {
+  const positions = [];
+  const cardWm = 1.4;
+  const yearHm = 3.0;
+  const gap19m = 0.3;
+  const card19Hm = 1.5;
+  const rowGapM = 0.4;
+
+  // ○(人) のパラメータ
+  const dotSizeM = 0.5;          // ○ 一個のサイズ
+  const dotRowGapM = 0.15;       // ○ 行間
+  const dotGapAfterLabelM = 0.25; // ラベルと○の隙間
+
+  // 各ブロック(ラベル+○) の高さ
+  const yearBlockH = yearHm + dotGapAfterLabelM + dotSizeM * 5 + dotRowGapM * 4;
+  const block19H   = card19Hm + dotGapAfterLabelM + dotSizeM * 1;
+
+  // 初期隊形(右端が1組、左端が8組)
+  // 8列、中央寄せ
+  const initColCount = 8;
+  const initColGapM = 0.5;
+  const initBlockWm = cardWm * initColCount + initColGapM * (initColCount - 1);
+  const initStartXm = (GROUND_W_M - initBlockWm) / 2;
+  const startYm = 2.0;
+
+  // 初期位置: classNum 1 が右端、8 が左端
+  // colIdx 0 が左、7 が右 → classNum 8 が colIdx 0, classNum 1 が colIdx 7
+  function initPos(classNum, year) {
+    const colIdx = 8 - classNum; // 1組→7, 8組→0
+    const x = initStartXm + colIdx * (cardWm + initColGapM);
+    let y;
+    if (year === 3) y = startYm;
+    else if (year === 2) y = startYm + yearBlockH + rowGapM;
+    else if (year === 1) y = startYm + (yearBlockH + rowGapM) * 2;
+    else y = startYm + (yearBlockH + rowGapM) * 3;
+    return { x, y };
+  }
+
+  // 完成形(横長一列、24列)
+  // 左から: 2-8, 2-7, 2-6, ..., 2-1, 3-8, 3-7, ..., 3-1, 1-8, 1-7, ..., 1-1
+  // 1-9 は 1年の真下(後ろ)に連結
+  const finalColCount = 24;
+  const finalColGapM = 0.3;
+  const finalBlockWm = cardWm * finalColCount + finalColGapM * (finalColCount - 1);
+  const finalStartXm = (GROUND_W_M - finalBlockWm) / 2;
+  const finalYm = 3.0;
+
+  function finalPos(classNum, year) {
+    let colIdx;
+    if (year === 2) {
+      // 2年: 左ブロック(colIdx 0-7), 2-8 が一番左
+      colIdx = 8 - classNum; // 2-8→0, 2-1→7
+    } else if (year === 3) {
+      // 3年: 中央ブロック(colIdx 8-15), 3-8 が左、3-1 が右
+      colIdx = 8 + (8 - classNum); // 3-8→8, 3-1→15
+    } else {
+      // 1年と1-9: 右ブロック(colIdx 16-23), 1-8 が左、1-1 が右
+      colIdx = 16 + (8 - classNum); // 1-8→16, 1-1→23
+    }
+    const x = finalStartXm + colIdx * (cardWm + finalColGapM);
+    let y;
+    // 1-9 は 1年(ラベル+○10個分)の真下に配置して被らないようにする
+    if (year === 19) y = finalYm + yearBlockH + gap19m;
+    else y = finalYm;
+    return { x, y };
+  }
+
+  // ラベル直下の○配置(ラベル左上座標を渡す)
+  // year !== 19 → 5行×2列、year === 19 → 1行×2列
+  function dotInitOffsets(year) {
+    const offsets = [];
+    const cellWm = cardWm / 2;
+    const labelHm = (year === 19) ? card19Hm : yearHm;
+    const dotsStartY = labelHm + dotGapAfterLabelM;
+    const rows = (year === 19) ? 1 : 5;
+    for (let r = 0; r < rows; r++) {
+      for (let col = 0; col < 2; col++) {
+        const cx = cellWm * col + cellWm / 2;       // セル中央(ラベル左端からの相対)
+        const cy = dotsStartY + r * (dotSizeM + dotRowGapM) + dotSizeM / 2;
+        offsets.push({
+          dx: cx - dotSizeM / 2,
+          dy: cy - dotSizeM / 2,
+          row: r, col: col
+        });
+      }
+    }
+    return offsets;
+  }
+
+  // ラベル+○をまとめて positions に push する補助関数
+  function pushLabelAndDots(id, year, classNum, label, h) {
+    const pInit = initPos(classNum, year);
+    const p = (phase >= 1) ? finalPos(classNum, year) : pInit;
+    positions.push({ id, year, classNum, x: p.x, y: p.y, w: cardWm, h: h, label });
+    // ○はラベル位置(初期 or 最終)を基準に同じオフセットで配置
+    // → フェーズ移動時はラベルと一緒に同じだけ移動する
+    const offsets = dotInitOffsets(year);
+    offsets.forEach(o => {
+      positions.push({
+        id: `dot-${year}-${classNum}-${o.row}-${o.col}`,
+        year, isDot: true,
+        x: p.x + o.dx, y: p.y + o.dy,
+        w: dotSizeM, h: dotSizeM
+      });
+    });
+  }
+
+  for (let c = 1; c <= 8; c++) {
+    pushLabelAndDots(`3-${c}`, 3, c, `3-${c}`, yearHm);
+    pushLabelAndDots(`2-${c}`, 2, c, `2-${c}`, yearHm);
+    pushLabelAndDots(`1-${c}`, 1, c, `1-${c}`, yearHm);
+    pushLabelAndDots(`1-9_col${c}`, 19, c, "1-9", card19Hm);
+  }
+  return positions;
+}
+
+// ============================================================
+// 描画
+// ============================================================
+const ground = document.getElementById("ground");
+const cards = {};
+
+function mToPercent(value, dimension) {
+  if (dimension === 'x' || dimension === 'w') return (value / GROUND_W_M) * 100;
+  return (value / GROUND_H_M) * 100;
+}
+
+function createCards() {
+  const positions = getPositions(0);
+  positions.forEach(p => {
+    const elem = document.createElement("div");
+    if (p.isDot) {
+      elem.className = "dot year" + p.year;
+    } else {
+      elem.className = "card year" + p.year;
+      elem.textContent = p.label || p.id;
+    }
+    elem.style.left = mToPercent(p.x, 'x') + "%";
+    elem.style.top = mToPercent(p.y, 'y') + "%";
+    elem.style.width = mToPercent(p.w, 'w') + "%";
+    elem.style.height = mToPercent(p.h, 'y') + "%";
+    ground.appendChild(elem);
+    cards[p.id] = elem;
+  });
+}
+
+function setPositions(phase, animate = true) {
+  const positions = getPositions(phase);
+  positions.forEach(p => {
+    const card = cards[p.id];
+    if (!card) return;
+    if (!animate) {
+      card.style.transition = "none";
+      void card.offsetHeight;
+    }
+    card.style.left = mToPercent(p.x, 'x') + "%";
+    card.style.top = mToPercent(p.y, 'y') + "%";
+    if (!animate) {
+      requestAnimationFrame(() => {
+        card.style.transition = "";
+      });
+    }
+  });
+}
+
+// ============================================================
+// アニメーション制御
+// ============================================================
+let currentPhase = 0;
+let isPlaying = false;
+let phaseTimeout = null;
+let speed = 1;
+
+const phaseLabel = document.getElementById("phaseLabel");
+const phaseTitle = document.getElementById("phaseTitle");
+const phaseDescription = document.getElementById("phaseDescription");
+const countDisplay = document.getElementById("countDisplay");
+const playBtn = document.getElementById("playBtn");
+const resetBtn = document.getElementById("resetBtn");
+const speedSelect = document.getElementById("speedSelect");
+const phaseBtns = document.querySelectorAll(".phase-btn");
+
+function updatePhaseDisplay(phase) {
+  const p = phases[phase];
+  phaseLabel.textContent = p.label;
+  phaseTitle.textContent = p.title;
+  phaseDescription.textContent = p.description;
+  countDisplay.textContent = p.count;
+
+  phaseBtns.forEach(btn => {
+    btn.classList.toggle("active", parseInt(btn.dataset.phase) === phase);
+  });
+}
+
+function setPhase(phase, animate = true) {
+  currentPhase = phase;
+  const duration = 2.5 / speed;
+  Object.values(cards).forEach(c => {
+    c.style.transition = `all ${duration}s cubic-bezier(0.4, 0, 0.2, 1)`;
+  });
+  setPositions(phase, animate);
+  updatePhaseDisplay(phase);
+}
+
+function play() {
+  if (isPlaying) return;
+  isPlaying = true;
+  playBtn.textContent = "⏸ 一時停止";
+
+  function nextPhase() {
+    if (!isPlaying) return;
+    if (currentPhase >= 1) {
+      stop();
+      return;
+    }
+    setPhase(currentPhase + 1);
+    const totalMs = (2500 + 1000) / speed;
+    phaseTimeout = setTimeout(nextPhase, totalMs);
+  }
+
+  if (currentPhase >= 1) {
+    setPhase(0, false);
+    setTimeout(nextPhase, 500);
+  } else {
+    nextPhase();
+  }
+}
+
+function stop() {
+  isPlaying = false;
+  playBtn.textContent = "▶ 再生";
+  if (phaseTimeout) {
+    clearTimeout(phaseTimeout);
+    phaseTimeout = null;
+  }
+}
+
+function reset() {
+  stop();
+  setPhase(0, false);
+}
+
+playBtn.addEventListener("click", () => {
+  if (isPlaying) stop();
+  else play();
+});
+resetBtn.addEventListener("click", reset);
+speedSelect.addEventListener("change", (e) => {
+  speed = parseFloat(e.target.value);
+});
+phaseBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    stop();
+    setPhase(parseInt(btn.dataset.phase));
+  });
+});
+
+// 初期化
+createCards();
+updatePhaseDisplay(0);
+</script>
+</body>
+</html>
