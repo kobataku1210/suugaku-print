@@ -3974,7 +3974,8 @@ body {
   text-align: center;
 }
 .cm-menu-logo  { font-size: 3.5rem; margin-bottom: 0.3rem; }
-.cm-menu-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 1.8rem; }
+.cm-menu-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 0.3rem; }
+.cm-menu-subtitle { font-size: 1rem; color: rgba(255,255,255,0.65); margin-bottom: 1.6rem; letter-spacing: 2px; }
 
 .cm-menu-cards {
   display: flex; gap: 1rem;

@@ -1002,9 +1002,17 @@ const GAME_ITEMS = [
     title: 'カードマッチ',
     desc: '展開・因数分解の式と答えをカードでマッチング！自己ベストを目指せ',
     icon: '🃏',
-    onclick: "navigate('cardmatch')",
+    onclick: "cmVariant='factor';navigate('cardmatch')",
     gradient: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
     isNew: false,
+  },
+  {
+    title: 'カードマッチ 平方根',
+    desc: '「Nの平方根」と「±√N」をカードでマッチング！平方根バージョン',
+    icon: '√',
+    onclick: "cmVariant='sqrt';navigate('cardmatch')",
+    gradient: 'linear-gradient(135deg, #4ECDC4, #45B7D1)',
+    isNew: true,
   },
   {
     title: '共通因数ウォール',
@@ -1100,20 +1108,28 @@ function renderRanking() {
 }
 
 function renderGamesPage() {
-  // カードマッチの自己ベストを取得
-  const cmData    = cmLoad();
-  const cmBestStr = cmData.best != null ? cmFmtTime(cmData.best) : null;
+  // 各バリアントの自己ベストを取得
+  const _prevVariant = cmVariant;
+  cmVariant = 'factor';
+  const factorBest = cmLoad().best;
+  cmVariant = 'sqrt';
+  const sqrtBest = cmLoad().best;
+  cmVariant = _prevVariant;
+  const factorBestStr = factorBest != null ? cmFmtTime(factorBest) : null;
+  const sqrtBestStr   = sqrtBest   != null ? cmFmtTime(sqrtBest)   : null;
 
   const cards = GAME_ITEMS.map(g => {
-    // カードマッチのみ自己ベスト・生徒ベストをサブテキストに表示
+    // カードマッチ系のみ自己ベスト・生徒ベストをサブテキストに表示
     let subText = '';
-    if (g.onclick === "navigate('cardmatch')") {
+    if (g.onclick && g.onclick.includes("cmVariant='factor'")) {
       const parts = [];
-      if (cmBestStr) parts.push(`🏅 自己ベスト：${cmBestStr}`);
+      if (factorBestStr) parts.push(`🏅 自己ベスト：${factorBestStr}`);
       if (cmStudentBestTime != null && cmStudentBestName) {
         parts.push(`🏆 ${cmStudentBestName}：${cmFmtTime(cmStudentBestTime)} 🌱×50`);
       }
       if (parts.length) subText = `<div class="game-card-best">${parts.join('　')}</div>`;
+    } else if (g.onclick && g.onclick.includes("cmVariant='sqrt'")) {
+      if (sqrtBestStr) subText = `<div class="game-card-best">🏅 自己ベスト：${sqrtBestStr}</div>`;
     }
     return `
     <div class="game-card" style="--gradient:${g.gradient}"
@@ -2350,8 +2366,10 @@ let cmTimerIv  = null;
 let cmLocked   = false;
 let cmPhase    = 'idle';
 
-function cmLoad() { return JSON.parse(localStorage.getItem(CM_KEY) || '{}'); }
-function cmSave(d) { localStorage.setItem(CM_KEY, JSON.stringify(d)); }
+// variant 別に自己ベストを保存（factor は既存キー、sqrt は別キー）
+function cmStorageKey() { return cmVariant === 'sqrt' ? 'cardMatch_sqrt_v1' : CM_KEY; }
+function cmLoad() { return JSON.parse(localStorage.getItem(cmStorageKey()) || '{}'); }
+function cmSave(d) { localStorage.setItem(cmStorageKey(), JSON.stringify(d)); }
 
 function cmFmt(s) {
   return String(s)
@@ -2369,8 +2387,62 @@ function cmFmtTime(s) {
   return `${m}:${sec}`;
 }
 
+// 現在のバリアント（'factor': 既存の展開・因数分解 / 'sqrt': 平方根）
+let cmVariant = 'factor';
+
+// 平方根版のペア集（必要なら追加可能）
+const CM_SQRT_POOL = [
+  // === タイプA: 「Nの平方根」 ↔ ±√N（無理数） ===
+  { q: '5 の平方根',        a: '±√5'   },
+  { q: '7 の平方根',        a: '±√7'   },
+  { q: '11 の平方根',       a: '±√11'  },
+  { q: '13 の平方根',       a: '±√13'  },
+  { q: '17 の平方根',       a: '±√17'  },
+  { q: '19 の平方根',       a: '±√19'  },
+  { q: '0.5 の平方根',      a: '±√0.5' },
+  { q: '0.7 の平方根',      a: '±√0.7' },
+  { q: '{2/3} の平方根',    a: '±√{2/3}' },
+  { q: '{3/5} の平方根',    a: '±√{3/5}' },
+  { q: '{5/7} の平方根',    a: '±√{5/7}' },
+  // === タイプA: 「Nの平方根」 ↔ ±N（有理数、Nが平方数） ===
+  { q: '4 の平方根',        a: '±2'    },
+  { q: '9 の平方根',        a: '±3'    },
+  { q: '16 の平方根',       a: '±4'    },
+  { q: '25 の平方根',       a: '±5'    },
+  { q: '36 の平方根',       a: '±6'    },
+  { q: '49 の平方根',       a: '±7'    },
+  { q: '64 の平方根',       a: '±8'    },
+  { q: '81 の平方根',       a: '±9'    },
+  { q: '100 の平方根',      a: '±10'   },
+  { q: '121 の平方根',      a: '±11'   },
+  { q: '{1/4} の平方根',    a: '±{1/2}' },
+  { q: '{9/16} の平方根',   a: '±{3/4}' },
+  { q: '0.25 の平方根',     a: '±0.5'  },
+  { q: '0.36 の平方根',     a: '±0.6'  },
+  { q: '0.09 の平方根',     a: '±0.3'  },
+  // === タイプB: √N（Nが平方数） ↔ 普通の数 ===
+  { q: '√4',               a: '2'     },
+  { q: '√16',              a: '4'     },
+  { q: '√36',              a: '6'     },
+  { q: '√64',              a: '8'     },
+  { q: '√100',             a: '10'    },
+  { q: '√144',             a: '12'    },
+  { q: '√169',              a: '13'    },
+  { q: '√225',              a: '15'    },
+  { q: '√{1/9}',            a: '{1/3}' },
+  { q: '√{4/25}',           a: '{2/5}' },
+  { q: '√0.04',             a: '0.2'   },
+  // === タイプB派生: (√N)² ↔ N ===
+  { q: '(√3)²',             a: '3'     },
+  { q: '(√7)²',             a: '7'     },
+  { q: '(-√5)²',            a: '5'     },
+  { q: '(-√11)²',           a: '11'    },
+];
+
 function cmPickProblems() {
-  const ch = mathData.chapters[0]; // 式の展開と因数分解
+  if (cmVariant === 'sqrt') return cmPickSqrtProblems();
+  // 既存：式の展開・因数分解
+  const ch = mathData.chapters[0];
   const USE_SECTIONS = ['乗法の公式', '式の乗法', '式の展開'];
   let pool = [];
   for (const sec of ch.sections) {
@@ -2382,6 +2454,12 @@ function cmPickProblems() {
       }
     }
   }
+  pool.sort(() => Math.random() - 0.5);
+  return pool.slice(0, CM_PAIRS);
+}
+
+function cmPickSqrtProblems() {
+  const pool = [...CM_SQRT_POOL];
   pool.sort(() => Math.random() - 0.5);
   return pool.slice(0, CM_PAIRS);
 }
@@ -2881,10 +2959,13 @@ function cmRewardTableHtml() {
 function renderCmMenu() {
   const d = cmLoad();
   const bestStr = d.best != null ? `自己ベスト ${cmFmtTime(d.best)}` : null;
+  const subTitle = cmVariant === 'sqrt' ? '〜 平方根 〜' : '〜 展開・因数分解 〜';
+  const logo = cmVariant === 'sqrt' ? '√' : '🃏';
   return `
     <div class="cm-menu-screen">
-      <div class="cm-menu-logo">🃏</div>
+      <div class="cm-menu-logo">${logo}</div>
       <div class="cm-menu-title">カードマッチ</div>
+      <div class="cm-menu-subtitle">${subTitle}</div>
       <div class="cm-menu-cards">
         <button class="cm-menu-card cm-solo-card" onclick="cmStartSolo()">
           <div class="cm-mc-icon">⚡</div>
