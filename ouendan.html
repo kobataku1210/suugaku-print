@@ -260,8 +260,8 @@
     <div class="ground" id="ground">
       <svg id="ellipseGuide" viewBox="0 0 100 100" preserveAspectRatio="none"
            style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0;">
-        <!-- 楕円ガイド線(全周) cx=50%, cy=22.857%, rx=42.222%, ry=11.429% (a=19,b=4,cy=8) -->
-        <ellipse cx="50" cy="22.857" rx="42.222" ry="11.429"
+        <!-- 楕円ガイド線(観客側=上半分のみ) cx=50%, cy=22.857%, rx=42.222%, ry=11.429% (a=19,b=4,cy=8) -->
+        <path d="M 7.778,22.857 A 42.222,11.429 0 0 1 92.222,22.857"
               fill="none" stroke="#8B0000"
               stroke-width="3" stroke-dasharray="10,5"
               vector-effect="non-scaling-stroke" />
@@ -418,12 +418,13 @@ function getPositions(phase) {
     const px = ellipseCx + ellipseA * Math.cos(theta);
     const py = ellipseCy + ellipseB * Math.sin(theta);
 
-    // ラベル左上座標: ラベルの上端が (px, py) (=弧の上に乗る) になるよう調整
+    // ラベル左上座標: 弧の少し下にラベル上端を置く(線とラベルが重ならないように)
+    const arcOffsetM = 0.4;
     const x = px - cardWm / 2;
     // 1-9 は 1年ブロック(ラベル+○10個分)の真下に配置
     let y;
-    if (year === 19) y = py + yearBlockH + gap19m;
-    else y = py;
+    if (year === 19) y = py + arcOffsetM + yearBlockH + gap19m;
+    else y = py + arcOffsetM;
     return { x, y };
   }
 
