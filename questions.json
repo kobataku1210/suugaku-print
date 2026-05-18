@@ -2638,7 +2638,8 @@
           "miniTestPassword": "4856",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "平方根の値",
@@ -2649,7 +2650,8 @@
           "miniTestPassword": "4840",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "有理数と無理数",
@@ -2660,7 +2662,8 @@
           "miniTestPassword": "6627",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "真の値と近似値",
@@ -2671,7 +2674,8 @@
           "miniTestPassword": "6961",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "ルートのついた数の積と商",
@@ -3015,7 +3019,8 @@
           "miniTestPassword": "6887",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "ルートの中を簡単な数にする",
@@ -3359,7 +3364,8 @@
           "miniTestPassword": "2717",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "工夫して計算する",
@@ -3703,7 +3709,8 @@
           "miniTestPassword": "6763",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "有理化",
@@ -4047,7 +4054,8 @@
           "miniTestPassword": "4820",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "式の値",
@@ -4391,7 +4399,8 @@
           "miniTestPassword": "2269",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "ルートをふくむ和と差",
@@ -4735,7 +4744,8 @@
           "miniTestPassword": "3306",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "ルートをふくむ積と商",
@@ -5079,7 +5089,8 @@
           "miniTestPassword": "8747",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "ルートをふくむ式の展開",
@@ -5423,7 +5434,8 @@
           "miniTestPassword": "1867",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         },
         {
           "title": "平方根の利用",
@@ -5434,10 +5446,10 @@
           "miniTestPassword": "7955",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": []
+          "studentBestList": [],
+          "draft": true
         }
-      ],
-      "draft": true
+      ]
     },
     {
       "id": 3,

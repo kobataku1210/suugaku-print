@@ -830,7 +830,9 @@ function renderHome() {
   const cards = mathData.chapters.map((ch, i) => {
     // draft: true の章は生徒画面では「準備中」扱い（プレビューモードでは見せる）
     const isDraft = !!ch.draft && !PREVIEW_MODE;
-    const has = !isDraft && ch.sections.length > 0;
+    // 節レベルの draft も除外して「公開節数」をカウント
+    const publishedSecCount = ch.sections.filter(s => !s.draft || PREVIEW_MODE).length;
+    const has = !isDraft && publishedSecCount > 0;
     return `
       <div class="chapter-card" style="--gradient:${ch.gradient}"
            onclick="handleChapterClick(event,this,${i})">
@@ -840,7 +842,7 @@ function renderHome() {
         ${has
           ? `<div class="card-meta">
                <div class="card-bar"><div class="card-bar-fill" style="width:100%"></div></div>
-               <span>${ch.sections.length} 節</span>
+               <span>${publishedSecCount} 節</span>
              </div>`
           : `<span class="coming-badge">準備中</span>`}
       </div>`;
@@ -1175,14 +1177,19 @@ function renderSections() {
   const ch = mathData.chapters[state.chapterIdx];
   const cards = ch.sections.length > 0
     ? ch.sections.map((sec, i) => {
+        // 節レベルの draft（プレビューモードでは無視して全て見せる）
+        const isSecDraft = !!sec.draft && !PREVIEW_MODE;
         const doneCount = LEVELS.filter((_, li) => isLevelDone(state.chapterIdx, i, li)).length;
-        const badge = doneCount === 3
-          ? `<span class="sec-done-badge">全クリア 🌱×6</span>`
-          : doneCount > 0
-          ? `<span class="sec-progress-badge">${doneCount}/3 クリア</span>`
-          : '';
+        let badge = '';
+        if (isSecDraft) {
+          badge = `<span class="sec-coming-badge">準備中</span>`;
+        } else if (doneCount === 3) {
+          badge = `<span class="sec-done-badge">全クリア 🌱×6</span>`;
+        } else if (doneCount > 0) {
+          badge = `<span class="sec-progress-badge">${doneCount}/3 クリア</span>`;
+        }
         return `
-          <div class="section-card" style="--gradient:${ch.gradient}"
+          <div class="section-card${isSecDraft ? ' draft' : ''}" style="--gradient:${ch.gradient}"
                onclick="handleSectionClick(event,this,${i})">
             <div class="sec-badge">${String(i+1).padStart(2,'0')}</div>
             <div class="sec-title">${sec.title}<br>${badge}</div>
@@ -1204,6 +1211,9 @@ function renderSections() {
 
 function handleSectionClick(e, el, idx) {
   addRipple(e, el);
+  const ch = mathData.chapters[state.chapterIdx];
+  const sec = ch.sections[idx];
+  if (sec.draft && !PREVIEW_MODE) return; // draft の節は開けない
   setTimeout(() => navigate('difficulty', { sectionIdx: idx }), 180);
 }
 

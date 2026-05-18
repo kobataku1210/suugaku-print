@@ -123,6 +123,26 @@
     }
     .draft-toggle-bar button:hover { filter: brightness(1.2); }
 
+    /* 節レベルの公開／下書き切替ボタン */
+    .sec-draft-toggle {
+      padding: 0.22rem 0.7rem; border-radius: 6px;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .sec-draft-toggle.draft {
+      background: rgba(255,165,0,0.15);
+      border-color: rgba(255,165,0,0.45);
+      color: #ffc080;
+    }
+    .sec-draft-toggle.draft:hover { background: rgba(255,165,0,0.3); }
+    .sec-draft-toggle.published {
+      background: rgba(86,171,47,0.18);
+      border-color: rgba(86,171,47,0.5);
+      color: #aef0a0;
+    }
+    .sec-draft-toggle.published:hover { background: rgba(86,171,47,0.32); }
+
     /* ===== 節パネル ===== */
     .section-panel { margin-bottom: 2rem; }
     .section-heading {
@@ -1176,6 +1196,23 @@ async function saveCmStudentBest() {
 }
 
 // ===== 章タブ =====
+// 節の draft 状態を切り替え（保存は別途「保存」ボタンで）
+function toggleSectionDraft(chIdx, si) {
+  const ch = questionsData.chapters[chIdx];
+  const sec = ch.sections[si];
+  if (!sec) return;
+  if (sec.draft) {
+    if (!confirm(`「${sec.title}」を公開しますか？\n（保存後、生徒画面に表示されます）`)) return;
+    delete sec.draft;
+  } else {
+    if (!confirm(`「${sec.title}」を下書きに戻しますか？\n（保存後、生徒画面では「準備中」表示になります）`)) return;
+    sec.draft = true;
+  }
+  const activeLevels = (typeof captureActiveLevels === 'function') ? captureActiveLevels() : {};
+  renderSections(chIdx);
+  if (typeof restoreActiveLevels === 'function') restoreActiveLevels(activeLevels);
+}
+
 // 章の draft 状態を切り替え（保存は別途「保存」ボタンで）
 function toggleChapterDraft(chIdx) {
   const ch = questionsData.chapters[chIdx];
@@ -1241,6 +1278,11 @@ function renderSections(chIdx) {
       <div class="section-heading">
         <span style="opacity:0.45">${String(si+1).padStart(2,'0')}</span>
         ${sec.title}
+        <button class="sec-draft-toggle ${sec.draft ? 'draft' : 'published'}"
+                onclick="toggleSectionDraft(${chIdx},${si})"
+                title="生徒画面での公開状態を切替">
+          ${sec.draft ? '🚧 下書き' : '✅ 公開中'}
+        </button>
         <div class="teacher-time-wrap">
           <span class="teacher-time-label">👑 小林Tタイム</span>
           <input type="number" class="teacher-time-input" min="0" step="0.1"

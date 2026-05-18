@@ -807,6 +807,23 @@ body {
   border-radius: 50px;
   margin-top: 0.3rem;
 }
+.sec-coming-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.45);
+  padding: 0.1rem 0.6rem;
+  border-radius: 50px;
+  margin-top: 0.3rem;
+  letter-spacing: 0.05em;
+}
+.section-card.draft {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+.section-card.draft:hover { transform: none; }
+.section-card.draft .sec-arrow { display: none; }
 
 
 /* ===== パスワードモーダル ===== */
