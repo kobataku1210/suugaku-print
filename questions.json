@@ -5799,5 +5799,11 @@
       "name": "2組Hさん",
       "time": 15
     }
-  ]
+  ],
+  "cardMatchSqrtStudentBestList": [],
+  "cardMatchSqrtStudentBestName": null,
+  "cardMatchSqrtStudentBestTime": null,
+  "gameDrafts": {
+    "cardMatchSqrt": false
+  }
 }
