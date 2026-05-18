@@ -120,6 +120,24 @@
     .game-pane { display: block; }
     .game-pane.hidden { display: none; }
 
+    /* 「ゲームを試す」ボタン */
+    .preview-game-btn {
+      display: inline-block;
+      padding: 0.7rem 1.6rem;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #2a1a00;
+      font-weight: 800; font-size: 0.95rem;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(247,151,30,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .preview-game-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(247,151,30,0.5);
+      filter: brightness(1.05);
+    }
+
     /* ===== 章タブ ===== */
     .chapter-tabs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
     .chapter-tab {
@@ -618,6 +636,10 @@
 
     <!-- 共通因数ウォール 問題管理 -->
     <div class="game-pane" id="game-pane-wall">
+    <div style="padding:0.8rem 2rem 0;">
+      <a href="games/共通因数ウォール.html" target="_blank" rel="noopener"
+         class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+    </div>
     <div class="wall-section">
       <div class="wall-section-header" onclick="toggleWallSection()">
         <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
@@ -645,6 +667,10 @@
 
     <!-- カードマッチ -->
     <div class="game-pane hidden" id="game-pane-cardmatch">
+    <div style="padding:0.8rem 2rem 0;">
+      <a href="index.html?preview=draft#cardmatch" target="_blank" rel="noopener"
+         class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+    </div>
     <!-- カードマッチ 小林Tタイム設定 -->
     <div class="cm-teacher-setting">
       <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
@@ -679,6 +705,10 @@
 
     <!-- カードマッチ（平方根） -->
     <div class="game-pane hidden" id="game-pane-cardmatch-sqrt">
+      <div style="padding:0.8rem 2rem 0;">
+        <a href="index.html?preview=draft" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く → 数学ゲーム → カードマッチ平方根）</a>
+      </div>
       <!-- 小林Tタイム設定 (平方根) -->
       <div class="cm-teacher-setting">
         <span class="cm-ts-label">👑 カードマッチ平方根 小林Tタイム</span>
