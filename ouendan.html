@@ -258,40 +258,15 @@
   <div class="ground-wrapper">
     <div class="ground-labels">前(観客側)</div>
     <div class="ground" id="ground">
-      <!-- 校舎 (ground 後方=奥に常時表示) -->
-      <svg id="schoolBuilding" viewBox="0 0 45 35" preserveAspectRatio="none"
-           style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0;">
-        <g stroke="#5a3e2b" stroke-width="1" stroke-linejoin="round"
-           vector-effect="non-scaling-stroke">
-          <!-- 屋根 -->
-          <polygon points="10,28.5 14,26 31,26 35,28.5" fill="#7a4d2e" />
-          <!-- 本体 -->
-          <rect x="10" y="28.5" width="25" height="5.5" fill="#e8d9b8" />
-          <!-- 窓 1階 -->
-          <rect x="12"   y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="15"   y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="18"   y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="25.2" y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="28.2" y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="31.2" y="30" width="1.8" height="1.4" fill="#b8d4e8" />
-          <!-- 窓 2階 -->
-          <rect x="12"   y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="15"   y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="18"   y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="25.2" y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="28.2" y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <rect x="31.2" y="32" width="1.8" height="1.4" fill="#b8d4e8" />
-          <!-- ドア -->
-          <rect x="21.5" y="30.5" width="2" height="3.5" fill="#5a3e2b" />
-        </g>
-      </svg>
-      <!-- 校舎ラベル(HTMLで配置、歪まない) -->
-      <div style="position:absolute; left:50%; top:75%; transform:translate(-50%,0);
-                  color:#3a2515; font-weight:bold; font-size:13px;
-                  pointer-events:none; z-index:0; letter-spacing:2px;">校舎</div>
+      <!-- 校舎 (ground 後方=奥にシンプルな枠で表示) -->
+      <div style="position:absolute; left:22.2%; top:82%; width:55.6%; height:13%;
+                  border: 2px solid #5a3e2b; background: rgba(232,217,184,0.5);
+                  display:flex; align-items:center; justify-content:center;
+                  color:#3a2515; font-weight:bold; font-size:14px;
+                  letter-spacing:4px; pointer-events:none; z-index:0;">校舎</div>
 
       <svg id="ellipseGuide" viewBox="0 0 100 100" preserveAspectRatio="none"
-           style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; opacity:0; transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1);">
+           style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0;">
         <!-- 楕円ガイド線(観客側=上半分のみ) cx=50%, cy=22.857%, rx=42.222%, ry=11.429% (a=19,b=4,cy=8) -->
         <path d="M 7.778,22.857 A 42.222,11.429 0 0 1 92.222,22.857"
               fill="none" stroke="#8B0000"
@@ -377,12 +352,12 @@ function getPositions(phase) {
   const block19H   = card19Hm + dotGapAfterLabelM + dotSizeM * 1;
 
   // 初期隊形(右端が1組、左端が8組)
-  // 8列、中央寄せ
+  // 8列、中央寄せ。startYmは楕円ガイド線(弧の最上端 y=cy-b=4m)の下になるよう設定
   const initColCount = 8;
   const initColGapM = 0.5;
   const initBlockWm = cardWm * initColCount + initColGapM * (initColCount - 1);
   const initStartXm = (GROUND_W_M - initBlockWm) / 2;
-  const startYm = 2.0;
+  const startYm = 5.0;
 
   // 初期位置: classNum 1 が右端、8 が左端
   // colIdx 0 が左、7 が右 → classNum 8 が colIdx 0, classNum 1 が colIdx 7
@@ -593,12 +568,6 @@ function setPhase(phase, animate = true) {
   Object.values(cards).forEach(c => {
     c.style.transition = `all ${duration}s cubic-bezier(0.4, 0, 0.2, 1)`;
   });
-  // 楕円ガイド線は展開後(フェーズ1)のみ表示
-  const guide = document.getElementById('ellipseGuide');
-  if (guide) {
-    guide.style.transition = `opacity ${duration}s cubic-bezier(0.4, 0, 0.2, 1)`;
-    guide.style.opacity = (phase >= 1) ? '1' : '0';
-  }
   setPositions(phase, animate);
   updatePhaseDisplay(phase);
 }
