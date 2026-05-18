@@ -611,7 +611,8 @@
     <div class="admin-content" style="padding-top:1.5rem;padding-bottom:0;">
       <div class="chapter-tabs" id="game-tabs">
         <button class="chapter-tab active" id="game-tab-wall" onclick="switchGameTab('wall')">🧱 共通因数ウォール</button>
-        <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ</button>
+        <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ（展開・因数分解）</button>
+        <button class="chapter-tab" id="game-tab-cardmatch-sqrt" onclick="switchGameTab('cardmatch-sqrt')">√ カードマッチ（平方根）</button>
       </div>
     </div>
 
@@ -675,6 +676,40 @@
       </div>
     </div>
     </div><!-- /game-pane-cardmatch -->
+
+    <!-- カードマッチ（平方根） -->
+    <div class="game-pane hidden" id="game-pane-cardmatch-sqrt">
+      <!-- 小林Tタイム設定 (平方根) -->
+      <div class="cm-teacher-setting">
+        <span class="cm-ts-label">👑 カードマッチ平方根 小林Tタイム</span>
+        <input type="number" id="cm-sqrt-teacher-time-input" class="cm-ts-input"
+               min="1" max="300" step="1" placeholder="秒">
+        <span class="cm-ts-unit">秒</span>
+        <button class="cm-ts-btn" onclick="saveCmSqrtTeacherTime()">更新</button>
+        <span id="cm-sqrt-ts-status" class="cm-ts-status"></span>
+      </div>
+
+      <!-- 生徒ベスト 上位3名 (平方根) -->
+      <div class="cm-teacher-setting" style="flex-wrap:wrap">
+        <span class="cm-ts-label" style="color:#9ded62;">🏅 カードマッチ平方根 生徒ベスト 上位3名</span>
+        <div id="cm-sqrt-rk-slots" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;width:100%"></div>
+        <div id="cm-sqrt-rk-add-row" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.4rem">
+          <span class="cm-ts-label" style="color:#9ded62;font-size:0.85rem;">＋ 新記録追加</span>
+          <input type="text" id="cm-sqrt-rk-add-name" class="cm-ts-input"
+                 style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+                 placeholder="名前">
+          <input type="number" id="cm-sqrt-rk-add-time" class="cm-ts-input"
+                 style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+                 min="1" max="300" step="1" placeholder="秒">
+          <span class="cm-ts-unit">秒</span>
+          <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+                  onclick="addCmSqrtRecord()">追加</button>
+          <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+                  onclick="saveCmSqrtStudentBest()">保存</button>
+          <span id="cm-sqrt-sb-status" class="cm-ts-status"></span>
+        </div>
+      </div>
+    </div><!-- /game-pane-cardmatch-sqrt -->
   </div>
 
   <!-- 📰 NEWS ページ -->
@@ -728,7 +763,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'cardmatch'].forEach(g => {
+  ['wall', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -874,6 +909,11 @@ function migrateRankings(data) {
     } else { data.cardMatchStudentBestList = []; }
   }
   rkSyncTop(data, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
+  // カードマッチ平方根版
+  if (!Array.isArray(data.cardMatchSqrtStudentBestList)) {
+    data.cardMatchSqrtStudentBestList = [];
+  }
+  rkSyncTop(data, 'cardMatchSqrtStudentBestName', 'cardMatchSqrtStudentBestTime', 'cardMatchSqrtStudentBestList');
   data.chapters.forEach(ch => {
     (ch.sections || []).forEach(sec => {
       if (!Array.isArray(sec.studentBestList)) {
@@ -1004,6 +1044,15 @@ async function loadQuestions() {
   if (el && t != null) el.value = t;
   // カードマッチ 生徒ベスト 上位3名をフォームに反映
   renderCmRkSlots();
+  // カードマッチ平方根 小林Tタイム
+  const tSq = questionsData.cardMatchSqrtTeacherTime;
+  const elSq = document.getElementById('cm-sqrt-teacher-time-input');
+  if (elSq && tSq != null) elSq.value = tSq;
+  // カードマッチ平方根 生徒ベスト 上位3名
+  if (!Array.isArray(questionsData.cardMatchSqrtStudentBestList)) {
+    questionsData.cardMatchSqrtStudentBestList = [];
+  }
+  renderCmSqrtRkSlots();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1263,6 +1312,95 @@ async function saveCmStudentBest() {
   questionsData.cardMatchStudentBestList = readCmSlots();
   rkSyncTop(questionsData, 'cardMatchStudentBestName', 'cardMatchStudentBestTime', 'cardMatchStudentBestList');
   renderCmRkSlots();
+  detectAndPushNews();
+  const res = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const r = await res.json();
+  if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
+  sta.textContent = r.ok ? `✓ 保存しました` : '❌ 保存失敗';
+  setTimeout(() => { sta.textContent = ''; }, 3000);
+}
+
+// ===== カードマッチ平方根版：先生タイム =====
+async function saveCmSqrtTeacherTime() {
+  const el  = document.getElementById('cm-sqrt-teacher-time-input');
+  const sta = document.getElementById('cm-sqrt-ts-status');
+  const val = parseInt(el.value);
+  if (!val || val < 1) { sta.textContent = '❌ 正しい秒数を入力してください'; return; }
+  questionsData.cardMatchSqrtTeacherTime = val;
+  detectAndPushNews();
+  const res = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const r = await res.json();
+  if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
+  sta.textContent = r.ok ? `✓ ${val}秒に更新しました` : '❌ 保存失敗';
+  setTimeout(() => { sta.textContent = ''; }, 3000);
+}
+
+// ===== カードマッチ平方根版：生徒ベストランキング =====
+function renderCmSqrtRkSlots() {
+  const wrap = document.getElementById('cm-sqrt-rk-slots');
+  if (!wrap) return;
+  const list = questionsData.cardMatchSqrtStudentBestList || [];
+  const medals = ['🥇','🥈','🥉'];
+  wrap.innerHTML = [0,1,2].map(r => {
+    const e = list[r];
+    return `
+    <div class="rk-slot">
+      <span class="rk-medal">${medals[r]}</span>
+      <input type="text" id="cm-sqrt-rk-name-${r}" class="cm-ts-input rk-name"
+             style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+             value="${escHtml(e ? e.name : '')}" placeholder="名前">
+      <input type="number" id="cm-sqrt-rk-time-${r}" class="cm-ts-input rk-time"
+             style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+             min="1" max="300" step="1" value="${e ? e.time : ''}" placeholder="秒">
+      <span class="cm-ts-unit">秒</span>
+      <button class="rk-del-btn" title="この記録を削除" onclick="deleteCmSqrtSlot(${r})">✕</button>
+    </div>`;
+  }).join('');
+}
+function readCmSqrtSlots() {
+  const slots = [];
+  for (let r = 0; r < 3; r++) {
+    const nameEl = document.getElementById(`cm-sqrt-rk-name-${r}`);
+    const timeEl = document.getElementById(`cm-sqrt-rk-time-${r}`);
+    if (!nameEl || !timeEl) continue;
+    slots.push({ name: nameEl.value, time: timeEl.value });
+  }
+  return rkNormalize(slots);
+}
+function deleteCmSqrtSlot(r) {
+  const slots = readCmSqrtSlots();
+  if (slots[r]) slots.splice(r, 1);
+  questionsData.cardMatchSqrtStudentBestList = rkNormalize(slots);
+  rkSyncTop(questionsData, 'cardMatchSqrtStudentBestName', 'cardMatchSqrtStudentBestTime', 'cardMatchSqrtStudentBestList');
+  renderCmSqrtRkSlots();
+}
+function addCmSqrtRecord() {
+  const nmEl = document.getElementById('cm-sqrt-rk-add-name');
+  const tmEl = document.getElementById('cm-sqrt-rk-add-time');
+  const sta  = document.getElementById('cm-sqrt-sb-status');
+  const name = (nmEl?.value || '').trim();
+  const time = parseFloat(tmEl?.value);
+  if (!name) { sta.textContent = '❌ 名前を入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  if (isNaN(time) || time <= 0) { sta.textContent = '❌ タイムを入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  questionsData.cardMatchSqrtStudentBestList = rkMerge(readCmSqrtSlots(), { name, time });
+  rkSyncTop(questionsData, 'cardMatchSqrtStudentBestName', 'cardMatchSqrtStudentBestTime', 'cardMatchSqrtStudentBestList');
+  if (nmEl) nmEl.value = '';
+  if (tmEl) tmEl.value = '';
+  renderCmSqrtRkSlots();
+}
+async function saveCmSqrtStudentBest() {
+  const sta = document.getElementById('cm-sqrt-sb-status');
+  questionsData.cardMatchSqrtStudentBestList = readCmSqrtSlots();
+  rkSyncTop(questionsData, 'cardMatchSqrtStudentBestName', 'cardMatchSqrtStudentBestTime', 'cardMatchSqrtStudentBestList');
+  renderCmSqrtRkSlots();
   detectAndPushNews();
   const res = await fetch('/api/questions', {
     method: 'POST',
