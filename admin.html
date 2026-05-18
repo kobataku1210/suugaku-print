@@ -604,7 +604,6 @@
       <span id="push-status" class="push-status"></span>
       <span id="save-status" class="save-status">✓ 保存しました</span>
       <button class="import-btn" id="import-btn" onclick="importFromExcel()">📥 Excelから取り込む</button>
-      <button class="save-all-btn" onclick="saveAll()">💾 保存する</button>
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
@@ -1389,7 +1388,7 @@ function toggleCmSqrtPublish() {
     questionsData.gameDrafts.cardMatchSqrt = true;
   }
   renderCmSqrtPublishBar();
-  alert('変更しました。「💾 保存する」または「🚀 GitHubに反映」で保存してください。');
+  alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
 async function saveCmSqrtTeacherTime() {
@@ -1513,7 +1512,7 @@ function toggleChapterDraft(chIdx) {
   renderSections(chIdx);
   // タブをアクティブ状態に保つ
   document.querySelectorAll('.chapter-tab').forEach((t, i) => t.classList.toggle('active', i === chIdx));
-  alert('変更しました。「💾 保存する」または「🚀 GitHubに反映」で保存してください。');
+  alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
 function renderChapterTabs() {
@@ -2356,7 +2355,7 @@ function saveChoicesEditor() {
   const activeLevels = (typeof captureActiveLevels === 'function') ? captureActiveLevels() : {};
   renderSections(currentChapter);
   if (typeof restoreActiveLevels === 'function') restoreActiveLevels(activeLevels);
-  alert('選択肢を保存しました。「💾 保存する」でサーバーに反映してください。');
+  alert('選択肢を保存しました。「🚀 GitHubに反映」でサーバーに反映してください。');
 }
 
 function removeChoicesFromQuestion() {
