@@ -95,6 +95,29 @@
     /* ===== コンテンツ ===== */
     .admin-content { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 
+    /* ===== ページ切替タブ ===== */
+    .page-tabs {
+      display: flex; gap: 0; padding: 0 1rem;
+      background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.1);
+      position: sticky; top: 0; z-index: 90;
+    }
+    .page-tab {
+      padding: 0.8rem 1.4rem;
+      background: transparent; border: none; border-bottom: 3px solid transparent;
+      color: rgba(255,255,255,0.55); font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+      letter-spacing: 1px;
+    }
+    .page-tab:hover { background: rgba(255,255,255,0.05); color: white; }
+    .page-tab.active {
+      color: white;
+      border-bottom-color: #9ded62;
+      background: rgba(255,255,255,0.05);
+    }
+    .page-content { display: block; }
+    .page-content.hidden { display: none; }
+
     /* ===== 章タブ ===== */
     .chapter-tabs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
     .chapter-tab {
@@ -556,7 +579,7 @@
 <!-- 管理画面 -->
 <div id="admin-screen" style="display:none">
   <div class="admin-header">
-    <h1>📝 問題管理画面</h1>
+    <h1>📝 管理画面</h1>
     <div style="display:flex;align-items:center">
       <span id="push-status" class="push-status"></span>
       <span id="save-status" class="save-status">✓ 保存しました</span>
@@ -565,84 +588,101 @@
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
   </div>
-  <!-- NEWS 管理 -->
-  <div class="news-admin-section">
-    <div class="news-admin-header" onclick="toggleNewsAdminSection()">
-      <span class="news-admin-label">📰 NEWS 管理（ホーム画面に表示）</span>
-      <span id="news-admin-count" class="news-admin-count">0件 / 最大10件</span>
-      <button class="news-admin-save-btn" id="news-admin-save-btn"
-              onclick="event.stopPropagation();saveNews(this)">💾 保存</button>
-      <span class="news-admin-save-status" id="news-admin-save-status"></span>
-      <span class="news-admin-toggle" id="news-admin-toggle">▼ 開く</span>
-    </div>
-    <div class="news-admin-body" id="news-admin-body" style="display:none">
-      <div id="news-admin-list"></div>
-      <button class="news-admin-add-btn" onclick="addNewsManual()">＋ NEWS追加</button>
-      <div style="margin-top:0.4rem;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.5;">
-        ※ オレンジ枠は自動生成（小林Tタイム/生徒ベスト更新時）、緑枠は手動追加。<br>
-        　 11件目以降は自動的に古いものから削除されます。
-      </div>
+
+  <!-- ページ切替タブ -->
+  <div class="page-tabs">
+    <button class="page-tab active" id="page-tab-problems" onclick="switchPage('problems')">📝 問題編集</button>
+    <button class="page-tab" id="page-tab-games" onclick="switchPage('games')">🎮 ゲーム管理</button>
+    <button class="page-tab" id="page-tab-news" onclick="switchPage('news')">📰 NEWS</button>
+  </div>
+
+  <!-- 📝 問題編集ページ -->
+  <div class="page-content" id="page-problems">
+    <div class="admin-content">
+      <div class="chapter-tabs" id="chapter-tabs"></div>
+      <div id="sections-area"></div>
     </div>
   </div>
 
-  <!-- 共通因数ウォール 問題管理 -->
-  <div class="wall-section">
-    <div class="wall-section-header" onclick="toggleWallSection()">
-      <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
-      <span id="wall-count" class="wall-section-count">（読み込み中）</span>
-      <button class="wall-save-inline" id="wall-save-btn"
-              onclick="event.stopPropagation();saveWallProblems(this)">💾 保存</button>
-      <span class="wall-save-status" id="wall-save-status"></span>
-      <span class="wall-section-toggle" id="wall-toggle">▼ 開く</span>
-    </div>
-    <div class="wall-section-body" id="wall-body" style="display:none">
-      <div class="wall-lv-tabs" id="wall-lv-tabs">
-        <button class="wall-lv-tab active" data-lv="1" onclick="switchWallLevel(1)">Lv.1<span class="lv-cnt" id="wall-lv1-cnt">0</span></button>
-        <button class="wall-lv-tab" data-lv="2" onclick="switchWallLevel(2)">Lv.2<span class="lv-cnt" id="wall-lv2-cnt">0</span></button>
-        <button class="wall-lv-tab" data-lv="3" onclick="switchWallLevel(3)">Lv.3<span class="lv-cnt" id="wall-lv3-cnt">0</span></button>
-        <button class="wall-lv-tab" data-lv="all" onclick="switchWallLevel('all')">全部<span class="lv-cnt" id="wall-lvall-cnt">0</span></button>
+  <!-- 🎮 ゲーム管理ページ -->
+  <div class="page-content hidden" id="page-games">
+    <!-- 共通因数ウォール 問題管理 -->
+    <div class="wall-section">
+      <div class="wall-section-header" onclick="toggleWallSection()">
+        <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
+        <span id="wall-count" class="wall-section-count">（読み込み中）</span>
+        <button class="wall-save-inline" id="wall-save-btn"
+                onclick="event.stopPropagation();saveWallProblems(this)">💾 保存</button>
+        <span class="wall-save-status" id="wall-save-status"></span>
+        <span class="wall-section-toggle" id="wall-toggle">▼ 開く</span>
       </div>
-      <div id="wall-table-wrap"></div>
-      <button class="wall-add-btn" onclick="addWallProblem()">＋ 問題を追加</button>
-      <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.3)">
-        使える文字: a b c x y　例: 6a^2b, 4ab　指数: a^2 または a²
+      <div class="wall-section-body" id="wall-body" style="display:none">
+        <div class="wall-lv-tabs" id="wall-lv-tabs">
+          <button class="wall-lv-tab active" data-lv="1" onclick="switchWallLevel(1)">Lv.1<span class="lv-cnt" id="wall-lv1-cnt">0</span></button>
+          <button class="wall-lv-tab" data-lv="2" onclick="switchWallLevel(2)">Lv.2<span class="lv-cnt" id="wall-lv2-cnt">0</span></button>
+          <button class="wall-lv-tab" data-lv="3" onclick="switchWallLevel(3)">Lv.3<span class="lv-cnt" id="wall-lv3-cnt">0</span></button>
+          <button class="wall-lv-tab" data-lv="all" onclick="switchWallLevel('all')">全部<span class="lv-cnt" id="wall-lvall-cnt">0</span></button>
+        </div>
+        <div id="wall-table-wrap"></div>
+        <button class="wall-add-btn" onclick="addWallProblem()">＋ 問題を追加</button>
+        <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.3)">
+          使える文字: a b c x y　例: 6a^2b, 4ab　指数: a^2 または a²
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- カードマッチ 小林Tタイム設定 -->
-  <div class="cm-teacher-setting">
-    <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
-    <input type="number" id="cm-teacher-time-input" class="cm-ts-input"
-           min="1" max="300" step="1" placeholder="秒">
-    <span class="cm-ts-unit">秒</span>
-    <button class="cm-ts-btn" onclick="saveCmTeacherTime()">更新</button>
-    <span id="cm-ts-status" class="cm-ts-status"></span>
-  </div>
-
-  <!-- カードマッチ 生徒ベスト 上位3名 -->
-  <div class="cm-teacher-setting" style="flex-wrap:wrap">
-    <span class="cm-ts-label" style="color:#9ded62;">🏅 カードマッチ 生徒ベスト 上位3名</span>
-    <div id="cm-rk-slots" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;width:100%"></div>
-    <div id="cm-rk-add-row" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.4rem">
-      <span class="cm-ts-label" style="color:#9ded62;font-size:0.85rem;">＋ 新記録追加</span>
-      <input type="text" id="cm-rk-add-name" class="cm-ts-input"
-             style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
-             placeholder="名前">
-      <input type="number" id="cm-rk-add-time" class="cm-ts-input"
-             style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+    <!-- カードマッチ 小林Tタイム設定 -->
+    <div class="cm-teacher-setting">
+      <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
+      <input type="number" id="cm-teacher-time-input" class="cm-ts-input"
              min="1" max="300" step="1" placeholder="秒">
       <span class="cm-ts-unit">秒</span>
-      <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
-              onclick="addCmRecord()">追加</button>
-      <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
-              onclick="saveCmStudentBest()">保存</button>
-      <span id="cm-sb-status" class="cm-ts-status"></span>
+      <button class="cm-ts-btn" onclick="saveCmTeacherTime()">更新</button>
+      <span id="cm-ts-status" class="cm-ts-status"></span>
+    </div>
+
+    <!-- カードマッチ 生徒ベスト 上位3名 -->
+    <div class="cm-teacher-setting" style="flex-wrap:wrap">
+      <span class="cm-ts-label" style="color:#9ded62;">🏅 カードマッチ 生徒ベスト 上位3名</span>
+      <div id="cm-rk-slots" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;width:100%"></div>
+      <div id="cm-rk-add-row" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.4rem">
+        <span class="cm-ts-label" style="color:#9ded62;font-size:0.85rem;">＋ 新記録追加</span>
+        <input type="text" id="cm-rk-add-name" class="cm-ts-input"
+               style="width:90px;border-color:rgba(157,237,98,0.4);color:#9ded62;font-family:inherit;font-size:0.85rem;"
+               placeholder="名前">
+        <input type="number" id="cm-rk-add-time" class="cm-ts-input"
+               style="border-color:rgba(157,237,98,0.4);color:#9ded62;"
+               min="1" max="300" step="1" placeholder="秒">
+        <span class="cm-ts-unit">秒</span>
+        <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+                onclick="addCmRecord()">追加</button>
+        <button class="cm-ts-btn" style="border-color:rgba(157,237,98,0.5);color:#9ded62;background:rgba(157,237,98,0.15);"
+                onclick="saveCmStudentBest()">保存</button>
+        <span id="cm-sb-status" class="cm-ts-status"></span>
+      </div>
     </div>
   </div>
-  <div class="admin-content">
-    <div class="chapter-tabs" id="chapter-tabs"></div>
-    <div id="sections-area"></div>
+
+  <!-- 📰 NEWS ページ -->
+  <div class="page-content hidden" id="page-news">
+    <div class="news-admin-section">
+      <div class="news-admin-header" onclick="toggleNewsAdminSection()">
+        <span class="news-admin-label">📰 NEWS 管理（ホーム画面に表示）</span>
+        <span id="news-admin-count" class="news-admin-count">0件 / 最大10件</span>
+        <button class="news-admin-save-btn" id="news-admin-save-btn"
+                onclick="event.stopPropagation();saveNews(this)">💾 保存</button>
+        <span class="news-admin-save-status" id="news-admin-save-status"></span>
+        <span class="news-admin-toggle" id="news-admin-toggle">▼ 開く</span>
+      </div>
+      <div class="news-admin-body" id="news-admin-body" style="display:none">
+        <div id="news-admin-list"></div>
+        <button class="news-admin-add-btn" onclick="addNewsManual()">＋ NEWS追加</button>
+        <div style="margin-top:0.4rem;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.5;">
+          ※ オレンジ枠は自動生成（小林Tタイム/生徒ベスト更新時）、緑枠は手動追加。<br>
+          　 11件目以降は自動的に古いものから削除されます。
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -657,6 +697,18 @@ let questionsData = null;
 let originalSnapshot = null; // NEWS自動検知用
 let currentChapter = 0;
 let enteredPassword = '';
+let currentAdminPage = localStorage.getItem('adminCurrentPage') || 'problems';
+
+function switchPage(name) {
+  currentAdminPage = name;
+  localStorage.setItem('adminCurrentPage', name);
+  ['problems', 'games', 'news'].forEach(p => {
+    const tab = document.getElementById('page-tab-' + p);
+    const pane = document.getElementById('page-' + p);
+    if (tab) tab.classList.toggle('active', p === name);
+    if (pane) pane.classList.toggle('hidden', p !== name);
+  });
+}
 
 // ===== ログイン =====
 function doLogin() {
@@ -665,6 +717,7 @@ function doLogin() {
     enteredPassword = pw;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-screen').style.display = 'block';
+    switchPage(currentAdminPage); // 前回のページを復元
     loadQuestions();
   } else {
     document.getElementById('login-error').style.display = 'block';
