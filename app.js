@@ -1013,7 +1013,7 @@ const GAME_ITEMS = [
     onclick: "cmVariant='sqrt';navigate('cardmatch')",
     gradient: 'linear-gradient(135deg, #4ECDC4, #45B7D1)',
     isNew: true,
-    draft: true, // プレビュー以外では非表示
+    draftKey: 'cardMatchSqrt', // questions.json の gameDrafts で公開制御
   },
   {
     title: '共通因数ウォール',
@@ -1120,7 +1120,16 @@ function renderGamesPage() {
   const sqrtBestStr   = sqrtBest   != null ? cmFmtTime(sqrtBest)   : null;
 
   // draft ゲームはプレビュー以外では非表示
-  const visibleGames = GAME_ITEMS.filter(g => !g.draft || PREVIEW_MODE);
+  // draftKey が指定されていれば questions.json の gameDrafts を見て判定
+  function isGameDraft(g) {
+    if (g.draft) return true;
+    if (g.draftKey) {
+      const drafts = (mathData && mathData.gameDrafts) || {};
+      return drafts[g.draftKey] !== false; // 明示的に false でなければ draft 扱い
+    }
+    return false;
+  }
+  const visibleGames = GAME_ITEMS.filter(g => !isGameDraft(g) || PREVIEW_MODE);
 
   const cards = visibleGames.map(g => {
     // カードマッチ系のみ自己ベスト・生徒ベストをサブテキストに表示
@@ -1135,9 +1144,10 @@ function renderGamesPage() {
     } else if (g.onclick && g.onclick.includes("cmVariant='sqrt'")) {
       if (sqrtBestStr) subText = `<div class="game-card-best">🏅 自己ベスト：${sqrtBestStr}</div>`;
     }
-    const draftMark = g.draft ? '<span class="game-new-badge" style="background:#f7971e;color:#2a1a00">🚧下書き</span>' : '';
+    const draft = isGameDraft(g);
+    const draftMark = draft ? '<span class="game-new-badge" style="background:#f7971e;color:#2a1a00">🚧下書き</span>' : '';
     return `
-    <div class="game-card${g.draft ? ' draft' : ''}" style="--gradient:${g.gradient}"
+    <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${g.gradient}"
          onclick="${g.onclick}">
       <span class="game-card-icon">${g.icon}</span>
       <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
@@ -3246,6 +3256,7 @@ fetch('./questions.json')
     migrateRankings(data);
     mathData.chapters = data.chapters;
     mathData.news = Array.isArray(data.news) ? data.news : [];
+    mathData.gameDrafts = data.gameDrafts || {};
     mathData.cardMatchStudentBestList = data.cardMatchStudentBestList || [];
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;

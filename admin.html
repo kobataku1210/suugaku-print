@@ -705,9 +705,12 @@
 
     <!-- カードマッチ（平方根） -->
     <div class="game-pane hidden" id="game-pane-cardmatch-sqrt">
-      <div style="padding:0.8rem 2rem 0;">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
         <a href="index.html?preview=draft" target="_blank" rel="noopener"
            class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く → 数学ゲーム → カードマッチ平方根）</a>
+        <div id="cm-sqrt-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;">
+          <!-- JSで描画 -->
+        </div>
       </div>
       <!-- 小林Tタイム設定 (平方根) -->
       <div class="cm-teacher-setting">
@@ -1083,6 +1086,12 @@ async function loadQuestions() {
     questionsData.cardMatchSqrtStudentBestList = [];
   }
   renderCmSqrtRkSlots();
+  // カードマッチ平方根 公開状態（デフォルト: 下書き）
+  if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
+  if (questionsData.gameDrafts.cardMatchSqrt === undefined) {
+    questionsData.gameDrafts.cardMatchSqrt = true; // デフォルト下書き
+  }
+  renderCmSqrtPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1355,6 +1364,34 @@ async function saveCmStudentBest() {
 }
 
 // ===== カードマッチ平方根版：先生タイム =====
+// カードマッチ平方根版の公開/下書き状態を描画
+function renderCmSqrtPublishBar() {
+  const bar = document.getElementById('cm-sqrt-publish-bar');
+  if (!bar) return;
+  if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
+  const isDraft = questionsData.gameDrafts.cardMatchSqrt !== false;
+  bar.className = 'draft-toggle-bar ' + (isDraft ? '' : 'published');
+  bar.innerHTML = isDraft
+    ? `<span>🚧 <b>下書き状態</b>（生徒画面では非表示）</span>
+       <button onclick="toggleCmSqrtPublish()">✅ 公開する</button>`
+    : `<span>✅ <b>公開中</b>（生徒画面に表示）</span>
+       <button onclick="toggleCmSqrtPublish()">🚧 下書きに戻す</button>`;
+}
+
+function toggleCmSqrtPublish() {
+  if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
+  const isDraft = questionsData.gameDrafts.cardMatchSqrt !== false;
+  if (isDraft) {
+    if (!confirm('「カードマッチ平方根」を公開しますか？\n（保存後、生徒画面に表示されます）')) return;
+    questionsData.gameDrafts.cardMatchSqrt = false;
+  } else {
+    if (!confirm('「カードマッチ平方根」を下書きに戻しますか？\n（保存後、生徒画面から非表示になります）')) return;
+    questionsData.gameDrafts.cardMatchSqrt = true;
+  }
+  renderCmSqrtPublishBar();
+  alert('変更しました。「💾 保存する」または「🚀 GitHubに反映」で保存してください。');
+}
+
 async function saveCmSqrtTeacherTime() {
   const el  = document.getElementById('cm-sqrt-teacher-time-input');
   const sta = document.getElementById('cm-sqrt-ts-status');
