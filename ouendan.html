@@ -418,8 +418,8 @@ function getPositions(phase) {
     const px = ellipseCx + ellipseA * Math.cos(theta);
     const py = ellipseCy + ellipseB * Math.sin(theta);
 
-    // ラベル左上座標: 弧の少し下にラベル上端を置く(線とラベルが重ならないように)
-    const arcOffsetM = 0.4;
+    // ラベル左上座標: 弧の下にラベル上端を置く(線とラベルが重ならないように余白を確保)
+    const arcOffsetM = 1.0;
     const x = px - cardWm / 2;
     // 1-9 は 1年ブロック(ラベル+○10個分)の真下に配置
     let y;
