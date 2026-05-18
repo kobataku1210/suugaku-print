@@ -2371,8 +2371,11 @@ let cmTimerIv  = null;
 let cmLocked   = false;
 let cmPhase    = 'idle';
 
-// variant 別に自己ベストを保存（factor は既存キー、sqrt は別キー）
-function cmStorageKey() { return cmVariant === 'sqrt' ? 'cardMatch_sqrt_v1' : CM_KEY; }
+// variant + level 別に自己ベストを保存
+function cmStorageKey() {
+  if (cmVariant === 'sqrt') return `cardMatch_sqrt_${cmSqrtLevel}_v1`;
+  return CM_KEY;
+}
 function cmLoad() { return JSON.parse(localStorage.getItem(cmStorageKey()) || '{}'); }
 function cmSave(d) { localStorage.setItem(cmStorageKey(), JSON.stringify(d)); }
 
@@ -2394,22 +2397,23 @@ function cmFmtTime(s) {
 
 // 現在のバリアント（'factor': 既存の展開・因数分解 / 'sqrt': 平方根）
 let cmVariant = 'factor';
+// 平方根版のレベル（'beginner' / 'intermediate' / 'advanced'）
+let cmSqrtLevel = localStorage.getItem('cmSqrtLevel') || 'beginner';
 
-// 平方根版のペア集（必要なら追加可能）
-const CM_SQRT_POOL = [
-  // === タイプA: 「Nの平方根」 ↔ ±√N（無理数） ===
-  { q: '5 の平方根',        a: '±√5'   },
-  { q: '7 の平方根',        a: '±√7'   },
-  { q: '11 の平方根',       a: '±√11'  },
-  { q: '13 の平方根',       a: '±√13'  },
-  { q: '17 の平方根',       a: '±√17'  },
-  { q: '19 の平方根',       a: '±√19'  },
-  { q: '0.5 の平方根',      a: '±√0.5' },
-  { q: '0.7 の平方根',      a: '±√0.7' },
-  { q: '{2/3} の平方根',    a: '±√{2/3}' },
-  { q: '{3/5} の平方根',    a: '±√{3/5}' },
-  { q: '{5/7} の平方根',    a: '±√{5/7}' },
-  // === タイプA: 「Nの平方根」 ↔ ±N（有理数、Nが平方数） ===
+function cmSetSqrtLevel(level) {
+  cmSqrtLevel = level;
+  localStorage.setItem('cmSqrtLevel', level);
+  render();
+}
+
+function cmSqrtLevelDesc() {
+  if (cmSqrtLevel === 'beginner')    return '初級：N が平方数（例: 25 の平方根 ↔ ±5）';
+  if (cmSqrtLevel === 'intermediate') return '中級：N が平方数でない（例: 5 の平方根 ↔ ±√5）';
+  return '上級：初級と中級を混ぜる';
+}
+
+// === 初級: Nの平方根（Nが平方数 → 答えが有理数）===
+const CM_SQRT_POOL_PERFECT = [
   { q: '4 の平方根',        a: '±2'    },
   { q: '9 の平方根',        a: '±3'    },
   { q: '16 の平方根',       a: '±4'    },
@@ -2420,28 +2424,45 @@ const CM_SQRT_POOL = [
   { q: '81 の平方根',       a: '±9'    },
   { q: '100 の平方根',      a: '±10'   },
   { q: '121 の平方根',      a: '±11'   },
+  { q: '144 の平方根',      a: '±12'   },
+  { q: '169 の平方根',      a: '±13'   },
+  { q: '225 の平方根',      a: '±15'   },
   { q: '{1/4} の平方根',    a: '±{1/2}' },
+  { q: '{1/9} の平方根',    a: '±{1/3}' },
   { q: '{9/16} の平方根',   a: '±{3/4}' },
+  { q: '{4/25} の平方根',   a: '±{2/5}' },
+  { q: '{25/49} の平方根',  a: '±{5/7}' },
   { q: '0.25 の平方根',     a: '±0.5'  },
   { q: '0.36 の平方根',     a: '±0.6'  },
   { q: '0.09 の平方根',     a: '±0.3'  },
-  // === タイプB: √N（Nが平方数） ↔ 普通の数 ===
-  { q: '√4',               a: '2'     },
-  { q: '√16',              a: '4'     },
-  { q: '√36',              a: '6'     },
-  { q: '√64',              a: '8'     },
-  { q: '√100',             a: '10'    },
-  { q: '√144',             a: '12'    },
-  { q: '√169',              a: '13'    },
-  { q: '√225',              a: '15'    },
-  { q: '√{1/9}',            a: '{1/3}' },
-  { q: '√{4/25}',           a: '{2/5}' },
-  { q: '√0.04',             a: '0.2'   },
-  // === タイプB派生: (√N)² ↔ N ===
-  { q: '(√3)²',             a: '3'     },
-  { q: '(√7)²',             a: '7'     },
-  { q: '(-√5)²',            a: '5'     },
-  { q: '(-√11)²',           a: '11'    },
+  { q: '0.64 の平方根',     a: '±0.8'  },
+  { q: '0.04 の平方根',     a: '±0.2'  },
+  { q: '0.81 の平方根',     a: '±0.9'  },
+];
+
+// === 中級: Nの平方根（Nが平方数でない → 答えが無理数 ±√N）===
+const CM_SQRT_POOL_IRRATIONAL = [
+  { q: '2 の平方根',        a: '±√2'  },
+  { q: '3 の平方根',        a: '±√3'  },
+  { q: '5 の平方根',        a: '±√5'  },
+  { q: '6 の平方根',        a: '±√6'  },
+  { q: '7 の平方根',        a: '±√7'  },
+  { q: '10 の平方根',       a: '±√10' },
+  { q: '11 の平方根',       a: '±√11' },
+  { q: '13 の平方根',       a: '±√13' },
+  { q: '14 の平方根',       a: '±√14' },
+  { q: '15 の平方根',       a: '±√15' },
+  { q: '17 の平方根',       a: '±√17' },
+  { q: '19 の平方根',       a: '±√19' },
+  { q: '21 の平方根',       a: '±√21' },
+  { q: '23 の平方根',       a: '±√23' },
+  { q: '{1/3} の平方根',    a: '±√{1/3}' },
+  { q: '{2/3} の平方根',    a: '±√{2/3}' },
+  { q: '{3/5} の平方根',    a: '±√{3/5}' },
+  { q: '{5/7} の平方根',    a: '±√{5/7}' },
+  { q: '0.3 の平方根',      a: '±√0.3' },
+  { q: '0.5 の平方根',      a: '±√0.5' },
+  { q: '0.7 の平方根',      a: '±√0.7' },
 ];
 
 function cmPickProblems() {
@@ -2464,7 +2485,10 @@ function cmPickProblems() {
 }
 
 function cmPickSqrtProblems() {
-  const pool = [...CM_SQRT_POOL];
+  let pool;
+  if (cmSqrtLevel === 'beginner') pool = [...CM_SQRT_POOL_PERFECT];
+  else if (cmSqrtLevel === 'intermediate') pool = [...CM_SQRT_POOL_IRRATIONAL];
+  else pool = [...CM_SQRT_POOL_PERFECT, ...CM_SQRT_POOL_IRRATIONAL]; // advanced
   pool.sort(() => Math.random() - 0.5);
   return pool.slice(0, CM_PAIRS);
 }
@@ -2966,11 +2990,21 @@ function renderCmMenu() {
   const bestStr = d.best != null ? `自己ベスト ${cmFmtTime(d.best)}` : null;
   const subTitle = cmVariant === 'sqrt' ? '〜 平方根 〜' : '〜 展開・因数分解 〜';
   const logo = cmVariant === 'sqrt' ? '√' : '🃏';
+  // 平方根モードのみレベル選択を表示
+  const levelSelector = cmVariant === 'sqrt' ? `
+    <div class="cm-level-selector">
+      <button class="cm-level-btn ${cmSqrtLevel === 'beginner' ? 'active' : ''}" onclick="cmSetSqrtLevel('beginner')">初級</button>
+      <button class="cm-level-btn ${cmSqrtLevel === 'intermediate' ? 'active' : ''}" onclick="cmSetSqrtLevel('intermediate')">中級</button>
+      <button class="cm-level-btn ${cmSqrtLevel === 'advanced' ? 'active' : ''}" onclick="cmSetSqrtLevel('advanced')">上級</button>
+    </div>
+    <div class="cm-level-desc">${cmSqrtLevelDesc()}</div>
+  ` : '';
   return `
     <div class="cm-menu-screen">
       <div class="cm-menu-logo">${logo}</div>
       <div class="cm-menu-title">カードマッチ</div>
       <div class="cm-menu-subtitle">${subTitle}</div>
+      ${levelSelector}
       <div class="cm-menu-cards">
         <button class="cm-menu-card cm-solo-card" onclick="cmStartSolo()">
           <div class="cm-mc-icon">⚡</div>
