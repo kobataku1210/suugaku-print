@@ -2709,12 +2709,15 @@ function cmComplete() {
   const peas = cmTimePeas(cmSeconds);
   if (peas > 0) addPeas(peas);
 
+  const tt = cmGetTeacherTime();
+  const sbt = cmGetStudentBestTime();
+  const sbn = cmGetStudentBestName();
   // 小林Tタイム超えボーナス（別途+10）
-  const beatTeacher = cmTeacherTime != null && cmSeconds < cmTeacherTime;
+  const beatTeacher = tt != null && cmSeconds < tt;
   if (beatTeacher) addPeas(10);
 
   // 生徒ベストタイム超えボーナス（+50）
-  const beatStudentBest = cmStudentBestTime != null && cmSeconds < cmStudentBestTime;
+  const beatStudentBest = sbt != null && cmSeconds < sbt;
   if (beatStudentBest) addPeas(50);
 
   const overlay = document.getElementById('cm-overlay');
@@ -2722,11 +2725,11 @@ function cmComplete() {
   overlay.innerHTML = `
     <div class="cm-result">
       <div class="cm-result-icon">${beatTeacher ? '👑' : beatStudentBest ? '🏅' : '🎉'}</div>
-      <div class="cm-result-title">${beatTeacher ? '小林T超え！' : beatStudentBest ? `${cmStudentBestName}超え！` : 'クリア！'}</div>
+      <div class="cm-result-title">${beatTeacher ? '小林T超え！' : beatStudentBest ? `${sbn}超え！` : 'クリア！'}</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
-      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(cmTeacherTime)})を超えた！<br>🌱 ×10 ボーナス！</div>` : ''}
-      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${cmStudentBestName}(${cmFmtTime(cmStudentBestTime)})を超えた！<br>🌱 ×50 ボーナス！</div>` : ''}
+      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(tt)})を超えた！<br>🌱 ×10 ボーナス！</div>` : ''}
+      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${sbn}(${cmFmtTime(sbt)})を超えた！<br>🌱 ×50 ボーナス！</div>` : ''}
       ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
@@ -2761,6 +2764,15 @@ function cmGameOver() {
 let cmTeacherTime      = null;  // 小林Tのカードマッチ最速タイム（秒）
 let cmStudentBestTime  = null;  // 生徒ベストタイム（秒）
 let cmStudentBestName  = null;  // 生徒ベスト名前
+// カードマッチ平方根版 用
+let cmSqrtTeacherTime      = null;
+let cmSqrtStudentBestTime  = null;
+let cmSqrtStudentBestName  = null;
+
+// 現在のバリアントに応じた値を返すヘルパー
+function cmGetTeacherTime()     { return cmVariant === 'sqrt' ? cmSqrtTeacherTime     : cmTeacherTime; }
+function cmGetStudentBestTime() { return cmVariant === 'sqrt' ? cmSqrtStudentBestTime : cmStudentBestTime; }
+function cmGetStudentBestName() { return cmVariant === 'sqrt' ? cmSqrtStudentBestName : cmStudentBestName; }
 let cmMode         = 'menu';   // 'menu' | 'solo' | 'group_setup' | 'group_play'
 let cmGroupPlayers = [];       // [{name, score}]
 let cmGroupTurn    = 0;
@@ -2971,14 +2983,17 @@ function cmRewardTableHtml() {
       <span class="cmr-time">${cmFmtTime(t.sec)}以内</span>
       <span class="cmr-peas">🌱×${t.peas}</span>
     </div>`).join('');
-  const teacherRow = cmTeacherTime != null ? `
+  const tt = cmGetTeacherTime();
+  const sbt = cmGetStudentBestTime();
+  const sbn = cmGetStudentBestName();
+  const teacherRow = tt != null ? `
     <div class="cmr-row cmr-teacher">
-      <span class="cmr-time">👑小林T(${cmFmtTime(cmTeacherTime)})超え</span>
+      <span class="cmr-time">👑小林T(${cmFmtTime(tt)})超え</span>
       <span class="cmr-peas">🌱×10</span>
     </div>` : '';
-  const studentRow = cmStudentBestTime != null && cmStudentBestName ? `
+  const studentRow = sbt != null && sbn ? `
     <div class="cmr-row" style="background:rgba(157,237,98,0.08);border-color:rgba(157,237,98,0.25);">
-      <span class="cmr-time" style="color:#9ded62;">🏅${cmStudentBestName}(${cmFmtTime(cmStudentBestTime)})超え</span>
+      <span class="cmr-time" style="color:#9ded62;">🏅${sbn}(${cmFmtTime(sbt)})超え</span>
       <span class="cmr-peas">🌱×50</span>
     </div>` : '';
   return `<div class="cmr-table">${teacherRow}${studentRow}${rows}</div>`;
@@ -3235,6 +3250,10 @@ fetch('./questions.json')
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;
     if (data.cardMatchStudentBestName) cmStudentBestName = data.cardMatchStudentBestName;
+    // 平方根版
+    if (data.cardMatchSqrtTeacherTime != null) cmSqrtTeacherTime = data.cardMatchSqrtTeacherTime;
+    if (data.cardMatchSqrtStudentBestTime != null) cmSqrtStudentBestTime = data.cardMatchSqrtStudentBestTime;
+    if (data.cardMatchSqrtStudentBestName) cmSqrtStudentBestName = data.cardMatchSqrtStudentBestName;
     render();
   })
   .catch(() => {
