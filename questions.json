@@ -346,20 +346,20 @@
           "miniTestPassword": "4036",
           "studentBestList": [
             {
+              "name": "3組O君",
+              "time": 4.2
+            },
+            {
               "name": "6組S君",
               "time": 4.3
             },
             {
               "name": "2組H君",
               "time": 4.4
-            },
-            {
-              "name": "8組I君",
-              "time": 4.9
             }
           ],
-          "studentBestName": "6組S君",
-          "studentBestTime": 4.3
+          "studentBestName": "3組O君",
+          "studentBestTime": 4.2
         },
         {
           "title": "式の展開",
@@ -523,20 +523,20 @@
           "miniTestPassword": "1183",
           "studentBestList": [
             {
+              "name": "3組O君",
+              "time": 4
+            },
+            {
               "name": "6組S君",
               "time": 4.4
             },
             {
               "name": "2組H君",
               "time": 4.6
-            },
-            {
-              "name": "8組I君",
-              "time": 5.3
             }
           ],
-          "studentBestName": "6組S君",
-          "studentBestTime": 4.4
+          "studentBestName": "3組O君",
+          "studentBestTime": 4
         },
         {
           "title": "乗法の公式",
@@ -5498,6 +5498,20 @@
   "cardMatchStudentBestTime": 9,
   "news": [
     {
+      "id": "1779071478210-8tusl",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "3組O君 が第1章「式の展開」を 4秒 で更新！",
+      "date": "2026-05-18T02:31:18.210Z"
+    },
+    {
+      "id": "1779071467245-y1epo",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "3組O君 が第1章「式の除法」を 4.2秒 で更新！",
+      "date": "2026-05-18T02:31:07.245Z"
+    },
+    {
       "id": "1778721121282-z84rd",
       "type": "auto",
       "icon": "🏅",
@@ -5552,20 +5566,6 @@
       "icon": "🏅",
       "title": "6組S君 が第1章「いろいろな因数分解」を 3.4秒 で更新！",
       "date": "2026-05-13T02:44:26.086Z"
-    },
-    {
-      "id": "1778640108278-tn9a5",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「いろいろな式の計算」を 5.8秒 で更新！",
-      "date": "2026-05-13T02:41:48.278Z"
-    },
-    {
-      "id": "1778640088972-n8nh9",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "6組S君 が第1章「式の計算の利用」を 4秒 で更新！",
-      "date": "2026-05-13T02:41:28.972Z"
     }
   ],
   "wallProblems": [
