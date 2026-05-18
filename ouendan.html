@@ -111,6 +111,7 @@
     transition: all 2.5s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 13px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    z-index: 2;
   }
   .card.year3 { background: #c8102e; }
   .card.year2 { background: #f39c12; }
@@ -123,6 +124,7 @@
     border-radius: 50%;
     transition: all 2.5s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    z-index: 1;
   }
   .dot.year3 { background: #c8102e; }
   .dot.year2 { background: #f39c12; }
@@ -255,7 +257,16 @@
 
   <div class="ground-wrapper">
     <div class="ground-labels">前(観客側)</div>
-    <div class="ground" id="ground"></div>
+    <div class="ground" id="ground">
+      <svg id="ellipseGuide" viewBox="0 0 100 100" preserveAspectRatio="none"
+           style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0;">
+        <!-- 楕円ガイド線(上半分) cx=50%, cy=22.857%, rx=42.222%, ry=11.429% (a=19,b=4,cy=8) -->
+        <path d="M 7.778,22.857 A 42.222,11.429 0 0 1 92.222,22.857"
+              fill="none" stroke="#c8102e" stroke-opacity="0.5"
+              stroke-width="2" stroke-dasharray="6,4"
+              vector-effect="non-scaling-stroke" />
+      </svg>
+    </div>
     <div class="ground-labels bottom">
       <span>← 横幅 45m →</span>
       <span>後</span>
@@ -360,7 +371,36 @@ function getPositions(phase) {
   const ellipseCx = GROUND_W_M / 2;   // 楕円中心X (フィールド中央)
   const ellipseCy = 8.0;              // 楕円中心Y (観客側に寄せる)
   const ellipseA  = 19.0;             // 横方向半径
-  const ellipseB  = 5.0;              // 縦方向半径(浅めの弧)
+  const ellipseB  = 4.0;              // 縦方向半径(浅めの弧 / 両端でカードが重ならない値)
+
+  // 弧長等間隔で 24個の θ を求める(両端の重なり防止)
+  // θ ∈ [π, 2π] (sin(θ) ≦ 0 → 観客側の上半分の弧)
+  const arcThetas = (function() {
+    const fine = 2000;
+    const lens = [0];
+    let prevX = ellipseA * Math.cos(Math.PI);
+    let prevY = ellipseB * Math.sin(Math.PI);
+    for (let i = 1; i <= fine; i++) {
+      const t = Math.PI + (i / fine) * Math.PI;
+      const x = ellipseA * Math.cos(t);
+      const y = ellipseB * Math.sin(t);
+      lens.push(lens[i-1] + Math.hypot(x - prevX, y - prevY));
+      prevX = x; prevY = y;
+    }
+    const total = lens[fine];
+    const result = [];
+    for (let k = 0; k < 24; k++) {
+      const target = (k / 23) * total;
+      let lo = 0, hi = fine;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (lens[mid] < target) lo = mid + 1;
+        else hi = mid;
+      }
+      result.push(Math.PI + (lo / fine) * Math.PI);
+    }
+    return result;
+  })();
 
   function finalPos(classNum, year) {
     let colIdx;
@@ -374,10 +414,7 @@ function getPositions(phase) {
       // 1年と1-9: 右ブロック(colIdx 16-23), 1-8 が左、1-1 が右
       colIdx = 16 + (8 - classNum);
     }
-    // colIdx 0(左端)〜23(右端) を θ = π 〜 2π に対応
-    // sin(θ) ∈ [-1, 0] なので py ≦ ellipseCy (観客側=画面上)
-    const t = colIdx / 23;
-    const theta = Math.PI + t * Math.PI;
+    const theta = arcThetas[colIdx];
     const px = ellipseCx + ellipseA * Math.cos(theta);
     const py = ellipseCy + ellipseB * Math.sin(theta);
 
