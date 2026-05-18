@@ -117,6 +117,8 @@
     }
     .page-content { display: block; }
     .page-content.hidden { display: none; }
+    .game-pane { display: block; }
+    .game-pane.hidden { display: none; }
 
     /* ===== 章タブ ===== */
     .chapter-tabs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
@@ -606,7 +608,15 @@
 
   <!-- 🎮 ゲーム管理ページ -->
   <div class="page-content hidden" id="page-games">
+    <div class="admin-content" style="padding-top:1.5rem;padding-bottom:0;">
+      <div class="chapter-tabs" id="game-tabs">
+        <button class="chapter-tab active" id="game-tab-wall" onclick="switchGameTab('wall')">🧱 共通因数ウォール</button>
+        <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ</button>
+      </div>
+    </div>
+
     <!-- 共通因数ウォール 問題管理 -->
+    <div class="game-pane" id="game-pane-wall">
     <div class="wall-section">
       <div class="wall-section-header" onclick="toggleWallSection()">
         <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
@@ -630,7 +640,10 @@
         </div>
       </div>
     </div>
+    </div>
 
+    <!-- カードマッチ -->
+    <div class="game-pane hidden" id="game-pane-cardmatch">
     <!-- カードマッチ 小林Tタイム設定 -->
     <div class="cm-teacher-setting">
       <span class="cm-ts-label">👑 カードマッチ 小林Tタイム</span>
@@ -661,6 +674,7 @@
         <span id="cm-sb-status" class="cm-ts-status"></span>
       </div>
     </div>
+    </div><!-- /game-pane-cardmatch -->
   </div>
 
   <!-- 📰 NEWS ページ -->
@@ -698,6 +712,7 @@ let originalSnapshot = null; // NEWS自動検知用
 let currentChapter = 0;
 let enteredPassword = '';
 let currentAdminPage = localStorage.getItem('adminCurrentPage') || 'problems';
+let currentGameTab = localStorage.getItem('adminCurrentGameTab') || 'wall';
 
 function switchPage(name) {
   currentAdminPage = name;
@@ -710,6 +725,17 @@ function switchPage(name) {
   });
 }
 
+function switchGameTab(name) {
+  currentGameTab = name;
+  localStorage.setItem('adminCurrentGameTab', name);
+  ['wall', 'cardmatch'].forEach(g => {
+    const tab = document.getElementById('game-tab-' + g);
+    const pane = document.getElementById('game-pane-' + g);
+    if (tab) tab.classList.toggle('active', g === name);
+    if (pane) pane.classList.toggle('hidden', g !== name);
+  });
+}
+
 // ===== ログイン =====
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
@@ -718,6 +744,7 @@ function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-screen').style.display = 'block';
     switchPage(currentAdminPage); // 前回のページを復元
+    switchGameTab(currentGameTab); // ゲームタブも復元
     loadQuestions();
   } else {
     document.getElementById('login-error').style.display = 'block';
