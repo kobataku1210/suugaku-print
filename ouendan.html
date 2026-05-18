@@ -309,9 +309,9 @@ const phases = {
   },
   1: {
     label: "フェーズ 1",
-    title: "同時展開で完成",
-    description: "3年生は動かず中央に残り、2年生は左へ・1年生(と1-9)は右へ同時に展開。横長一列隊形の完成。",
-    count: "1-2-3-4-5-6-7-8"
+    title: "弧状に展開",
+    description: "観客側の弧(楕円の上半分)に沿って24クラスが展開。左から 2-8〜2-1, 3-8〜3-1, 1-8〜1-1。1-9は各クラスの真後ろに追従。",
+    count: "ARC"
   }
 };
 
@@ -354,32 +354,40 @@ function getPositions(phase) {
     return { x, y };
   }
 
-  // 完成形(横長一列、24列)
+  // 完成形(楕円の上半分の弧に沿って24クラスを配置)
   // 左から: 2-8, 2-7, 2-6, ..., 2-1, 3-8, 3-7, ..., 3-1, 1-8, 1-7, ..., 1-1
-  // 1-9 は 1年の真下(後ろ)に連結
-  const finalColCount = 24;
-  const finalColGapM = 0.3;
-  const finalBlockWm = cardWm * finalColCount + finalColGapM * (finalColCount - 1);
-  const finalStartXm = (GROUND_W_M - finalBlockWm) / 2;
-  const finalYm = 3.0;
+  // 1-9 は そのクラスの真後ろ(楕円の内側方向=画面下) に追従
+  const ellipseCx = GROUND_W_M / 2;   // 楕円中心X (フィールド中央)
+  const ellipseCy = 8.0;              // 楕円中心Y (観客側に寄せる)
+  const ellipseA  = 19.0;             // 横方向半径
+  const ellipseB  = 5.0;              // 縦方向半径(浅めの弧)
 
   function finalPos(classNum, year) {
     let colIdx;
     if (year === 2) {
       // 2年: 左ブロック(colIdx 0-7), 2-8 が一番左
-      colIdx = 8 - classNum; // 2-8→0, 2-1→7
+      colIdx = 8 - classNum;
     } else if (year === 3) {
       // 3年: 中央ブロック(colIdx 8-15), 3-8 が左、3-1 が右
-      colIdx = 8 + (8 - classNum); // 3-8→8, 3-1→15
+      colIdx = 8 + (8 - classNum);
     } else {
       // 1年と1-9: 右ブロック(colIdx 16-23), 1-8 が左、1-1 が右
-      colIdx = 16 + (8 - classNum); // 1-8→16, 1-1→23
+      colIdx = 16 + (8 - classNum);
     }
-    const x = finalStartXm + colIdx * (cardWm + finalColGapM);
+    // colIdx 0(左端)〜23(右端) を θ = π 〜 2π に対応
+    // sin(θ) ∈ [-1, 0] なので py ≦ ellipseCy (観客側=画面上)
+    const t = colIdx / 23;
+    const theta = Math.PI + t * Math.PI;
+    const px = ellipseCx + ellipseA * Math.cos(theta);
+    const py = ellipseCy + ellipseB * Math.sin(theta);
+
+    // ラベル左上座標: ラベル中央が (px, py) になるよう調整
+    const labelHm = (year === 19) ? card19Hm : yearHm;
+    const x = px - cardWm / 2;
+    // 1-9 は 1年ブロック(ラベル+○10個分)の真下に配置
     let y;
-    // 1-9 は 1年(ラベル+○10個分)の真下に配置して被らないようにする
-    if (year === 19) y = finalYm + yearBlockH + gap19m;
-    else y = finalYm;
+    if (year === 19) y = py + yearBlockH + gap19m - card19Hm / 2;
+    else y = py - labelHm / 2;
     return { x, y };
   }
 
