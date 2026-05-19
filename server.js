@@ -35,7 +35,9 @@ function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = req.url.split('?')[0];
+  let url = req.url.split('?')[0];
+  // URLデコード（日本語ファイル名を扱うため）
+  try { url = decodeURIComponent(url); } catch(e) {}
 
   // ===== API: サーバーIP取得 =====
   if (req.method === 'GET' && url === '/api/server-ip') {
