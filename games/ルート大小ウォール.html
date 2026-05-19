@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ルート大小ウォール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #d8dde2; }
+  body { font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif; color: #222; }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  #title-screen, #level-screen, #result-screen {
+    background: linear-gradient(180deg, #e8ecef 0%, #c8ced3 100%);
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 24px; overflow-y: auto;
+  }
+  .title-logo {
+    font-size: clamp(40px, 8vw, 72px); font-weight: 900; letter-spacing: 3px;
+    color: #2a2a2a; font-style: italic;
+    text-shadow: 0 2px 0 #fff, 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .title-sub {
+    font-size: clamp(14px, 2.5vw, 18px); color: #555;
+    border-top: 2px solid #4a90e2; border-bottom: 2px solid #4a90e2;
+    padding: 4px 16px; font-weight: bold;
+  }
+  .title-desc { font-size: 14px; color: #666; text-align: center; max-width: 360px; line-height: 1.6; }
+  .btn {
+    border: none; background: #4a90e2; color: white;
+    font-weight: bold; font-size: 18px; padding: 14px 48px;
+    border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    cursor: pointer; letter-spacing: 2px; transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-secondary { background: white; color: #333; border: 1px solid #ccc; }
+  .btn-primary-xl { font-size: 26px; padding: 22px 80px; letter-spacing: 6px; box-shadow: 0 6px 18px rgba(74,144,226,0.45); }
+  .btn-sm { font-size: 13px; padding: 8px 20px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+
+  .level-card {
+    width: min(88vw, 380px); background: white;
+    border-left: 6px solid #4a90e2; border-radius: 16px;
+    padding: 18px 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    cursor: pointer; transition: transform 0.1s;
+  }
+  .level-card:active { transform: scale(0.98); }
+  .level-card.lv2 { border-left-color: #f7971e; }
+  .level-card.lv3 { border-left-color: #e94e77; }
+  .level-card-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 6px; }
+  .level-card-stars { font-size: 14px; color: #888; letter-spacing: 1px; }
+  .level-card-title { font-size: 18px; font-weight: 900; flex: 1; }
+  .level-card-count { font-size: 13px; color: #888; }
+  .level-card-badge { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; letter-spacing: 0.5px; }
+  .level-card-badge.cleared { background: #4ade80; color: #053e1c; }
+  .level-card-badge.locked  { background: #94a3b8; color: #1a1a1a; }
+  .level-card-badge.new     { background: #4a90e2; color: white; }
+  .level-card.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.55); border-left-color: #888 !important; }
+  .level-card p { font-size: 13px; color: #555; line-height: 1.5; }
+  .level-card-best { margin-top: 6px; font-size: 12px; color: #4a90e2; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .level-card-best .lbl { color: #888; font-weight: 600; font-size: 11px; }
+  .level-card-best .time { font-family: monospace; font-size: 14px; }
+  .level-card.locked .level-card-best { display: none; }
+
+  .bonus-info {
+    width: min(88vw, 420px); background: rgba(255,255,255,0.85);
+    border-radius: 12px; padding: 10px 14px 12px;
+    font-size: 11.5px; line-height: 1.55; color: #444;
+  }
+  .bonus-info h4 { font-size: 12px; font-weight: 900; color: #4a90e2; letter-spacing: 1px; margin-bottom: 3px; }
+  .bonus-info table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .bonus-info th { color: #888; font-weight: 600; text-align: center; padding: 1px 4px; }
+  .bonus-info td { text-align: center; padding: 1px 4px; font-weight: 700; }
+  .bonus-info td.lv { color: #555; text-align: left; font-weight: 700; }
+  .bonus-info td .pea { color: #4a8; font-weight: 800; }
+  .bonus-info-divider { border-top: 1px dashed #ccc; margin: 6px 0 4px; }
+
+  #game-screen {
+    background: linear-gradient(180deg, #d8dde2 0%, #b0b7c0 100%);
+    align-items: center; justify-content: flex-start;
+    padding: 12px 16px;
+  }
+  #hud {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: rgba(255,255,255,0.85);
+    border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-weight: bold;
+  }
+  .hud-item { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+  .hud-label { font-size: 10px; color: #777; letter-spacing: 1px; }
+  .hud-value { font-size: 20px; color: #2a2a2a; font-variant-numeric: tabular-nums; }
+  .hud-lives { font-size: 22px; letter-spacing: 4px; color: #ff5577; transition: transform 0.2s; }
+  .hud-lives.lost { animation: lifeFlash 0.5s; }
+  @keyframes lifeFlash {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.3); color: #ff0033; }
+    100% { transform: scale(1); }
+  }
+
+  .question-prompt {
+    margin: 16px 0 12px; font-size: 18px; font-weight: 700; color: #2a2a2a;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6); text-align: center;
+  }
+  .question-prompt b { color: #4a90e2; font-size: 22px; }
+
+  .walls-area {
+    flex: 1; display: flex; justify-content: center; align-items: center;
+    gap: 16px; flex-wrap: wrap; padding: 12px; width: 100%; min-height: 0;
+  }
+  .wall {
+    background: linear-gradient(135deg, #2c2f33, #1a1c1f);
+    color: white; min-width: 140px; min-height: 180px;
+    flex: 1; max-width: 220px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 56px; font-weight: 900;
+    font-family: 'Times New Roman', serif;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3),
+                inset 0 -4px 0 rgba(0,0,0,0.3),
+                inset 0 4px 0 rgba(255,255,255,0.1);
+    transition: transform 0.12s;
+    position: relative; user-select: none;
+  }
+  .wall:hover:not(.disabled) { transform: translateY(-3px); }
+  .wall:active:not(.disabled) { transform: scale(0.97); }
+  .wall.disabled { cursor: not-allowed; opacity: 0.4; }
+  .wall.correct { animation: wallShatter 0.6s ease forwards; }
+  .wall.wrong {
+    animation: wallShake 0.5s ease;
+    background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+  }
+  @keyframes wallShatter {
+    0%   { transform: scale(1); opacity: 1; }
+    30%  { transform: scale(1.15) rotate(-3deg); opacity: 1; background: linear-gradient(135deg, #4ade80, #16a34a); }
+    100% { transform: scale(0) rotate(15deg); opacity: 0; }
+  }
+  @keyframes wallShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-12px); }
+    40% { transform: translateX(12px); }
+    60% { transform: translateX(-8px); }
+    80% { transform: translateX(8px); }
+  }
+  .wall .sqrt-symbol { font-size: 0.9em; }
+
+  #feedback {
+    position: absolute; left: 0; right: 0; top: 35%;
+    text-align: center; font-size: 56px; font-weight: 900; color: #4a90e2;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  }
+  #feedback.show { opacity: 1; }
+  #feedback.miss { color: #d33; }
+  #feedback.perfect { color: #16a34a; }
+
+  #result-screen { background: linear-gradient(180deg, #2a2e33 0%, #1a1d20 100%); color: white; gap: 16px; }
+  #result-screen.gameover .result-title { color: #ff5577; }
+  .result-title { font-size: 14px; letter-spacing: 4px; color: #aaa; }
+  .result-mode { font-size: 18px; font-weight: bold; color: #4a90e2; letter-spacing: 2px; }
+  .result-score {
+    font-size: 90px; font-weight: 900; line-height: 1;
+    background: linear-gradient(180deg, #fff, #8ec5ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-unit { font-size: 18px; color: #ccc; margin-top: -8px; }
+  .reward-row {
+    display: flex; justify-content: space-between; gap: 16px;
+    width: min(80vw, 320px); padding: 6px 0; font-size: 14px; color: #ccc;
+    border-bottom: 1px dashed rgba(255,255,255,0.15);
+  }
+  .reward-row:last-child { border-bottom: none; }
+  .reward-row strong { color: #8ec5ff; font-weight: 800; font-size: 16px; }
+  .reward-total { margin-top: 6px; font-size: 28px; font-weight: 900; color: #4ade80; }
+  .reward-total .pea-icon { font-size: 1.2em; }
+  .unlock-msg {
+    margin-top: 4px; padding: 6px 14px;
+    background: rgba(74,144,226,0.15); border: 1px solid rgba(74,144,226,0.4);
+    border-radius: 999px; color: #8ec5ff;
+    font-weight: 800; font-size: 14px; letter-spacing: 1px;
+    animation: pop 0.6s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .result-best { font-size: 12px; color: #4a90e2; letter-spacing: 1px; }
+  .result-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; min-width: 200px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="title-screen" class="screen active">
+    <div class="title-logo">ROOTBREAK!</div>
+    <div class="title-sub">数の大小で壁を壊せ</div>
+    <div class="title-desc">2 つ（または 3 つ）の数を比べて、<br><b>大きい方</b> の壁をタップして壊そう!</div>
+    <button class="btn btn-primary-xl" id="title-start">START</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+  <div id="level-screen" class="screen">
+    <div class="title-logo" style="font-size: 30px;">LEVEL SELECT</div>
+    <div class="level-card lv1" data-level="1" id="lvcard-1">
+      <div class="level-card-head">
+        <span class="level-card-stars">★☆☆</span>
+        <span class="level-card-title">Lv.1</span>
+        <span class="level-card-count">10問</span>
+        <span class="level-card-badge" id="lv1-badge"></span>
+      </div>
+      <p>2 つの<strong>√（ルート）どうし</strong>を比べる。大きい方をタップ！</p>
+      <div class="level-card-best" id="lv1-best"></div>
+    </div>
+    <div class="level-card lv2" data-level="2" id="lvcard-2">
+      <div class="level-card-head">
+        <span class="level-card-stars">★★☆</span>
+        <span class="level-card-title">Lv.2</span>
+        <span class="level-card-count">10問</span>
+        <span class="level-card-badge" id="lv2-badge"></span>
+      </div>
+      <p><strong>整数 と √</strong> を比べる。例: 3 と √8 ならどっち？</p>
+      <div class="level-card-best" id="lv2-best"></div>
+    </div>
+    <div class="level-card lv3" data-level="3" id="lvcard-3">
+      <div class="level-card-head">
+        <span class="level-card-stars">★★★</span>
+        <span class="level-card-title">Lv.3</span>
+        <span class="level-card-count">10問</span>
+        <span class="level-card-badge" id="lv3-badge"></span>
+      </div>
+      <p><strong>3 つの壁</strong>から最大をタップ。初級と中級の混合。</p>
+      <div class="level-card-best" id="lv3-best"></div>
+    </div>
+
+    <div class="bonus-info">
+      <h4>📜 ルール ＆ 報酬</h4>
+      クリア条件: <strong>全問正解</strong>　／　ライフ: <strong>♥×3</strong>（3回ミスでゲームオーバー）
+      <div class="bonus-info-divider"></div>
+      <table>
+        <thead>
+          <tr><th></th><th>初回クリア</th><th>速い</th><th>普通</th><th>ゆっくり</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×10</span></td><td><span class="pea">20秒↓<br>🌱×30</span></td><td><span class="pea">30秒↓<br>🌱×20</span></td><td><span class="pea">40秒↓<br>🌱×10</span></td></tr>
+          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×20</span></td><td><span class="pea">25秒↓<br>🌱×45</span></td><td><span class="pea">35秒↓<br>🌱×30</span></td><td><span class="pea">45秒↓<br>🌱×15</span></td></tr>
+          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×30</span></td><td><span class="pea">30秒↓<br>🌱×60</span></td><td><span class="pea">40秒↓<br>🌱×40</span></td><td><span class="pea">50秒↓<br>🌱×20</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:4px;font-size:10.5px;color:#888;">※ 時間ボーナスは何度プレイしてももらえます</div>
+    </div>
+
+    <button class="btn btn-secondary btn-sm" id="level-back">BACK</button>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="hud-item">
+        <div class="hud-label">PROBLEM</div>
+        <div class="hud-value" id="hud-problem">1/10</div>
+      </div>
+      <div class="hud-lives" id="hud-lives">♥♥♥</div>
+      <div class="hud-item">
+        <div class="hud-label">TIME</div>
+        <div class="hud-value" id="hud-time">0.0</div>
+      </div>
+    </div>
+    <div class="question-prompt"><b>大きい方</b>をタップ！</div>
+    <div class="walls-area" id="walls-area"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <div class="result-title" id="result-title">CLEAR!</div>
+    <div class="result-mode" id="result-mode-label">Lv.1</div>
+    <div class="result-score" id="result-score">0.0</div>
+    <div class="result-unit" id="result-unit">秒</div>
+    <div id="result-rewards" style="margin-top: 8px;"></div>
+    <div class="reward-total" id="reward-total" style="display:none"><span class="pea-icon">🌱</span> ×<span id="reward-total-num">0</span> 獲得！</div>
+    <div class="unlock-msg" id="unlock-msg" style="display:none"></div>
+    <div class="result-best" id="result-best"></div>
+    <div class="result-buttons">
+      <button class="btn" id="result-retry">もう一度</button>
+      <button class="btn btn-secondary" id="result-top">レベル選択</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.history.back()">🏠 ホームへ戻る</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js"></script>
+<script>
+'use strict';
+
+const PROGRESS = {
+  isCleared(lv) { return localStorage.getItem(`rootbreak_cleared_lv${lv}`) === '1'; },
+  setCleared(lv) { localStorage.setItem(`rootbreak_cleared_lv${lv}`, '1'); },
+  hasFirstReward(lv) { return localStorage.getItem(`rootbreak_first_reward_lv${lv}`) === '1'; },
+  setFirstReward(lv) { localStorage.setItem(`rootbreak_first_reward_lv${lv}`, '1'); },
+  isUnlocked(lv) {
+    if (lv === 1) return true;
+    if (lv === 2) return this.isCleared(1);
+    if (lv === 3) return this.isCleared(2);
+    return false;
+  }
+};
+
+const REWARDS = {
+  firstClear(lv) { return lv === 1 ? 10 : (lv === 2 ? 20 : 30); },
+  thresholds: { 1: [20, 30, 40], 2: [25, 35, 45], 3: [30, 40, 50] },
+  multiplier(lv) { return lv === 1 ? 1 : (lv === 2 ? 1.5 : 2); },
+  timeBonus(lv, sec) {
+    const t = this.thresholds[lv] || this.thresholds[1];
+    const baseAmounts = [30, 20, 10];
+    const mult = this.multiplier(lv);
+    if (sec <= t[0]) return Math.floor(baseAmounts[0] * mult);
+    if (sec <= t[1]) return Math.floor(baseAmounts[1] * mult);
+    if (sec <= t[2]) return Math.floor(baseAmounts[2] * mult);
+    return 0;
+  },
+  maxThreshold(lv) { const t = this.thresholds[lv] || this.thresholds[1]; return t[2]; }
+};
+
+function addEarnedPeas(amount) {
+  if (amount <= 0) return;
+  try {
+    const KEY = 'mathPrint_v2';
+    const p = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    let cur = p.peaCount || 0;
+    let cups = p.peaCupCount || 0;
+    cur += amount;
+    while (cur >= 45) { cur -= 45; cups += 1; }
+    p.peaCount = cur; p.peaCupCount = cups;
+    if (!p.done || typeof p.done !== 'object') p.done = {};
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch(e) {}
+  try {
+    const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+    const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+    const save = JSON.parse(localStorage.getItem(key) || '{}') || {};
+    save.peas = (save.peas || 0) + amount;
+    localStorage.setItem(key, JSON.stringify(save));
+  } catch(e) {}
+}
+
+// 値の表現: { kind: 'sqrt', n: 7 } → √7、{ kind: 'int', n: 3 } → 3
+function valueToHTML(v) {
+  if (v.kind === 'sqrt') return `<span class="sqrt-symbol">√</span>${v.n}`;
+  return String(v.n);
+}
+function valueNumeric(v) {
+  if (v.kind === 'sqrt') return Math.sqrt(v.n);
+  return v.n;
+}
+
+const SQRT_POOL = [2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 17, 19, 20, 23, 24, 26, 28, 30, 35, 37, 40, 45, 50, 60];
+const INT_POOL  = [2, 3, 4, 5, 6, 7];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function genProblemLv1() {
+  const [a, b] = shuffle(SQRT_POOL).slice(0, 2);
+  return { values: [{ kind: 'sqrt', n: a }, { kind: 'sqrt', n: b }] };
+}
+function genProblemLv2() {
+  const int_n = INT_POOL[Math.floor(Math.random() * INT_POOL.length)];
+  const sq = int_n * int_n;
+  const candidates = SQRT_POOL.filter(n => n !== sq && Math.abs(Math.sqrt(n) - int_n) > 0.1);
+  const sqrtN = candidates[Math.floor(Math.random() * candidates.length)];
+  return { values: [{ kind: 'int', n: int_n }, { kind: 'sqrt', n: sqrtN }] };
+}
+function genProblemLv3() {
+  let vals = [];
+  let attempts = 0;
+  while (vals.length < 3 && attempts < 30) {
+    attempts++;
+    const useSqrt = Math.random() < 0.6;
+    const v = useSqrt
+      ? { kind: 'sqrt', n: SQRT_POOL[Math.floor(Math.random() * SQRT_POOL.length)] }
+      : { kind: 'int',  n: INT_POOL[Math.floor(Math.random() * INT_POOL.length)] };
+    const numeric = valueNumeric(v);
+    if (vals.some(u => Math.abs(valueNumeric(u) - numeric) < 0.15)) continue;
+    if (vals.some(u => u.kind === v.kind && u.n === v.n)) continue;
+    vals.push(v);
+  }
+  if (vals.length < 3) return genProblemLv3();
+  return { values: vals };
+}
+
+function generateProblems(level, count) {
+  const out = [];
+  const gen = level === 1 ? genProblemLv1 : level === 2 ? genProblemLv2 : genProblemLv3;
+  let attempts = 0;
+  while (out.length < count && attempts < count * 5) {
+    attempts++;
+    const p = gen();
+    const key = p.values.map(v => `${v.kind}${v.n}`).sort().join('|');
+    if (out.some(q => q._key === key)) continue;
+    p._key = key;
+    out.push(p);
+  }
+  return out;
+}
+
+const game = {
+  selectedLevel: 1, problems: [], problemIndex: 0, current: null,
+  lives: 3, elapsed: 0, totalProblems: 10,
+  running: false, locked: false, intervalId: null, lastTickTime: 0,
+
+  start() {
+    this.problems = generateProblems(this.selectedLevel, this.totalProblems);
+    this.problemIndex = 0; this.lives = 3; this.elapsed = 0;
+    this.running = true; this.locked = false;
+    this.updateHUD(); this.nextProblem();
+    this.lastTickTime = performance.now();
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.intervalId = setInterval(() => this.tick(), 100);
+  },
+  stop() {
+    this.running = false;
+    if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+  },
+  tick() {
+    if (!this.running) { this.lastTickTime = performance.now(); return; }
+    const now = performance.now();
+    const dt = (now - this.lastTickTime) / 1000;
+    this.lastTickTime = now;
+    this.elapsed += dt;
+    this.updateHUD();
+  },
+  updateHUD() {
+    const probEl = document.getElementById('hud-problem');
+    const livesEl = document.getElementById('hud-lives');
+    const timeEl = document.getElementById('hud-time');
+    if (probEl) probEl.textContent = `${Math.min(this.problemIndex + 1, this.totalProblems)}/${this.totalProblems}`;
+    if (livesEl) {
+      let s = '';
+      for (let i = 0; i < 3; i++) s += (i < this.lives) ? '♥' : '♡';
+      livesEl.textContent = s;
+    }
+    if (timeEl) {
+      const t = this.elapsed;
+      const m = Math.floor(t / 60);
+      const s = (t - m * 60).toFixed(1);
+      timeEl.textContent = m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+    }
+  },
+  nextProblem() {
+    this.current = this.problems[this.problemIndex];
+    if (!this.current) { this.clearLevel(); return; }
+    renderWalls(this.current);
+    hideFeedback();
+  },
+  onWallTap(idx) {
+    if (this.locked) return;
+    const numericValues = this.current.values.map(valueNumeric);
+    const maxIdx = numericValues.indexOf(Math.max(...numericValues));
+    if (idx === maxIdx) this.onCorrect(idx);
+    else this.onWrong(idx);
+  },
+  onCorrect(idx) {
+    this.locked = true;
+    showFeedback('PERFECT!', 'perfect');
+    document.querySelectorAll('.wall').forEach((el, i) => {
+      if (i === idx) el.classList.add('correct');
+      else el.classList.add('disabled');
+    });
+    this.problemIndex += 1;
+    setTimeout(() => {
+      hideFeedback();
+      if (this.problemIndex >= this.totalProblems) { this.locked = false; this.clearLevel(); return; }
+      this.nextProblem(); this.locked = false; this.updateHUD();
+    }, 700);
+  },
+  onWrong(idx) {
+    showFeedback('MISS!', 'miss');
+    this.lives -= 1;
+    const livesEl = document.getElementById('hud-lives');
+    if (livesEl) {
+      livesEl.classList.remove('lost'); void livesEl.offsetWidth; livesEl.classList.add('lost');
+    }
+    this.updateHUD();
+    const wall = document.querySelectorAll('.wall')[idx];
+    if (wall) {
+      wall.classList.add('wrong');
+      setTimeout(() => wall.classList.remove('wrong'), 600);
+    }
+    if (this.lives <= 0) {
+      this.locked = true;
+      setTimeout(() => this.gameOver(), 800);
+    } else {
+      setTimeout(hideFeedback, 600);
+    }
+  },
+  clearLevel() { this.stop(); showClearResult(); },
+  gameOver() { this.stop(); showGameOverResult(); }
+};
+
+function renderWalls(problem) {
+  const area = document.getElementById('walls-area');
+  area.innerHTML = problem.values.map((v, i) => `
+    <div class="wall" onclick="game.onWallTap(${i})">${valueToHTML(v)}</div>
+  `).join('');
+}
+
+function showFeedback(text, type) {
+  const el = document.getElementById('feedback');
+  el.textContent = text;
+  el.classList.remove('miss', 'perfect');
+  if (type) el.classList.add(type);
+  el.classList.add('show');
+}
+function hideFeedback() {
+  document.getElementById('feedback').classList.remove('show');
+}
+
+function showScreen(id) {
+  for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = (t - m * 60).toFixed(1);
+  return m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+}
+
+function showClearResult() {
+  const lv = game.selectedLevel;
+  const elapsed = game.elapsed;
+  const screen = document.getElementById('result-screen');
+  screen.classList.remove('gameover');
+  document.getElementById('result-title').textContent = '🎉 CLEAR! 🎉';
+  document.getElementById('result-mode-label').textContent = `Lv.${lv}`;
+  document.getElementById('result-score').textContent = fmtTime(elapsed);
+  document.getElementById('result-unit').textContent = elapsed >= 60 ? '' : '秒';
+
+  const isFirstClear = !PROGRESS.hasFirstReward(lv);
+  const firstRew = isFirstClear ? REWARDS.firstClear(lv) : 0;
+  const timeRew = REWARDS.timeBonus(lv, elapsed);
+  const total = firstRew + timeRew;
+  PROGRESS.setCleared(lv);
+  if (isFirstClear) PROGRESS.setFirstReward(lv);
+  addEarnedPeas(total);
+
+  const bestKey = `rootbreak_best_clear_${lv}`;
+  const prev = parseFloat(localStorage.getItem(bestKey) || '999999');
+  let bestText = '';
+  if (elapsed < prev) {
+    localStorage.setItem(bestKey, String(elapsed));
+    bestText = '★ NEW BEST! ★';
+  } else {
+    bestText = `BEST: ${fmtTime(prev)}秒`;
+  }
+  document.getElementById('result-best').textContent = bestText;
+
+  const rewardsDiv = document.getElementById('result-rewards');
+  let html = '';
+  if (firstRew > 0) html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
+  if (timeRew > 0) {
+    const sec = Math.floor(elapsed);
+    html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+  } else {
+    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
+  }
+  rewardsDiv.innerHTML = html;
+
+  document.getElementById('reward-total').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('reward-total-num').textContent = total;
+
+  const unlockEl = document.getElementById('unlock-msg');
+  if (isFirstClear && lv < 3) {
+    unlockEl.style.display = 'inline-block';
+    unlockEl.textContent = `🎊 Lv.${lv + 1} 開放！`;
+  } else {
+    unlockEl.style.display = 'none';
+  }
+  showScreen('result-screen');
+}
+
+function showGameOverResult() {
+  const screen = document.getElementById('result-screen');
+  screen.classList.add('gameover');
+  document.getElementById('result-title').textContent = '💀 GAME OVER';
+  document.getElementById('result-mode-label').textContent = `Lv.${game.selectedLevel}`;
+  document.getElementById('result-score').textContent = `${game.problemIndex}/${game.totalProblems}`;
+  document.getElementById('result-unit').textContent = '問正解で終了';
+  document.getElementById('result-rewards').innerHTML =
+    '<div style="color:#aaa;font-size:14px;margin-top:8px;">ライフを使い切りました…<br>もう一度チャレンジしよう！</div>';
+  document.getElementById('reward-total').style.display = 'none';
+  document.getElementById('unlock-msg').style.display = 'none';
+  document.getElementById('result-best').textContent = '';
+  showScreen('result-screen');
+}
+
+function updateLevelLockState() {
+  for (let lv = 1; lv <= 3; lv++) {
+    const card = document.getElementById(`lvcard-${lv}`);
+    const badge = document.getElementById(`lv${lv}-badge`);
+    const bestEl = document.getElementById(`lv${lv}-best`);
+    if (!card || !badge) continue;
+    const unlocked = PROGRESS.isUnlocked(lv);
+    const cleared = PROGRESS.isCleared(lv);
+    card.classList.toggle('locked', !unlocked);
+    if (!unlocked) {
+      badge.className = 'level-card-badge locked';
+      badge.textContent = `🔒 Lv.${lv - 1}クリアで開放`;
+    } else if (cleared) {
+      badge.className = 'level-card-badge cleared';
+      badge.textContent = '✓ クリア済み';
+    } else {
+      badge.className = 'level-card-badge new';
+      badge.textContent = '挑戦できます！';
+    }
+    if (bestEl) {
+      const bestKey = `rootbreak_best_clear_${lv}`;
+      const bestVal = parseFloat(localStorage.getItem(bestKey) || 'NaN');
+      if (!isNaN(bestVal)) {
+        bestEl.innerHTML = `🏆 <span class="lbl">最速タイム</span><span class="time">${fmtTime(bestVal)}秒</span>`;
+        bestEl.style.display = '';
+      } else {
+        bestEl.style.display = 'none';
+      }
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('title-start').addEventListener('click', () => {
+    updateLevelLockState();
+    showScreen('level-screen');
+  });
+  document.getElementById('level-back').addEventListener('click', () => showScreen('title-screen'));
+  for (const card of document.querySelectorAll('.level-card[data-level]')) {
+    card.addEventListener('click', () => {
+      const lv = parseInt(card.getAttribute('data-level'), 10);
+      if (!PROGRESS.isUnlocked(lv)) {
+        alert(`Lv.${lv - 1} をクリアすると開放されます。`);
+        return;
+      }
+      game.selectedLevel = lv;
+      showScreen('game-screen');
+      game.start();
+    });
+  }
+  document.getElementById('result-retry').addEventListener('click', () => {
+    showScreen('game-screen');
+    game.start();
+  });
+  document.getElementById('result-top').addEventListener('click', () => {
+    updateLevelLockState();
+    showScreen('level-screen');
+  });
+});
+</script>
+</body>
+</html>

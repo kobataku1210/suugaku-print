@@ -628,6 +628,7 @@
     <div class="admin-content" style="padding-top:1.5rem;padding-bottom:0;">
       <div class="chapter-tabs" id="game-tabs">
         <button class="chapter-tab active" id="game-tab-wall" onclick="switchGameTab('wall')">🧱 共通因数ウォール</button>
+        <button class="chapter-tab" id="game-tab-rootbreak" onclick="switchGameTab('rootbreak')">📏 ルート大小ウォール</button>
         <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ（展開・因数分解）</button>
         <button class="chapter-tab" id="game-tab-cardmatch-sqrt" onclick="switchGameTab('cardmatch-sqrt')">√ カードマッチ（平方根）</button>
       </div>
@@ -701,6 +702,24 @@
       </div>
     </div>
     </div><!-- /game-pane-cardmatch -->
+
+    <!-- ルート大小ウォール -->
+    <div class="game-pane hidden" id="game-pane-rootbreak">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/ルート大小ウォール.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="rootbreak-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>ルート大小ウォール</b> は、平方根と整数の大小を比較するゲームです。</p>
+        <p>問題は自動生成されるため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>Lv.1：√どうしの比較（例: √5 と √7）</li>
+          <li>Lv.2：整数と√の比較（例: 3 と √8）</li>
+          <li>Lv.3：3つの値から最大をタップ（初級と中級の混合）</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-rootbreak -->
 
     <!-- カードマッチ（平方根） -->
     <div class="game-pane hidden" id="game-pane-cardmatch-sqrt">
@@ -795,7 +814,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
+  ['wall', 'rootbreak', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1085,12 +1104,16 @@ async function loadQuestions() {
     questionsData.cardMatchSqrtStudentBestList = [];
   }
   renderCmSqrtRkSlots();
-  // カードマッチ平方根 公開状態（デフォルト: 下書き）
+  // ゲームの公開状態（デフォルト: 下書き）
   if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
   if (questionsData.gameDrafts.cardMatchSqrt === undefined) {
-    questionsData.gameDrafts.cardMatchSqrt = true; // デフォルト下書き
+    questionsData.gameDrafts.cardMatchSqrt = true;
+  }
+  if (questionsData.gameDrafts.rootBreak === undefined) {
+    questionsData.gameDrafts.rootBreak = true;
   }
   renderCmSqrtPublishBar();
+  renderRootBreakPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1363,6 +1386,40 @@ async function saveCmStudentBest() {
 }
 
 // ===== カードマッチ平方根版：先生タイム =====
+// 汎用 publish bar 描画
+function renderGamePublishBar(gameKey, gameLabel, containerId) {
+  const bar = document.getElementById(containerId);
+  if (!bar) return;
+  if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
+  const isDraft = questionsData.gameDrafts[gameKey] !== false;
+  bar.className = 'draft-toggle-bar ' + (isDraft ? '' : 'published');
+  bar.innerHTML = isDraft
+    ? `<span>🚧 <b>下書き状態</b>（生徒画面では非表示）</span>
+       <button onclick="toggleGamePublish('${gameKey}','${gameLabel}')">✅ 公開する</button>`
+    : `<span>✅ <b>公開中</b>（生徒画面に表示）</span>
+       <button onclick="toggleGamePublish('${gameKey}','${gameLabel}')">🚧 下書きに戻す</button>`;
+}
+
+function toggleGamePublish(gameKey, gameLabel) {
+  if (!questionsData.gameDrafts) questionsData.gameDrafts = {};
+  const isDraft = questionsData.gameDrafts[gameKey] !== false;
+  if (isDraft) {
+    if (!confirm(`「${gameLabel}」を公開しますか？\n（保存後、生徒画面に表示されます）`)) return;
+    questionsData.gameDrafts[gameKey] = false;
+  } else {
+    if (!confirm(`「${gameLabel}」を下書きに戻しますか？\n（保存後、生徒画面から非表示になります）`)) return;
+    questionsData.gameDrafts[gameKey] = true;
+  }
+  // 該当のバーを再描画
+  if (gameKey === 'cardMatchSqrt') renderCmSqrtPublishBar();
+  if (gameKey === 'rootBreak')     renderRootBreakPublishBar();
+  alert('変更しました。「🚀 GitHubに反映」で保存してください。');
+}
+
+function renderRootBreakPublishBar() {
+  renderGamePublishBar('rootBreak', 'ルート大小ウォール', 'rootbreak-publish-bar');
+}
+
 // カードマッチ平方根版の公開/下書き状態を描画
 function renderCmSqrtPublishBar() {
   const bar = document.getElementById('cm-sqrt-publish-bar');

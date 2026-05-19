@@ -1024,6 +1024,15 @@ const GAME_ITEMS = [
     isNew: true,
   },
   {
+    title: 'ルート大小ウォール',
+    desc: '√や整数の大小で大きい方の壁をタップ！',
+    icon: '📏',
+    onclick: "window.location.href='games/ルート大小ウォール.html'",
+    gradient: 'linear-gradient(135deg, #4a90e2, #6c5ce7)',
+    isNew: true,
+    draftKey: 'rootBreak',
+  },
+  {
     title: '計算バトル',
     desc: '1台で2人対戦！因数分解で計算を一気に終わらせて相手のHPを削れ',
     icon: '⚔️',
