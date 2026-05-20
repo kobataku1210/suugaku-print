@@ -2945,8 +2945,7 @@
           "miniTestPassword": "4840",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
+          "studentBestList": []
         },
         {
           "title": "有理数と無理数",
