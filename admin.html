@@ -250,6 +250,22 @@
       background: rgba(86,171,47,0.15); color: #aef0a0;
       border: 1px solid rgba(86,171,47,0.4);
     }
+    /* 一覧上の公開/下書き切替ボタン（クリックで切替、カードクリックは伝播しない） */
+    .sec-list-toggle {
+      font-size: 0.76rem; font-weight: 800;
+      padding: 0.32rem 0.85rem; border-radius: 999px;
+      white-space: nowrap; cursor: pointer; font-family: inherit;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .sec-list-toggle:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .sec-list-toggle.draft {
+      background: rgba(255,165,0,0.22); color: #ffc080;
+      border: 1px solid rgba(255,165,0,0.55);
+    }
+    .sec-list-toggle.published {
+      background: rgba(86,171,47,0.22); color: #aef0a0;
+      border: 1px solid rgba(86,171,47,0.55);
+    }
     .sec-list-arrow {
       font-size: 1.5rem; color: rgba(255,255,255,0.35);
       font-weight: 700;
@@ -1723,14 +1739,15 @@ function renderChapterDraftBar(chIdx) {
     </div>`;
 }
 
-// 節一覧（クリックで編集画面へ）
+// 節一覧（クリックで編集画面へ、公開/下書き切替ボタン付き）
 function renderSectionList(chIdx) {
   const ch = questionsData.chapters[chIdx];
   return `<div class="sec-list-grid">${ch.sections.map((sec, si) => {
     const totalQ = (sec.basic?.length || 0) + (sec.standard?.length || 0) + (sec.advanced?.length || 0);
-    const draftBadge = sec.draft
-      ? '<span class="sec-list-badge draft">🚧 下書き</span>'
-      : '<span class="sec-list-badge published">✅ 公開中</span>';
+    const isDraft = !!sec.draft;
+    const toggleBtn = isDraft
+      ? `<button class="sec-list-toggle draft" onclick="event.stopPropagation();toggleSectionDraft(${chIdx},${si})" title="生徒画面に公開する">🚧 下書き</button>`
+      : `<button class="sec-list-toggle published" onclick="event.stopPropagation();toggleSectionDraft(${chIdx},${si})" title="下書きに戻す">✅ 公開中</button>`;
     const tTime = sec.teacherTime != null ? `👑 ${sec.teacherTime}秒` : '<span style="opacity:0.4">👑 未設定</span>';
     const topBest = (sec.studentBestList || [])[0];
     const bestStr = topBest
@@ -1748,7 +1765,7 @@ function renderSectionList(chIdx) {
           </div>
         </div>
         <div class="sec-list-right">
-          ${draftBadge}
+          ${toggleBtn}
           <span class="sec-list-arrow">›</span>
         </div>
       </div>`;
