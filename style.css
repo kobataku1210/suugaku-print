@@ -1213,6 +1213,8 @@ body {
   gap: 1rem;
   margin: 1.4rem 0;
 }
+.quiz-choices[data-count="2"] .quiz-choice-btn { min-height: 110px; font-size: 1.6rem; }
+.quiz-choices[data-count="3"] { grid-template-columns: 1fr 1fr 1fr; }
 .quiz-choice-btn {
   padding: 1rem 1.1rem;
   min-height: 70px;
@@ -1522,6 +1524,8 @@ body {
   gap: 0.6rem;
   margin-top: 0.4rem;
 }
+.bulk-q-choices[data-count="2"] .bulk-q-choice-btn { min-height: 60px; font-size: 1.1rem; }
+.bulk-q-choices[data-count="3"] { grid-template-columns: 1fr 1fr 1fr; }
 .bulk-q-choice-btn {
   padding: 0.7rem 0.8rem;
   min-height: 48px;

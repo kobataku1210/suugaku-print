@@ -1425,7 +1425,7 @@ function renderQuiz() {
   const q         = questions[qIdx];
   const totalQ    = questions.length;
   const progress  = totalQ > 0 ? Math.round((qIdx / totalQ) * 100) : 0;
-  const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+  const hasChoices = Array.isArray(q.choices) && q.choices.length >= 2 && q.choices.length <= 4;
 
   // 4択モード：選択肢をシャッフル + ライフ表示
   let answerArea;
@@ -1436,7 +1436,7 @@ function renderQuiz() {
     currentShuffledChoices = [...q.choices].sort(() => Math.random() - 0.5);
     livesArea = `<div class="quiz-lives" id="quiz-lives">${renderLivesHearts(quizLives)}</div>`;
     answerArea = `
-      <div class="quiz-choices">
+      <div class="quiz-choices" data-count="${currentShuffledChoices.length}">
         ${currentShuffledChoices.map((c, i) => `
           <button class="quiz-choice-btn" id="quiz-choice-${i}"
                   onclick="submitQuizChoice(${i})">${formatQuestion(c)}</button>
@@ -1745,14 +1745,14 @@ function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPr
 
   const qRows = questions.map((q, i) => {
     const lv = LEVELS[q.fromLevel];
-    const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+    const hasChoices = Array.isArray(q.choices) && q.choices.length >= 2 && q.choices.length <= 4;
     let answerArea;
     if (hasChoices) {
       // 選択肢をシャッフルして保存
       const shuffled = [...q.choices].sort(() => Math.random() - 0.5);
       bulkShuffledChoices[inputPrefix][i] = shuffled;
       answerArea = `
-        <div class="bulk-q-choices" id="${inputPrefix}-choices-${i}">
+        <div class="bulk-q-choices" data-count="${shuffled.length}" id="${inputPrefix}-choices-${i}">
           ${shuffled.map((c, ci) => `
             <button type="button" class="bulk-q-choice-btn"
                     data-prefix="${inputPrefix}" data-qi="${i}" data-ci="${ci}"
@@ -2132,7 +2132,7 @@ function renderTimeAttack() {
   if (state.timeAttackPhase === 'quiz') {
     const qRows = state.timeAttackQuestions.map((q, i) => {
       const lv = LEVELS[q.fromLevel];
-      const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+      const hasChoices = Array.isArray(q.choices) && q.choices.length >= 2 && q.choices.length <= 4;
       let answerArea;
       if (hasChoices) {
         // すでにシャッフル済みなら再利用、なければ新規シャッフル
@@ -2143,7 +2143,7 @@ function renderTimeAttack() {
         const shuffled = bulkShuffledChoices['ta'][i];
         const sel = (bulkChoiceSelections['ta'] || {})[i];
         answerArea = `
-          <div class="bulk-q-choices" id="ta-choices-${i}">
+          <div class="bulk-q-choices" data-count="${shuffled.length}" id="ta-choices-${i}">
             ${shuffled.map((c, ci) => `
               <button type="button" class="bulk-q-choice-btn${sel === c ? ' selected' : ''}"
                       onclick="selectBulkChoice('ta',${i},${ci})">${formatQuestion(c)}</button>
