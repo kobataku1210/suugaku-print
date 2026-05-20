@@ -2601,8 +2601,7 @@
           "miniTestPassword": "4856",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
+          "studentBestList": []
         },
         {
           "title": "平方根の値",
