@@ -71,6 +71,16 @@
       font-weight: 800; font-family: inherit; cursor: pointer;
     }
     .save-all-btn:hover { filter: brightness(1.1); }
+    .preview-btn {
+      padding: 0.6rem 1.4rem;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      border-radius: 50px; color: #2a1a00; font-size: 0.9rem;
+      font-weight: 800; font-family: inherit; cursor: pointer;
+      margin-left: 0.7rem; text-decoration: none;
+      display: inline-flex; align-items: center;
+      transition: filter 0.15s;
+    }
+    .preview-btn:hover { filter: brightness(1.08); }
     .import-btn {
       padding: 0.6rem 1.6rem; background: linear-gradient(135deg, #f093fb, #f5576c);
       border: none; border-radius: 50px; color: white; font-size: 0.9rem;
@@ -674,6 +684,7 @@
     <div style="display:flex;align-items:center">
       <span id="push-status" class="push-status"></span>
       <span id="save-status" class="save-status">✓ 保存しました</span>
+      <a href="index.html?preview=draft" target="_blank" rel="noopener" class="preview-btn">👁 プレビュー</a>
       <button class="import-btn" id="import-btn" onclick="importFromExcel()">📥 Excelから取り込む</button>
       <button class="push-btn" id="push-btn" onclick="saveAndPush()">🚀 GitHubに反映</button>
     </div>
