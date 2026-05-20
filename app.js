@@ -113,6 +113,7 @@ const state = {
   sectionIdx: null,
   quizLevelIdx: null,      // 0=basic, 1=standard, 2=advanced
   quizQIdx: null,          // 0〜9
+  quizShuffled: null,      // クイズ開始時にシャッフルされた問題リスト
 
   // 小テスト
   miniTestPhase: 'quiz',   // 'quiz' | 'result'
@@ -1406,6 +1407,17 @@ function renderDifficulty() {
 }
 
 function startQuiz(levelIdx) {
+  // この難易度の問題をシャッフルしてセッションに保存
+  const ch = mathData.chapters[state.chapterIdx];
+  const sec = ch.sections[state.sectionIdx];
+  const lv = LEVELS[levelIdx];
+  const src = (sec[lv.key] || []).slice();
+  // Fisher-Yates シャッフル
+  for (let i = src.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [src[i], src[j]] = [src[j], src[i]];
+  }
+  state.quizShuffled = src;
   navigate('quiz', { quizLevelIdx: levelIdx, quizQIdx: 0 });
 }
 
@@ -1420,7 +1432,10 @@ function renderQuiz() {
   const ch        = mathData.chapters[state.chapterIdx];
   const sec       = ch.sections[state.sectionIdx];
   const lv        = LEVELS[state.quizLevelIdx];
-  const questions = sec[lv.key];
+  // シャッフル済みがあればそれを使用、なければ生データ
+  const questions = (Array.isArray(state.quizShuffled) && state.quizShuffled.length > 0)
+    ? state.quizShuffled
+    : sec[lv.key];
   const qIdx      = state.quizQIdx;
   const q         = questions[qIdx];
   const totalQ    = questions.length;
@@ -1492,7 +1507,9 @@ function submitQuizChoice(idx) {
   const ch = mathData.chapters[state.chapterIdx];
   const sec = ch.sections[state.sectionIdx];
   const lv = LEVELS[state.quizLevelIdx];
-  const questions = sec[lv.key];
+  const questions = (Array.isArray(state.quizShuffled) && state.quizShuffled.length > 0)
+    ? state.quizShuffled
+    : sec[lv.key];
   const q = questions[state.quizQIdx];
   // 正解は q.a と比較（穴埋め b があってもMC問題では a 全体と比較）
   const isCorrect = normalizeAnswer(choice) === normalizeAnswer(q.a);
@@ -1616,7 +1633,9 @@ function submitQuizAnswer() {
   const ch        = mathData.chapters[state.chapterIdx];
   const sec       = ch.sections[state.sectionIdx];
   const lv        = LEVELS[state.quizLevelIdx];
-  const questions = sec[lv.key];
+  const questions = (Array.isArray(state.quizShuffled) && state.quizShuffled.length > 0)
+    ? state.quizShuffled
+    : sec[lv.key];
   const correct   = normalizeAnswer(getCorrectAnswer(questions[state.quizQIdx]));
 
   if (entered === correct) {
