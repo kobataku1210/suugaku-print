@@ -231,7 +231,7 @@
         <span class="level-card-count">10問</span>
         <span class="level-card-badge" id="lv3-badge"></span>
       </div>
-      <p><strong>3 つの壁</strong>から最大をタップ。初級と中級の混合。</p>
+      <p><strong>マイナス同士</strong>の大小（例: -√7 と -3 で大きい方は？）</p>
       <div class="level-card-best" id="lv3-best"></div>
     </div>
 
@@ -345,13 +345,21 @@ function addEarnedPeas(amount) {
   } catch(e) {}
 }
 
-// 値の表現: { kind: 'sqrt', n: 7 } → √7、{ kind: 'int', n: 3 } → 3
+// 値の表現:
+//   { kind: 'sqrt',     n: 7 } → √7
+//   { kind: 'int',      n: 3 } → 3
+//   { kind: 'neg_sqrt', n: 7 } → -√7
+//   { kind: 'neg_int',  n: 3 } → -3
 function valueToHTML(v) {
-  if (v.kind === 'sqrt') return `<span class="sqrt-symbol">√</span>${v.n}`;
+  if (v.kind === 'sqrt')     return `<span class="sqrt-symbol">√</span>${v.n}`;
+  if (v.kind === 'neg_sqrt') return `−<span class="sqrt-symbol">√</span>${v.n}`;
+  if (v.kind === 'neg_int')  return `−${v.n}`;
   return String(v.n);
 }
 function valueNumeric(v) {
-  if (v.kind === 'sqrt') return Math.sqrt(v.n);
+  if (v.kind === 'sqrt')     return Math.sqrt(v.n);
+  if (v.kind === 'neg_sqrt') return -Math.sqrt(v.n);
+  if (v.kind === 'neg_int')  return -v.n;
   return v.n;
 }
 
@@ -378,22 +386,31 @@ function genProblemLv2() {
   const sqrtN = candidates[Math.floor(Math.random() * candidates.length)];
   return { values: [{ kind: 'int', n: int_n }, { kind: 'sqrt', n: sqrtN }] };
 }
+// Lv.3: マイナス同士の大小（-√ どうし、-整数 vs -√ の混合）
 function genProblemLv3() {
-  let vals = [];
+  let v1, v2;
   let attempts = 0;
-  while (vals.length < 3 && attempts < 30) {
+  while (attempts < 40) {
     attempts++;
-    const useSqrt = Math.random() < 0.6;
-    const v = useSqrt
-      ? { kind: 'sqrt', n: SQRT_POOL[Math.floor(Math.random() * SQRT_POOL.length)] }
-      : { kind: 'int',  n: INT_POOL[Math.floor(Math.random() * INT_POOL.length)] };
-    const numeric = valueNumeric(v);
-    if (vals.some(u => Math.abs(valueNumeric(u) - numeric) < 0.15)) continue;
-    if (vals.some(u => u.kind === v.kind && u.n === v.n)) continue;
-    vals.push(v);
+    const pickNeg = () => {
+      const useSqrt = Math.random() < 0.6;
+      if (useSqrt) {
+        return { kind: 'neg_sqrt', n: SQRT_POOL[Math.floor(Math.random() * SQRT_POOL.length)] };
+      } else {
+        return { kind: 'neg_int',  n: INT_POOL[Math.floor(Math.random() * INT_POOL.length)] };
+      }
+    };
+    v1 = pickNeg();
+    v2 = pickNeg();
+    const n1 = valueNumeric(v1);
+    const n2 = valueNumeric(v2);
+    if (Math.abs(n1 - n2) < 0.15) continue;
+    if (v1.kind === v2.kind && v1.n === v2.n) continue;
+    // 整数 vs 整数 は避ける（つまらない）
+    if (v1.kind === 'neg_int' && v2.kind === 'neg_int') continue;
+    return { values: [v1, v2] };
   }
-  if (vals.length < 3) return genProblemLv3();
-  return { values: vals };
+  return { values: [v1, v2] };
 }
 
 function generateProblems(level, count) {
