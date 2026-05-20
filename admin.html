@@ -188,6 +188,77 @@
 
     /* ===== 節パネル ===== */
     .section-panel { margin-bottom: 2rem; }
+
+    /* ===== 節一覧（クリックで編集画面へ） ===== */
+    .sec-list-grid {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .sec-list-card {
+      display: flex; align-items: center; gap: 0.8rem;
+      padding: 0.85rem 1.1rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+    }
+    .sec-list-card:hover {
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.25);
+    }
+    .sec-list-card:active { transform: scale(0.99); }
+    .sec-list-num {
+      font-size: 1.4rem; font-weight: 900;
+      color: rgba(255,255,255,0.35);
+      min-width: 2.5rem; text-align: center;
+      font-family: monospace;
+    }
+    .sec-list-main { flex: 1; min-width: 0; }
+    .sec-list-title {
+      font-size: 1.05rem; font-weight: 800; color: white;
+      margin-bottom: 0.2rem;
+    }
+    .sec-list-info {
+      display: flex; gap: 0.9rem; flex-wrap: wrap;
+      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+    }
+    .sec-list-info span { white-space: nowrap; }
+    .sec-list-right {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .sec-list-badge {
+      font-size: 0.72rem; font-weight: 700;
+      padding: 0.18rem 0.6rem; border-radius: 999px;
+      white-space: nowrap;
+    }
+    .sec-list-badge.draft {
+      background: rgba(255,165,0,0.15); color: #ffc080;
+      border: 1px solid rgba(255,165,0,0.4);
+    }
+    .sec-list-badge.published {
+      background: rgba(86,171,47,0.15); color: #aef0a0;
+      border: 1px solid rgba(86,171,47,0.4);
+    }
+    .sec-list-arrow {
+      font-size: 1.5rem; color: rgba(255,255,255,0.35);
+      font-weight: 700;
+    }
+
+    /* 「節一覧に戻る」ボタン */
+    .sec-back-btn {
+      display: inline-block;
+      margin: 0 0 0.8rem;
+      padding: 0.45rem 1rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .sec-back-btn:hover { background: rgba(255,255,255,0.13); color: white; }
     .section-heading {
       font-size: 1.1rem; font-weight: 800; padding: 0.8rem 1.2rem;
       background: rgba(255,255,255,0.06); border-radius: 12px 12px 0 0;
@@ -796,6 +867,7 @@ const LEVEL_KEYS   = ['basic', 'standard', 'advanced'];
 let questionsData = null;
 let originalSnapshot = null; // NEWS自動検知用
 let currentChapter = 0;
+let currentSectionIdx = null; // null = 節一覧、数値 = その節を編集中
 let enteredPassword = '';
 let currentAdminPage = localStorage.getItem('adminCurrentPage') || 'problems';
 let currentGameTab = localStorage.getItem('adminCurrentGameTab') || 'wall';
@@ -1585,21 +1657,51 @@ function renderChapterTabs() {
 
 function switchChapter(idx) {
   currentChapter = idx;
+  currentSectionIdx = null; // 章を切替えたら一覧表示に戻す
   document.querySelectorAll('.chapter-tab').forEach((t, i) =>
     t.classList.toggle('active', i === idx)
   );
   renderSections(idx);
 }
 
-// ===== 節・問題一覧 =====
+// 節一覧 ⇔ 節編集 の切替
+function openSection(si) {
+  currentSectionIdx = si;
+  renderSections(currentChapter);
+  // 画面トップへスクロール
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function backToSectionList() {
+  currentSectionIdx = null;
+  renderSections(currentChapter);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== 節・問題管理（ディスパッチャ） =====
 function renderSections(chIdx) {
   const ch = questionsData.chapters[chIdx];
   const area = document.getElementById('sections-area');
 
-  // draft 状態の切替バー
+  if (!ch.sections || ch.sections.length === 0) {
+    area.innerHTML = renderChapterDraftBar(chIdx) +
+      '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:3rem">この章はまだ問題がありません</p>';
+    return;
+  }
+
+  if (currentSectionIdx == null) {
+    // 節一覧表示
+    area.innerHTML = renderChapterDraftBar(chIdx) + renderSectionList(chIdx);
+  } else {
+    // 個別の節編集表示
+    area.innerHTML = renderSectionEditor(chIdx, currentSectionIdx);
+  }
+}
+
+function renderChapterDraftBar(chIdx) {
+  const ch = questionsData.chapters[chIdx];
   const isDraft = !!ch.draft;
   const previewLink = `index.html?preview=draft`;
-  const draftBar = `
+  return `
     <div class="draft-toggle-bar ${isDraft ? '' : 'published'}">
       ${isDraft
         ? `<span>🚧 この章は <b>下書き状態</b>（生徒画面では「準備中」表示）</span>
@@ -1608,13 +1710,48 @@ function renderSections(chIdx) {
         : `<span>✅ この章は <b>公開中</b>（生徒画面に表示）</span>
            <button onclick="toggleChapterDraft(${chIdx})">🚧 下書きに戻す</button>`}
     </div>`;
+}
 
-  if (!ch.sections || ch.sections.length === 0) {
-    area.innerHTML = draftBar + '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:3rem">この章はまだ問題がありません</p>';
-    return;
-  }
+// 節一覧（クリックで編集画面へ）
+function renderSectionList(chIdx) {
+  const ch = questionsData.chapters[chIdx];
+  return `<div class="sec-list-grid">${ch.sections.map((sec, si) => {
+    const totalQ = (sec.basic?.length || 0) + (sec.standard?.length || 0) + (sec.advanced?.length || 0);
+    const draftBadge = sec.draft
+      ? '<span class="sec-list-badge draft">🚧 下書き</span>'
+      : '<span class="sec-list-badge published">✅ 公開中</span>';
+    const tTime = sec.teacherTime != null ? `👑 ${sec.teacherTime}秒` : '<span style="opacity:0.4">👑 未設定</span>';
+    const topBest = (sec.studentBestList || [])[0];
+    const bestStr = topBest
+      ? `🥇 ${escHtml(topBest.name)} ${topBest.time}秒`
+      : '<span style="opacity:0.4">🏅 記録なし</span>';
+    return `
+      <div class="sec-list-card" onclick="openSection(${si})">
+        <div class="sec-list-num">${String(si+1).padStart(2,'0')}</div>
+        <div class="sec-list-main">
+          <div class="sec-list-title">${escHtml(sec.title)}</div>
+          <div class="sec-list-info">
+            <span>${totalQ}問</span>
+            <span>${tTime}</span>
+            <span>${bestStr}</span>
+          </div>
+        </div>
+        <div class="sec-list-right">
+          ${draftBadge}
+          <span class="sec-list-arrow">›</span>
+        </div>
+      </div>`;
+  }).join('')}</div>`;
+}
 
-  area.innerHTML = draftBar + ch.sections.map((sec, si) => `
+// 1つの節を編集する画面
+function renderSectionEditor(chIdx, si) {
+  const ch = questionsData.chapters[chIdx];
+  const sec = ch.sections[si];
+  if (!sec) return '';
+  const backBtn = `<button class="sec-back-btn" onclick="backToSectionList()">← 節一覧に戻る</button>`;
+  return backBtn + renderChapterDraftBar(chIdx) + (function() {
+    return `
     <div class="section-panel">
       <div class="section-heading">
         <span style="opacity:0.45">${String(si+1).padStart(2,'0')}</span>
@@ -1725,7 +1862,8 @@ function renderSections(chIdx) {
             <button class="add-q-btn" onclick="addQuestion(${chIdx},${si},${li})">＋ 問題を追加</button>
           </div>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  })();
 }
 
 // ===== レベルタブ切り替え =====
