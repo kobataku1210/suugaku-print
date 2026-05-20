@@ -117,6 +117,12 @@
   .card.year2 { background: #f39c12; }
   .card.year1 { background: #f1c40f; color: #1a1a1a; }
   .card.year19 { background: #8e44ad; font-size: 10px; }
+  .card.leader {
+    background: #16a085;
+    color: #fff;
+    font-size: 12px;
+    z-index: 3;
+  }
 
   .dot {
     position: absolute;
@@ -247,10 +253,10 @@
   <div class="phase-display">
     <div>
       <div class="phase-label" id="phaseLabel">フェーズ 0</div>
-      <div class="phase-title" id="phaseTitle">初期隊形</div>
+      <div class="phase-title" id="phaseTitle">校舎前集合</div>
     </div>
     <div class="phase-description" id="phaseDescription">
-      8列縦隊。前から3年→2年→1年→1-9担当の順。各クラスの後ろに5×2の○(人)、1-9のみ1×2の○。右端が1組、左端が8組。
+      全員が校舎の前に集合している状態。スタートの合図を待つ。
     </div>
     <div class="count-display" id="countDisplay">START</div>
   </div>
@@ -286,11 +292,12 @@
     <div class="legend-item"><div class="legend-swatch" style="background:#f39c12"></div>2年生</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#f1c40f"></div>1年生</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#8e44ad"></div>1-9メンバー</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#16a085"></div>分団リーダー・闘魂会</div>
   </div>
 
   <div class="controls">
     <div class="control-row">
-      <button class="btn" id="playBtn">▶ 再生</button>
+      <button class="btn" id="playBtn">次へ →</button>
       <button class="btn secondary" id="resetBtn">⏮ 最初に戻る</button>
       <div class="speed-control">
         <label>速度</label>
@@ -304,8 +311,9 @@
     <div class="control-row">
       <span style="color:#aaa; font-size:13px;">フェーズ切替:</span>
       <div class="phase-buttons">
-        <button class="phase-btn active" data-phase="0">0. 初期隊形</button>
-        <button class="phase-btn" data-phase="1">1. 同時展開(完成)</button>
+        <button class="phase-btn active" data-phase="0">0. 校舎前集合</button>
+        <button class="phase-btn" data-phase="1">1. 初期隊形</button>
+        <button class="phase-btn" data-phase="2">2. 弧状展開</button>
       </div>
     </div>
   </div>
@@ -321,14 +329,20 @@ const GROUND_H_M = 35;
 const phases = {
   0: {
     label: "フェーズ 0",
-    title: "初期隊形",
-    description: "8列縦隊。前から3年→2年→1年→1-9担当の順。各クラスの後ろに5×2の○(人)、1-9のみ1×2の○。右端が1組、左端が8組。",
+    title: "校舎前集合",
+    description: "全員が校舎の前に集合している状態。スタートの合図を待つ。",
     count: "START"
   },
   1: {
     label: "フェーズ 1",
+    title: "初期隊形",
+    description: "8列縦隊。前から3年→2年→1年→1-9担当の順。各クラスの後ろに5×2の○(人)、1-9のみ1×2の○。右端が1組、左端が8組。",
+    count: "LINE"
+  },
+  2: {
+    label: "フェーズ 2",
     title: "弧状に展開",
-    description: "観客側の弧(楕円の上半分)に沿って24クラスが展開。左から 2-8〜2-1, 3-8〜3-1, 1-8〜1-1。1-9は各クラスの真後ろに追従。",
+    description: "観客側の弧(楕円の上半分)に沿って24クラスが展開。左から 1-8〜1-1, 3-8〜3-1, 2-8〜2-1。1-9は1年生クラスの真後ろに追従。3-3〜3-6は少し下がり、その前に「分団リーダー」「闘魂会」が並ぶ。",
     count: "ARC"
   }
 };
@@ -369,6 +383,27 @@ function getPositions(phase) {
     else if (year === 2) y = startYm + yearBlockH + rowGapM;
     else if (year === 1) y = startYm + (yearBlockH + rowGapM) * 2;
     else y = startYm + (yearBlockH + rowGapM) * 3;
+    // 3-3〜3-6 は分団リーダー・闘魂会の後ろに下げる
+    if (year === 3 && classNum >= 3 && classNum <= 6) y += 2.0;
+    return { x, y };
+  }
+
+  // 校舎前集合: 校舎の直前に8列×4行の密集隊形(○は非表示にして、ラベルだけを密に並べる)
+  const gatheredColGapM = 0.2;
+  const gatheredRowSpacingM = 3.1; // ラベル(高さ3m)同士がほぼ隣接
+  const gatheredStartYm = 17.0;    // 校舎(y=28.7)の手前に寄せる
+  const gatheredBlockWm = cardWm * 8 + gatheredColGapM * 7;
+  const gatheredStartXm = (GROUND_W_M - gatheredBlockWm) / 2;
+
+  function gatheredPos(classNum, year) {
+    const colIdx = 8 - classNum;
+    const x = gatheredStartXm + colIdx * (cardWm + gatheredColGapM);
+    let y;
+    if (year === 3) y = gatheredStartYm;
+    else if (year === 2) y = gatheredStartYm + gatheredRowSpacingM;
+    else if (year === 1) y = gatheredStartYm + gatheredRowSpacingM * 2;
+    else y = gatheredStartYm + gatheredRowSpacingM * 3;
+    // フェーズ0(集合)では 3-3〜3-6 を下げない(リーダー枠は前=観客側に配置するため)
     return { x, y };
   }
 
@@ -380,45 +415,30 @@ function getPositions(phase) {
   const ellipseA  = 19.0;             // 横方向半径
   const ellipseB  = 4.0;              // 縦方向半径(浅めの弧 / 両端でカードが重ならない値)
 
-  // 弧長等間隔で 24個の θ を求める(両端の重なり防止)
+  // 横方向(x)等間隔で 24個の θ を求める(両端でカードが重ならないよう x 等間隔配置)
   // θ ∈ [π, 2π] (sin(θ) ≦ 0 → 観客側の上半分の弧)
+  // 各カードは横方向に (2*ellipseA)/23 ≒ 1.65m 間隔で並ぶ → カード幅1.4m に対して0.25mの隙間を確保
   const arcThetas = (function() {
-    const fine = 2000;
-    const lens = [0];
-    let prevX = ellipseA * Math.cos(Math.PI);
-    let prevY = ellipseB * Math.sin(Math.PI);
-    for (let i = 1; i <= fine; i++) {
-      const t = Math.PI + (i / fine) * Math.PI;
-      const x = ellipseA * Math.cos(t);
-      const y = ellipseB * Math.sin(t);
-      lens.push(lens[i-1] + Math.hypot(x - prevX, y - prevY));
-      prevX = x; prevY = y;
-    }
-    const total = lens[fine];
     const result = [];
     for (let k = 0; k < 24; k++) {
-      const target = (k / 23) * total;
-      let lo = 0, hi = fine;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (lens[mid] < target) lo = mid + 1;
-        else hi = mid;
-      }
-      result.push(Math.PI + (lo / fine) * Math.PI);
+      const xNorm = -1 + (k / 23) * 2; // [-1, 1]
+      const t = Math.acos(xNorm);      // [0, π]
+      const theta = 2 * Math.PI - t;   // θ ∈ [π, 2π], sin θ ≦ 0
+      result.push(theta);
     }
     return result;
   })();
 
   function finalPos(classNum, year) {
     let colIdx;
-    if (year === 2) {
-      // 2年: 左ブロック(colIdx 0-7), 2-8 が一番左
+    if (year === 1 || year === 19) {
+      // 1年と1-9: 左ブロック(colIdx 0-7), 1-8 が一番左, 1-1 が右
       colIdx = 8 - classNum;
     } else if (year === 3) {
       // 3年: 中央ブロック(colIdx 8-15), 3-8 が左、3-1 が右
       colIdx = 8 + (8 - classNum);
     } else {
-      // 1年と1-9: 右ブロック(colIdx 16-23), 1-8 が左、1-1 が右
+      // 2年: 右ブロック(colIdx 16-23), 2-8 が左、2-1 が一番右
       colIdx = 16 + (8 - classNum);
     }
     const theta = arcThetas[colIdx];
@@ -432,6 +452,8 @@ function getPositions(phase) {
     let y;
     if (year === 19) y = py + arcOffsetM + yearBlockH + gap19m;
     else y = py + arcOffsetM;
+    // 3-3〜3-6 は分団リーダー・闘魂会の後ろに下げる
+    if (year === 3 && classNum >= 3 && classNum <= 6) y += 2.0;
     return { x, y };
   }
 
@@ -459,8 +481,10 @@ function getPositions(phase) {
 
   // ラベル+○をまとめて positions に push する補助関数
   function pushLabelAndDots(id, year, classNum, label, h) {
-    const pInit = initPos(classNum, year);
-    const p = (phase >= 1) ? finalPos(classNum, year) : pInit;
+    let p;
+    if (phase === 0) p = gatheredPos(classNum, year);
+    else if (phase === 1) p = initPos(classNum, year);
+    else p = finalPos(classNum, year);
     positions.push({ id, year, classNum, x: p.x, y: p.y, w: cardWm, h: h, label });
     // ○はラベル位置(初期 or 最終)を基準に同じオフセットで配置
     // → フェーズ移動時はラベルと一緒に同じだけ移動する
@@ -481,6 +505,47 @@ function getPositions(phase) {
     pushLabelAndDots(`1-${c}`, 1, c, `1-${c}`, yearHm);
     pushLabelAndDots(`1-9_col${c}`, 19, c, "1-9", card19Hm);
   }
+
+  // 分団リーダー・闘魂会(全フェーズで表示、対応4クラスの観客側に配置)
+  // 分団リーダー: 3-5,3-6 の手前 / 闘魂会: 3-3,3-4 の手前
+  function leaderRect(side) {
+    if (phase === 2) {
+      // 弧上: 3-6,3-5(colIdx 10,11) または 3-4,3-3(colIdx 12,13)
+      const idxs = (side === 'left') ? [10, 11] : [12, 13];
+      const thA = arcThetas[idxs[0]], thB = arcThetas[idxs[1]];
+      const pxA = ellipseCx + ellipseA * Math.cos(thA);
+      const pxB = ellipseCx + ellipseA * Math.cos(thB);
+      const pyA = ellipseCy + ellipseB * Math.sin(thA);
+      const pyB = ellipseCy + ellipseB * Math.sin(thB);
+      const xLeft = Math.min(pxA, pxB) - cardWm / 2;
+      const xRight = Math.max(pxA, pxB) + cardWm / 2;
+      const y = (pyA + pyB) / 2 + 1.0;
+      return { x: xLeft, y, w: xRight - xLeft, h: 2.0 };
+    }
+    // フェーズ0/1: 該当2クラスのx位置
+    // フェーズ0は年3行の手前(観客側)、フェーズ1は年3行(下げる前)に配置
+    const colNums = (side === 'left') ? [5, 6] : [3, 4];
+    const posFn = (phase === 0) ? gatheredPos : initPos;
+    const posA = posFn(colNums[0], 3);
+    const posB = posFn(colNums[1], 3);
+    const xLeft = Math.min(posA.x, posB.x);
+    const xRight = Math.max(posA.x, posB.x) + cardWm;
+    const y = (phase === 0) ? (gatheredStartYm - 2.5) : startYm;
+    return { x: xLeft, y, w: xRight - xLeft, h: 2.0 };
+  }
+  const bundanRect = leaderRect('left');  // 3-5,3-6 の手前
+  const tokonRect  = leaderRect('right'); // 3-3,3-4 の手前
+  positions.push({
+    id: 'leader-bundan', isLeader: true,
+    x: bundanRect.x, y: bundanRect.y, w: bundanRect.w, h: bundanRect.h,
+    label: '分団リーダー'
+  });
+  positions.push({
+    id: 'leader-tokon', isLeader: true,
+    x: tokonRect.x, y: tokonRect.y, w: tokonRect.w, h: tokonRect.h,
+    label: '闘魂会'
+  });
+
   return positions;
 }
 
@@ -501,6 +566,10 @@ function createCards() {
     const elem = document.createElement("div");
     if (p.isDot) {
       elem.className = "dot year" + p.year;
+      elem.style.opacity = "0"; // 初期(フェーズ0=校舎前集合)では非表示
+    } else if (p.isLeader) {
+      elem.className = "card leader";
+      elem.textContent = p.label;
     } else {
       elem.className = "card year" + p.year;
       elem.textContent = p.label || p.id;
@@ -525,6 +594,14 @@ function setPositions(phase, animate = true) {
     }
     card.style.left = mToPercent(p.x, 'x') + "%";
     card.style.top = mToPercent(p.y, 'y') + "%";
+    // 分団リーダー・闘魂会は幅がフェーズによって変わるので width も更新
+    if (card.classList.contains('leader')) {
+      card.style.width = mToPercent(p.w, 'w') + "%";
+    }
+    // 校舎前集合(フェーズ0)では○を非表示、それ以外は表示
+    if (card.classList.contains('dot')) {
+      card.style.opacity = (phase === 0) ? "0" : "1";
+    }
     if (!animate) {
       requestAnimationFrame(() => {
         card.style.transition = "";
@@ -537,9 +614,8 @@ function setPositions(phase, animate = true) {
 // アニメーション制御
 // ============================================================
 let currentPhase = 0;
-let isPlaying = false;
-let phaseTimeout = null;
 let speed = 1;
+const MAX_PHASE = 2;
 
 const phaseLabel = document.getElementById("phaseLabel");
 const phaseTitle = document.getElementById("phaseTitle");
@@ -572,62 +648,43 @@ function setPhase(phase, animate = true) {
   updatePhaseDisplay(phase);
 }
 
-function play() {
-  if (isPlaying) return;
-  isPlaying = true;
-  playBtn.textContent = "⏸ 一時停止";
-
-  function nextPhase() {
-    if (!isPlaying) return;
-    if (currentPhase >= 1) {
-      stop();
-      return;
-    }
-    setPhase(currentPhase + 1);
-    const totalMs = (2500 + 1000) / speed;
-    phaseTimeout = setTimeout(nextPhase, totalMs);
-  }
-
-  if (currentPhase >= 1) {
-    setPhase(0, false);
-    setTimeout(nextPhase, 500);
+function updateNextBtn() {
+  if (currentPhase >= MAX_PHASE) {
+    playBtn.disabled = true;
+    playBtn.textContent = "完了";
   } else {
-    nextPhase();
+    playBtn.disabled = false;
+    playBtn.textContent = "次へ →";
   }
 }
 
-function stop() {
-  isPlaying = false;
-  playBtn.textContent = "▶ 再生";
-  if (phaseTimeout) {
-    clearTimeout(phaseTimeout);
-    phaseTimeout = null;
-  }
+function goNext() {
+  if (currentPhase >= MAX_PHASE) return;
+  setPhase(currentPhase + 1);
+  updateNextBtn();
 }
 
 function reset() {
-  stop();
   setPhase(0, false);
+  updateNextBtn();
 }
 
-playBtn.addEventListener("click", () => {
-  if (isPlaying) stop();
-  else play();
-});
+playBtn.addEventListener("click", goNext);
 resetBtn.addEventListener("click", reset);
 speedSelect.addEventListener("change", (e) => {
   speed = parseFloat(e.target.value);
 });
 phaseBtns.forEach(btn => {
   btn.addEventListener("click", () => {
-    stop();
     setPhase(parseInt(btn.dataset.phase));
+    updateNextBtn();
   });
 });
 
 // 初期化
 createCards();
 updatePhaseDisplay(0);
+updateNextBtn();
 </script>
 </body>
 </html>
