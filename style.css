@@ -1515,6 +1515,41 @@ body {
 }
 .bulk-q-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.12); }
 
+/* bulk 4択ボタン */
+.bulk-q-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.bulk-q-choice-btn {
+  padding: 0.7rem 0.8rem;
+  min-height: 48px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  word-break: break-word;
+  line-height: 1.4;
+  text-align: center;
+}
+.bulk-q-choice-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.45); }
+.bulk-q-choice-btn:active { transform: scale(0.96); }
+.bulk-q-choice-btn.selected {
+  background: rgba(74,144,226,0.35);
+  border-color: #4a90e2;
+  color: white;
+  box-shadow: 0 0 0 1px #4a90e2 inset, 0 3px 10px rgba(74,144,226,0.3);
+}
+@media (max-width: 480px) {
+  .bulk-q-choices { grid-template-columns: 1fr; gap: 0.4rem; }
+}
+
 /* 結果表示 */
 .bulk-result-correct {
   font-size: 0.88rem;

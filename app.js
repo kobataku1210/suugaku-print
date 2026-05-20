@@ -1734,9 +1734,40 @@ function renderMiniTest() {
 }
 
 // 5問一括フォームHTML（小テスト・練習共通）
+// bulk フォームの4択選択状態を保持
+const bulkChoiceSelections = {}; // { prefix: { i: selectedChoice } }
+const bulkShuffledChoices  = {}; // { prefix: { i: [choices...] } }
+
 function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPrefix) {
+  // この prefix の選択状態をリセット
+  bulkChoiceSelections[inputPrefix] = {};
+  bulkShuffledChoices[inputPrefix]  = {};
+
   const qRows = questions.map((q, i) => {
     const lv = LEVELS[q.fromLevel];
+    const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+    let answerArea;
+    if (hasChoices) {
+      // 選択肢をシャッフルして保存
+      const shuffled = [...q.choices].sort(() => Math.random() - 0.5);
+      bulkShuffledChoices[inputPrefix][i] = shuffled;
+      answerArea = `
+        <div class="bulk-q-choices" id="${inputPrefix}-choices-${i}">
+          ${shuffled.map((c, ci) => `
+            <button type="button" class="bulk-q-choice-btn"
+                    data-prefix="${inputPrefix}" data-qi="${i}" data-ci="${ci}"
+                    onclick="selectBulkChoice('${inputPrefix}',${i},${ci})">${formatQuestion(c)}</button>
+          `).join('')}
+        </div>`;
+    } else {
+      answerArea = `
+        <div class="bulk-q-input-wrap">
+          <input class="bulk-q-input" id="${inputPrefix}-${i}"
+                 type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
+                 autocomplete="off"
+                 onkeydown="bulkInputKeydown(event,${i},'${inputPrefix}')">
+        </div>`;
+    }
     return `
       <div class="bulk-q-row">
         <div class="bulk-q-header">
@@ -1745,12 +1776,7 @@ function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPr
         </div>
         <div class="bulk-q-text">${formatQuestion(q.q)}</div>
         ${getBlankHint(q) ? `<div class="bulk-q-hint"><span class="bulk-q-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
-        <div class="bulk-q-input-wrap">
-          <input class="bulk-q-input" id="${inputPrefix}-${i}"
-                 type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}"
-                 autocomplete="off"
-                 onkeydown="bulkInputKeydown(event,${i},'${inputPrefix}')">
-        </div>
+        ${answerArea}
       </div>`;
   }).join('');
 
@@ -1766,6 +1792,29 @@ function renderBulkQuizForm(sec, questions, title, badgeColor, submitFn, inputPr
         <button class="bulk-submit-btn" onclick="${submitFn}">採点する！</button>
       </div>
     </div>`;
+}
+
+// bulk 4択：選択肢クリック時の処理
+function selectBulkChoice(prefix, i, ci) {
+  const choices = (bulkShuffledChoices[prefix] || {})[i];
+  if (!choices) return;
+  bulkChoiceSelections[prefix] = bulkChoiceSelections[prefix] || {};
+  bulkChoiceSelections[prefix][i] = choices[ci];
+  // 視覚的にハイライト：同じ問題の他のボタンは normal、選択したものを active
+  const container = document.getElementById(`${prefix}-choices-${i}`);
+  if (container) {
+    container.querySelectorAll('.bulk-q-choice-btn').forEach(btn => btn.classList.remove('selected'));
+    const target = container.querySelector(`[data-ci="${ci}"]`);
+    if (target) target.classList.add('selected');
+  }
+}
+
+// bulk 採点時に回答を取得（4択 / 自由入力どちらも対応）
+function getBulkAnswer(prefix, i) {
+  const sel = (bulkChoiceSelections[prefix] || {})[i];
+  if (sel !== undefined) return sel;
+  const input = document.getElementById(`${prefix}-${i}`);
+  return input ? input.value : '';
 }
 
 // 一括クイズフォーム共通の Enter キー処理：次の入力欄 or 採点ボタンへ
@@ -1869,10 +1918,7 @@ function renderMiniTestResultPhase(sec) {
 // ----- 採点 -----
 function submitMiniTestAnswers() {
   const questions = state.miniTestQuestions;
-  const answers   = questions.map((_, i) => {
-    const el = document.getElementById(`mt-${i}`);
-    return el ? el.value : '';
-  });
+  const answers   = questions.map((_, i) => getBulkAnswer('mt', i));
   state.miniTestAnswers = answers;
 
   const wrongIndices = questions.reduce((acc, q, i) => {
@@ -2004,10 +2050,7 @@ function renderPractice() {
 
 function submitPracticeAnswers() {
   const questions = state.practiceQuestions;
-  const answers   = questions.map((_, i) => {
-    const el = document.getElementById(`prac-${i}`);
-    return el ? el.value : '';
-  });
+  const answers   = questions.map((_, i) => getBulkAnswer('prac', i));
   state.practiceAnswers = answers;
 
   const wrongIndices = questions.reduce((acc, q, i) => {
@@ -2077,6 +2120,9 @@ function startTimeAttack() {
   state.timeAttackElapsed      = null;
   state.timeAttackPrevBest     = null;
   state.timeAttackStartTime    = Date.now();
+  // タイムアタックの bulk 選択状態を初期化
+  bulkChoiceSelections['ta'] = {};
+  bulkShuffledChoices['ta']  = {};
   navigate('timeattack');
 }
 
@@ -2086,6 +2132,31 @@ function renderTimeAttack() {
   if (state.timeAttackPhase === 'quiz') {
     const qRows = state.timeAttackQuestions.map((q, i) => {
       const lv = LEVELS[q.fromLevel];
+      const hasChoices = Array.isArray(q.choices) && q.choices.length === 4;
+      let answerArea;
+      if (hasChoices) {
+        // すでにシャッフル済みなら再利用、なければ新規シャッフル
+        if (!bulkShuffledChoices['ta']) bulkShuffledChoices['ta'] = {};
+        if (!bulkShuffledChoices['ta'][i]) {
+          bulkShuffledChoices['ta'][i] = [...q.choices].sort(() => Math.random() - 0.5);
+        }
+        const shuffled = bulkShuffledChoices['ta'][i];
+        const sel = (bulkChoiceSelections['ta'] || {})[i];
+        answerArea = `
+          <div class="bulk-q-choices" id="ta-choices-${i}">
+            ${shuffled.map((c, ci) => `
+              <button type="button" class="bulk-q-choice-btn${sel === c ? ' selected' : ''}"
+                      onclick="selectBulkChoice('ta',${i},${ci})">${formatQuestion(c)}</button>
+            `).join('')}
+          </div>`;
+      } else {
+        answerArea = `
+          <div class="bulk-q-input-wrap">
+            <input class="bulk-q-input" id="ta-${i}"
+                   type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off"
+                   onkeydown="taInputKeydown(event,${i})">
+          </div>`;
+      }
       return `
         <div class="bulk-q-row">
           <div class="bulk-q-header">
@@ -2094,11 +2165,7 @@ function renderTimeAttack() {
           </div>
           <div class="bulk-q-text">${formatQuestion(q.q)}</div>
           ${getBlankHint(q) ? `<div class="bulk-q-hint"><span class="bulk-q-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
-          <div class="bulk-q-input-wrap">
-            <input class="bulk-q-input" id="ta-${i}"
-                   type="text" placeholder="${q.b && q.b.trim() ? '＿＿ に入る答えを入力' : '答えを入力'}" autocomplete="off"
-                   onkeydown="taInputKeydown(event,${i})">
-          </div>
+          ${answerArea}
         </div>`;
     }).join('');
 
@@ -2304,10 +2371,7 @@ function submitTimeAttackAnswers() {
   state.timeAttackElapsed = elapsed;
 
   const questions = state.timeAttackQuestions;
-  const answers   = questions.map((_, i) => {
-    const el = document.getElementById(`ta-${i}`);
-    return el ? el.value : '';
-  });
+  const answers   = questions.map((_, i) => getBulkAnswer('ta', i));
   state.timeAttackAnswers = answers;
 
   const wrongIndices = questions.reduce((acc, q, i) => {
