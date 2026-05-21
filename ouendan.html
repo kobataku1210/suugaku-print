@@ -122,6 +122,13 @@
     color: #fff;
     font-size: 12px;
     z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8%;
+  }
+  .card.leader span {
+    white-space: nowrap;
   }
   .card.center-label {
     background: #c8102e;
@@ -132,6 +139,15 @@
     border-radius: 8px;
     letter-spacing: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .card.gap-label {
+    background: rgba(255, 255, 255, 0.92);
+    color: #8B0000;
+    font-size: 12px;
+    z-index: 4;
+    border: 2px dashed #8B0000;
+    border-radius: 4px;
+    letter-spacing: 1px;
   }
 
   .dot {
@@ -388,7 +404,7 @@ function getPositions(phase) {
   const initColGapM = 0.5;
   const initBlockWm = cardWm * initColCount + initColGapM * (initColCount - 1);
   const initStartXm = (GROUND_W_M - initBlockWm) / 2;
-  const startYm = 5.0;
+  const startYm = 7.0; // 年3行(リーダー枠の2.5m手前を確保するため弧の線 y≈4 より下に)
 
   // 初期位置: classNum 1 が右端、8 が左端
   // colIdx 0 が左、7 が右 → classNum 8 が colIdx 0, classNum 1 が colIdx 7
@@ -400,8 +416,6 @@ function getPositions(phase) {
     else if (year === 2) y = startYm + yearBlockH + rowGapM;
     else if (year === 1) y = startYm + (yearBlockH + rowGapM) * 2;
     else y = startYm + (yearBlockH + rowGapM) * 3;
-    // 3-3〜3-6 は分団リーダー・闘魂会の後ろに下げる
-    if (year === 3 && classNum >= 3 && classNum <= 6) y += 2.0;
     return { x, y };
   }
 
@@ -462,15 +476,13 @@ function getPositions(phase) {
     const px = ellipseCx + ellipseA * Math.cos(theta);
     const py = ellipseCy + ellipseB * Math.sin(theta);
 
-    // ラベル左上座標: 弧の下にラベル上端を置く(線とラベルが重ならないように余白を確保)
-    const arcOffsetM = 1.0;
+    // ラベル左上座標: 弧の下にラベル上端を置く(リーダー枠を弧線上に配置するため広めにオフセット)
+    const arcOffsetM = 3.0;
     const x = px - cardWm / 2;
     // 1-9 は 1年ブロック(ラベル+○10個分)の真下に配置
     let y;
     if (year === 19) y = py + arcOffsetM + yearBlockH + gap19m;
     else y = py + arcOffsetM;
-    // 3-3〜3-6 は分団リーダー・闘魂会の後ろに下げる
-    if (year === 3 && classNum >= 3 && classNum <= 6) y += 2.0;
     return { x, y };
   }
 
@@ -499,7 +511,7 @@ function getPositions(phase) {
   // 中央集合: 全員がフェーズ2の分団リーダー・闘魂会の位置(中央上部)に密集
   function centerPos(classNum, year) {
     const centerX = GROUND_W_M / 2;
-    const centerY = 6.0; // フェーズ2のリーダー枠中心(y=5〜7)付近
+    const centerY = 5.5; // フェーズ2のリーダー枠中心
     const colIdx = 8 - classNum;
     const yearOffset = (year === 3) ? 0 : (year === 2) ? 1 : (year === 1) ? 2 : 3;
     // 小さな範囲(約1.4m×1.6m)に密集、カードは大きく重なる
@@ -536,48 +548,42 @@ function getPositions(phase) {
     pushLabelAndDots(`1-9_col${c}`, 19, c, "1-9", card19Hm);
   }
 
-  // 分団リーダー・闘魂会(全フェーズで表示、対応4クラスの観客側に配置)
-  // 分団リーダー: 3-5,3-6 の手前 / 闘魂会: 3-3,3-4 の手前
-  function leaderRect(side) {
+  // 分団リーダー・闘魂会(全フェーズで表示、3-8 から 3-1 の手前まで1つの四角でカバー)
+  function leaderRect() {
     if (phase === 3) {
-      // 中央集合: フェーズ2のリーダー位置(y=5〜7)に縮小してフェードアウト
-      return { x: GROUND_W_M / 2 - 1.0, y: 5.5, w: 2.0, h: 1.5 };
+      // 中央集合: 中央に縮小してフェードアウト
+      return { x: GROUND_W_M / 2 - 2.5, y: 5.5, w: 5.0, h: 1.5 };
     }
     if (phase === 2) {
-      // 弧上: 3-6,3-5(colIdx 10,11) または 3-4,3-3(colIdx 12,13)
-      const idxs = (side === 'left') ? [10, 11] : [12, 13];
-      const thA = arcThetas[idxs[0]], thB = arcThetas[idxs[1]];
-      const pxA = ellipseCx + ellipseA * Math.cos(thA);
-      const pxB = ellipseCx + ellipseA * Math.cos(thB);
-      const pyA = ellipseCy + ellipseB * Math.sin(thA);
-      const pyB = ellipseCy + ellipseB * Math.sin(thB);
-      const xLeft = Math.min(pxA, pxB) - cardWm / 2;
-      const xRight = Math.max(pxA, pxB) + cardWm / 2;
-      const y = (pyA + pyB) / 2 + 1.0;
+      // 弧上: 3-8 (colIdx 8) から 3-1 (colIdx 15) の範囲をカバー
+      const thLeft = arcThetas[8];   // 3-8 (年3最左)
+      const thRight = arcThetas[15]; // 3-1 (年3最右)
+      const pxLeft = ellipseCx + ellipseA * Math.cos(thLeft);
+      const pxRight = ellipseCx + ellipseA * Math.cos(thRight);
+      const xLeft = pxLeft - cardWm / 2;
+      const xRight = pxRight + cardWm / 2;
+      // leader 両端で弧の y を計算し、その下端(=最大y)に leader 上端を合わせる(弧の線から出さない)
+      const cosL = (xLeft - ellipseCx) / ellipseA;
+      const cosR = (xRight - ellipseCx) / ellipseA;
+      const yL = ellipseCy - ellipseB * Math.sqrt(Math.max(0, 1 - cosL * cosL));
+      const yR = ellipseCy - ellipseB * Math.sqrt(Math.max(0, 1 - cosR * cosR));
+      const y = Math.max(yL, yR); // 両端の弧 y のうち下側(=大きい y)に合わせる
       return { x: xLeft, y, w: xRight - xLeft, h: 2.0 };
     }
-    // フェーズ0/1: 該当2クラスのx位置
-    // フェーズ0は年3行の手前(観客側)、フェーズ1は年3行(下げる前)に配置
-    const colNums = (side === 'left') ? [5, 6] : [3, 4];
+    // フェーズ0/1: 3-8 から 3-1 のx範囲、年3行の2.5m手前(観客側)
     const posFn = (phase === 0) ? gatheredPos : initPos;
-    const posA = posFn(colNums[0], 3);
-    const posB = posFn(colNums[1], 3);
-    const xLeft = Math.min(posA.x, posB.x);
-    const xRight = Math.max(posA.x, posB.x) + cardWm;
-    const y = (phase === 0) ? (gatheredStartYm - 2.5) : startYm;
+    const pos38 = posFn(8, 3); // 3-8 (最左)
+    const pos31 = posFn(1, 3); // 3-1 (最右)
+    const xLeft = Math.min(pos38.x, pos31.x);
+    const xRight = Math.max(pos38.x, pos31.x) + cardWm;
+    const yearTopY = (phase === 0) ? gatheredStartYm : startYm;
+    const y = yearTopY - 2.5;
     return { x: xLeft, y, w: xRight - xLeft, h: 2.0 };
   }
-  const bundanRect = leaderRect('left');  // 3-5,3-6 の手前
-  const tokonRect  = leaderRect('right'); // 3-3,3-4 の手前
+  const lRect = leaderRect();
   positions.push({
-    id: 'leader-bundan', isLeader: true,
-    x: bundanRect.x, y: bundanRect.y, w: bundanRect.w, h: bundanRect.h,
-    label: '分団リーダー'
-  });
-  positions.push({
-    id: 'leader-tokon', isLeader: true,
-    x: tokonRect.x, y: tokonRect.y, w: tokonRect.w, h: tokonRect.h,
-    label: '闘魂会'
+    id: 'leader', isLeader: true,
+    x: lRect.x, y: lRect.y, w: lRect.w, h: lRect.h
   });
 
   // 中央集合ラベル「赤分団全員集合」(フェーズ3でのみ表示、フェーズ2のリーダー位置に出る)
@@ -585,6 +591,18 @@ function getPositions(phase) {
     id: 'center-label', isCenter: true,
     x: GROUND_W_M / 2 - 5, y: 4.5, w: 10, h: 3,
     label: '赤分団全員集合'
+  });
+
+  // 弧との間隔を示すラベル(フェーズ2でのみ表示、左右に1つずつ)
+  positions.push({
+    id: 'gap-label-left', isGapLabel: true,
+    x: 8.5, y: 5.5, w: 5, h: 1.5,
+    label: '↕ 人一人分の間隔'
+  });
+  positions.push({
+    id: 'gap-label-right', isGapLabel: true,
+    x: 31.5, y: 5.5, w: 5, h: 1.5,
+    label: '↕ 人一人分の間隔'
   });
 
   return positions;
@@ -610,11 +628,15 @@ function createCards() {
       elem.style.opacity = "0"; // 初期(フェーズ0=校舎前集合)では非表示
     } else if (p.isLeader) {
       elem.className = "card leader";
-      elem.textContent = p.label;
+      elem.innerHTML = '<span>分団リーダー</span><span>闘魂会</span>';
     } else if (p.isCenter) {
       elem.className = "card center-label";
       elem.textContent = p.label;
       elem.style.opacity = "0"; // 初期は非表示(フェーズ3でのみ表示)
+    } else if (p.isGapLabel) {
+      elem.className = "card gap-label";
+      elem.textContent = p.label;
+      elem.style.opacity = "0"; // 初期は非表示(フェーズ2でのみ表示)
     } else {
       elem.className = "card year" + p.year;
       elem.textContent = p.label || p.id;
@@ -648,6 +670,9 @@ function setPositions(phase, animate = true) {
     if (card.classList.contains('center-label')) {
       // 中央集合ラベルはフェーズ3でのみ表示
       card.style.opacity = (phase === 3) ? "1" : "0";
+    } else if (card.classList.contains('gap-label')) {
+      // 弧の間隔ラベルはフェーズ2でのみ表示
+      card.style.opacity = (phase === 2) ? "1" : "0";
     } else if (phase === 3) {
       // フェーズ3では他はすべてフェードアウト
       card.style.opacity = "0";
