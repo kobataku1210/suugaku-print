@@ -253,31 +253,31 @@
 
   /* ==== まとめ図 ==== */
   .summary-wrap {
-    width: min(94vw, 560px);
+    width: min(98vw, 760px);
     background: #fff;
     color: #222;
-    border-radius: 14px;
-    padding: 10px;
-    margin: 6px 0 10px;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 6px 0 12px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.25);
   }
   .summary-title {
-    font-size: 13px; font-weight: 900; color: #6d28d9;
-    text-align: center; letter-spacing: 2px; margin-bottom: 6px;
+    font-size: 18px; font-weight: 900; color: #6d28d9;
+    text-align: center; letter-spacing: 2px; margin-bottom: 10px;
   }
   .nest-box {
     position: relative;
-    border: 2.5px solid #222;
+    border: 3px solid #222;
     border-radius: 4px;
-    padding: 18px 8px 8px;
-    margin: 12px 4px 4px;
+    padding: 26px 12px 12px;
+    margin: 18px 6px 6px;
   }
   .nest-label {
     position: absolute;
-    top: -13px; left: 50%; transform: translateX(-50%);
+    top: -16px; left: 50%; transform: translateX(-50%);
     background: #fff;
-    padding: 0 12px;
-    font-weight: 900; font-size: 15px;
+    padding: 0 16px;
+    font-weight: 900; font-size: 20px;
     color: #222;
     letter-spacing: 2px;
     white-space: nowrap;
@@ -297,19 +297,19 @@
     margin: -8px 0;
   }
   .summary-cards {
-    display: flex; flex-wrap: wrap; gap: 4px;
+    display: flex; flex-wrap: wrap; gap: 8px;
     justify-content: center; align-items: center;
-    min-height: 28px;
-    padding: 4px 2px;
+    min-height: 40px;
+    padding: 6px 4px;
   }
   .summary-card {
     background: linear-gradient(135deg, #fefefe, #e2e8f0);
     color: #222;
-    min-width: 28px; padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 13px; font-weight: 800;
+    min-width: 44px; padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 20px; font-weight: 800;
     font-family: 'Times New Roman', serif;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.18);
     line-height: 1.1;
     text-align: center;
   }
@@ -317,8 +317,8 @@
     display: inline-flex; flex-direction: column; align-items: center;
     vertical-align: middle; font-size: 0.78em; line-height: 1.05;
   }
-  .summary-card .frac .num { border-bottom: 1.5px solid #222; padding: 0 3px; }
-  .summary-card .frac .den { padding: 0 3px; }
+  .summary-card .frac .num { border-bottom: 2px solid #222; padding: 0 4px; }
+  .summary-card .frac .den { padding: 0 4px; }
   .summary-card sup { font-size: 0.6em; vertical-align: super; }
   .summary-empty {
     font-size: 11px; color: #aaa; font-style: italic;
@@ -959,8 +959,8 @@ function buildSummaryHtml() {
           </div>
           <div class="nest-divider"></div>
           <div class="nest-col">
-            <div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:14px 4px 4px;">
-              <div style="text-align:center;font-weight:900;font-size:15px;letter-spacing:2px;margin-bottom:6px;">無理数</div>
+            <div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:20px 6px 6px;">
+              <div style="text-align:center;font-weight:900;font-size:20px;letter-spacing:2px;margin-bottom:10px;">無理数</div>
               <div class="summary-cards">${cardHtml(irr)}</div>
             </div>
           </div>
