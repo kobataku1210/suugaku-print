@@ -552,6 +552,8 @@ const game = {
     }
     document.getElementById('sort-box-0-count').textContent = `${box0count} 枚`;
     document.getElementById('sort-box-1-count').textContent = `${box1count} 枚`;
+    // 再描画後に手札のカードにドラッグハンドラを付け直す
+    bindDragHandlers();
   },
 
   isCardInStage(c) {
