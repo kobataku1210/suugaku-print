@@ -86,14 +86,37 @@
   .stage-info b { color: #6d28d9; font-size: 15px; }
 
   /* カード置き場（手札） */
+  .pile-wrap { margin: 6px 0 8px; }
+  .pile-label {
+    font-size: 12px; font-weight: 700;
+    color: #6d28d9;
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .pile-label .from {
+    background: rgba(139,92,246,0.18);
+    border: 1px solid rgba(139,92,246,0.4);
+    color: #6d28d9;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 800;
+  }
   .pile-area {
     background: rgba(255,255,255,0.5);
     border-radius: 12px;
     padding: 10px 8px;
-    margin: 6px 0 8px;
     min-height: 110px;
     display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
     gap: 8px;
+  }
+  .number-card.entering {
+    animation: cardEnter 0.5s ease backwards;
+  }
+  @keyframes cardEnter {
+    0%   { opacity: 0; transform: translateY(-30px) scale(0.7); }
+    60%  { opacity: 1; transform: translateY(8px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
   }
 
   /* カード */
@@ -284,7 +307,10 @@
     </div>
     <div class="stage-badge" id="stage-badge">STAGE 1</div>
     <div class="stage-info" id="stage-info"><b>有理数</b> と <b>無理数</b> に分けてね</div>
-    <div class="pile-area" id="pile-area"></div>
+    <div class="pile-wrap">
+      <div class="pile-label" id="pile-label" style="display:none;"></div>
+      <div class="pile-area" id="pile-area"></div>
+    </div>
     <div class="boxes-area">
       <div class="sort-box" id="sort-box-0">
         <div class="sort-box-label" id="sort-box-0-label">有理数</div>
@@ -516,13 +542,25 @@ const game = {
     document.getElementById('stage-info').innerHTML = info.info;
     document.getElementById('sort-box-0-label').textContent = info.labels[0];
     document.getElementById('sort-box-1-label').textContent = info.labels[1];
-    // すべての該当カードを pile に戻す
+
+    // 手札ラベル：ステージ2/3 では前ステージから来たカードであることを明示
+    const pileLabel = document.getElementById('pile-label');
+    if (this.stage === 1) {
+      pileLabel.style.display = 'none';
+    } else if (this.stage === 2) {
+      pileLabel.style.display = 'block';
+      pileLabel.innerHTML = `🔄 前のステージで <span class="from">有理数</span> にしたカード（${this.allCards.filter(c => c.passedStage1).length}枚）`;
+    } else if (this.stage === 3) {
+      pileLabel.style.display = 'block';
+      pileLabel.innerHTML = `🔄 前のステージで <span class="from">整数</span> にしたカード（${this.allCards.filter(c => c.passedStage2).length}枚）`;
+    }
+
+    // 該当カードを pile に戻す（passedStage1/2 のフラグはステージ判定に利用）
     this.allCards.forEach(c => { c.state = 'pile'; });
-    this.renderCards();
-    bindDragHandlers();
+    this.renderCards(this.stage > 1); // ステージ2以降は入場アニメ付き
   },
 
-  renderCards() {
+  renderCards(animate = false) {
     const pile = document.getElementById('pile-area');
     const box0content = document.getElementById('sort-box-0-content');
     const box1content = document.getElementById('sort-box-1-content');
@@ -530,8 +568,8 @@ const game = {
     box0content.innerHTML = '';
     box1content.innerHTML = '';
     let box0count = 0, box1count = 0;
+    let pileIdx = 0;
     for (const c of this.allCards) {
-      // このステージで処理対象になるカードかどうか
       if (!this.isCardInStage(c)) continue;
       const el = document.createElement('div');
       el.className = 'number-card';
@@ -539,6 +577,11 @@ const game = {
       el.innerHTML = renderDisplay(c.display);
       el.dataset.cardId = c.id;
       if (c.state === 'pile') {
+        if (animate) {
+          el.classList.add('entering');
+          el.style.animationDelay = (pileIdx * 0.06) + 's';
+          pileIdx++;
+        }
         pile.appendChild(el);
       } else if (c.state === 'box-0') {
         el.classList.add('in-box', 'snap-correct');
@@ -621,14 +664,22 @@ const game = {
     }
     const overlay = document.createElement('div');
     overlay.className = 'stage-overlay';
+    const fromLabel = this.stage === 1 ? '有理数' : '整数';
+    const nextLabel = this.stage === 1 ? '整数かどうか' : '自然数かどうか';
+    // 通過するカードの表示
+    const passingCards = this.allCards.filter(c =>
+      (this.stage === 1 && c.passedStage1) || (this.stage === 2 && c.passedStage2)
+    );
+    const cardsHtml = passingCards.map(c =>
+      `<div class="number-card in-box snap-correct" style="margin:3px;">${renderDisplay(c.display)}</div>`
+    ).join('');
     overlay.innerHTML = `
       <div class="stage-overlay-title">✅ STAGE ${this.stage} CLEAR!</div>
-      <div class="stage-overlay-sub">→ STAGE ${next}</div>
-      <div class="stage-overlay-detail">
-        ${this.stage === 1
-          ? `有理数にしたカード <b>${carryOver}枚</b> が次のステージへ。<br>整数かそうでないかを分けよう！`
-          : `整数にしたカード <b>${carryOver}枚</b> が次のステージへ。<br>自然数かそうでないかを分けよう！`}
+      <div class="stage-overlay-sub">「${fromLabel}」にしたカード <b style="color:#c4b5fd;font-size:1.3em;">${carryOver}枚</b> がステージ${next}へ</div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;max-width:90vw;gap:6px;margin:8px 0;background:rgba(255,255,255,0.08);padding:10px;border-radius:12px;">
+        ${cardsHtml}
       </div>
+      <div class="stage-overlay-detail">↓ このカードを<br><b style="color:#fff;font-size:1.1em;">${nextLabel}</b> で分けよう！</div>
       <button class="btn" onclick="game.proceedToNextStage()">次のステージへ</button>
     `;
     document.getElementById('game-screen').appendChild(overlay);
