@@ -1034,6 +1034,15 @@ const GAME_ITEMS = [
     draftKey: 'rootBreak',
   },
   {
+    title: '数の分類ウォール',
+    desc: '有理数/無理数 → 整数/非整数 → 自然数/非自然数 を仕分けよう',
+    icon: '📦',
+    onclick: "window.location.href='games/数の分類ウォール.html'",
+    gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    isNew: true,
+    draftKey: 'numSort',
+  },
+  {
     title: '計算バトル',
     desc: '1台で2人対戦！因数分解で計算を一気に終わらせて相手のHPを削れ',
     icon: '⚔️',

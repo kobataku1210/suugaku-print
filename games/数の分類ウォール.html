@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>数の分類ウォール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #d8dde2; }
+  body { font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif; color: #222; }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  #title-screen, #result-screen {
+    background: linear-gradient(180deg, #e8ecef 0%, #c8ced3 100%);
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 24px; overflow-y: auto;
+  }
+  .title-logo {
+    font-size: clamp(40px, 8vw, 70px); font-weight: 900; letter-spacing: 3px;
+    color: #2a2a2a; font-style: italic;
+    text-shadow: 0 2px 0 #fff, 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .title-sub {
+    font-size: clamp(14px, 2.5vw, 18px); color: #555;
+    border-top: 2px solid #8b5cf6; border-bottom: 2px solid #8b5cf6;
+    padding: 4px 16px; font-weight: bold;
+  }
+  .title-desc { font-size: 14px; color: #666; text-align: center; max-width: 380px; line-height: 1.7; }
+  .title-stages {
+    display: flex; flex-direction: column; gap: 6px;
+    background: rgba(255,255,255,0.7); padding: 12px 18px;
+    border-radius: 14px; font-size: 13px; color: #444;
+    max-width: 360px;
+  }
+  .title-stages b { color: #8b5cf6; }
+
+  .btn {
+    border: none; background: #8b5cf6; color: white;
+    font-weight: bold; font-size: 18px; padding: 14px 48px;
+    border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    cursor: pointer; letter-spacing: 2px; transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-secondary { background: white; color: #333; border: 1px solid #ccc; }
+  .btn-primary-xl { font-size: 26px; padding: 22px 80px; letter-spacing: 6px; box-shadow: 0 6px 18px rgba(139,92,246,0.45); }
+  .btn-sm { font-size: 13px; padding: 8px 20px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+
+  #game-screen {
+    background: linear-gradient(180deg, #d8dde2 0%, #b0b7c0 100%);
+    align-items: center; justify-content: flex-start;
+    padding: 12px 16px;
+  }
+  #hud {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: rgba(255,255,255,0.85);
+    border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-weight: bold;
+  }
+  .hud-item { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+  .hud-label { font-size: 10px; color: #777; letter-spacing: 1px; }
+  .hud-value { font-size: 18px; color: #2a2a2a; font-variant-numeric: tabular-nums; }
+  .hud-lives { font-size: 22px; letter-spacing: 4px; color: #ff5577; transition: transform 0.2s; }
+  .hud-lives.lost { animation: lifeFlash 0.5s; }
+  @keyframes lifeFlash {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.3); color: #ff0033; }
+    100% { transform: scale(1); }
+  }
+
+  .stage-badge {
+    margin-top: 12px;
+    padding: 6px 18px;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: white;
+    font-weight: 900; letter-spacing: 2px;
+    border-radius: 999px; font-size: 14px;
+    box-shadow: 0 3px 8px rgba(139,92,246,0.35);
+  }
+  .stage-info {
+    margin: 10px 0 6px;
+    font-size: 14px; color: #444; text-align: center;
+  }
+  .stage-info b { color: #6d28d9; font-size: 16px; }
+
+  /* カード（数字） */
+  .card-area {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    width: 100%; min-height: 0;
+    padding: 16px 0;
+  }
+  .number-card {
+    background: linear-gradient(135deg, #fefefe, #e2e8f0);
+    color: #222;
+    min-width: 200px; min-height: 130px;
+    max-width: 320px;
+    padding: 18px 24px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 56px; font-weight: 900;
+    font-family: 'Times New Roman', serif;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18),
+                inset 0 -4px 0 rgba(0,0,0,0.06),
+                inset 0 4px 0 rgba(255,255,255,0.7);
+  }
+  .number-card sup { font-size: 0.6em; vertical-align: super; }
+  .number-card .frac {
+    display: inline-flex; flex-direction: column;
+    align-items: center; vertical-align: middle;
+    font-size: 0.7em;
+    line-height: 1.1;
+  }
+  .number-card .frac .num { border-bottom: 3px solid #222; padding: 0 4px; }
+  .number-card .frac .den { padding: 0 4px; }
+  .number-card .sqrt-symbol { font-size: 1em; }
+
+  /* 仕分けボックス */
+  .sort-boxes {
+    display: flex; gap: 14px;
+    width: 100%; max-width: 480px;
+  }
+  .sort-box {
+    flex: 1;
+    background: linear-gradient(135deg, #ffffff, #e2e8f0);
+    border: 3px solid #94a3b8;
+    color: #222;
+    padding: 24px 14px;
+    border-radius: 18px;
+    font-size: 22px; font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transition: transform 0.12s, background 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+  .sort-box:hover:not(.disabled) {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    border-color: #8b5cf6;
+  }
+  .sort-box:active:not(.disabled) { transform: scale(0.96); }
+  .sort-box.flash-correct {
+    animation: boxCorrect 0.5s ease;
+  }
+  .sort-box.flash-wrong {
+    animation: boxWrong 0.5s ease;
+    background: linear-gradient(135deg, #fecaca, #fca5a5);
+    border-color: #b91c1c;
+  }
+  @keyframes boxCorrect {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.1); background: linear-gradient(135deg, #d1fae5, #6ee7b7); border-color: #16a34a; }
+    100% { transform: scale(1); }
+  }
+  @keyframes boxWrong {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-12px); }
+    40% { transform: translateX(12px); }
+    60% { transform: translateX(-8px); }
+    80% { transform: translateX(8px); }
+  }
+
+  #feedback {
+    position: absolute; left: 0; right: 0; top: 40%;
+    text-align: center;
+    font-size: 56px; font-weight: 900; color: #6d28d9;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #feedback.show { opacity: 1; }
+  #feedback.miss { color: #d33; }
+  #feedback.perfect { color: #16a34a; }
+
+  /* ステージ遷移オーバーレイ */
+  .stage-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
+    z-index: 50; color: white;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .stage-overlay-title { font-size: 28px; font-weight: 900; letter-spacing: 4px; }
+  .stage-overlay-sub { font-size: 16px; color: rgba(255,255,255,0.8); }
+  .stage-overlay-detail { font-size: 14px; color: rgba(255,255,255,0.65); text-align: center; max-width: 320px; line-height: 1.6; }
+  .stage-overlay button { margin-top: 12px; }
+
+  /* ===== 結果画面 ===== */
+  #result-screen {
+    background: linear-gradient(180deg, #1f1b3d 0%, #0f0a1f 100%);
+    color: white; gap: 16px;
+  }
+  #result-screen.gameover .result-title { color: #ff5577; }
+  .result-title { font-size: 14px; letter-spacing: 4px; color: #aaa; }
+  .result-score {
+    font-size: 88px; font-weight: 900; line-height: 1;
+    background: linear-gradient(180deg, #fff, #c4b5fd);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-unit { font-size: 18px; color: #ccc; margin-top: -8px; }
+  .reward-row {
+    display: flex; justify-content: space-between; gap: 16px;
+    width: min(80vw, 320px); padding: 6px 0; font-size: 14px; color: #ccc;
+    border-bottom: 1px dashed rgba(255,255,255,0.15);
+  }
+  .reward-row:last-child { border-bottom: none; }
+  .reward-row strong { color: #c4b5fd; font-weight: 800; font-size: 16px; }
+  .reward-total {
+    margin-top: 6px; font-size: 28px; font-weight: 900; color: #4ade80;
+  }
+  .result-best { font-size: 12px; color: #c4b5fd; letter-spacing: 1px; }
+  .result-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; min-width: 200px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="title-screen" class="screen active">
+    <div class="title-logo">NUMSORT!</div>
+    <div class="title-sub">数の分類ウォール</div>
+    <div class="title-desc">数字カードを <b>2 つの箱</b> に仕分けて<br>3 つのステージをクリアしよう！</div>
+    <div class="title-stages">
+      <div><b>ステージ 1</b>　有理数 ／ 無理数</div>
+      <div><b>ステージ 2</b>　整数 ／ 整数でない<br>　　　　　　　<small>（ステージ1で有理数に分けたカードが対象）</small></div>
+      <div><b>ステージ 3</b>　自然数 ／ 自然数でない<br>　　　　　　　<small>（ステージ2で整数に分けたカードが対象）</small></div>
+    </div>
+    <button class="btn btn-primary-xl" id="title-start">START</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="hud-item">
+        <div class="hud-label">CARD</div>
+        <div class="hud-value" id="hud-card">1/10</div>
+      </div>
+      <div class="hud-lives" id="hud-lives">♥♥♥</div>
+      <div class="hud-item">
+        <div class="hud-label">TIME</div>
+        <div class="hud-value" id="hud-time">0.0</div>
+      </div>
+    </div>
+    <div class="stage-badge" id="stage-badge">STAGE 1</div>
+    <div class="stage-info" id="stage-info"><b>有理数</b> か <b>無理数</b> どっち？</div>
+    <div class="card-area">
+      <div class="number-card" id="number-card">?</div>
+      <div class="sort-boxes" id="sort-boxes">
+        <button class="sort-box" id="sort-box-0" onclick="game.onChoose(0)">A</button>
+        <button class="sort-box" id="sort-box-1" onclick="game.onChoose(1)">B</button>
+      </div>
+    </div>
+    <div id="feedback"></div>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <div class="result-title" id="result-title">CLEAR!</div>
+    <div class="result-score" id="result-score">0.0</div>
+    <div class="result-unit" id="result-unit">秒</div>
+    <div id="result-rewards" style="margin-top: 8px;"></div>
+    <div class="reward-total" id="reward-total" style="display:none">🌱 ×<span id="reward-total-num">0</span> 獲得！</div>
+    <div class="result-best" id="result-best"></div>
+    <div class="result-buttons">
+      <button class="btn" id="result-retry">もう一度</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.history.back()">🏠 ホームへ戻る</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js"></script>
+<script>
+'use strict';
+
+// =====================================================
+// 数字プール (type で分類):
+//   'natural'              : 自然数 (1, 2, 3, ...)
+//   'integer_nonnatural'   : 整数だが自然数でない (0, -1, -3, ...)
+//   'rational_noninteger'  : 有理数だが整数でない (0.5, 1/3, ...)
+//   'irrational'           : 無理数 (√2, π, ...)
+// =====================================================
+const POOL = [
+  // 自然数
+  { display: '1',    type: 'natural' },
+  { display: '2',    type: 'natural' },
+  { display: '3',    type: 'natural' },
+  { display: '5',    type: 'natural' },
+  { display: '7',    type: 'natural' },
+  { display: '10',   type: 'natural' },
+  { display: '15',   type: 'natural' },
+  // √で自然数になる（引っかけ）
+  { display: '√9',   type: 'natural' },     // = 3
+  { display: '√16',  type: 'natural' },     // = 4
+  { display: '√25',  type: 'natural' },     // = 5
+  { display: '√100', type: 'natural' },     // = 10
+  // 整数だが自然数でない
+  { display: '0',    type: 'integer_nonnatural' },
+  { display: '-1',   type: 'integer_nonnatural' },
+  { display: '-3',   type: 'integer_nonnatural' },
+  { display: '-5',   type: 'integer_nonnatural' },
+  { display: '-10',  type: 'integer_nonnatural' },
+  // √で負の整数になる（-√9 = -3）
+  { display: '-√4',  type: 'integer_nonnatural' },  // = -2
+  // 有理数だが整数でない
+  { display: '0.5',  type: 'rational_noninteger' },
+  { display: '-2.5', type: 'rational_noninteger' },
+  { display: '0.7',  type: 'rational_noninteger' },
+  { display: '{1/3}',type: 'rational_noninteger' },
+  { display: '{3/4}',type: 'rational_noninteger' },
+  { display: '{2/5}',type: 'rational_noninteger' },
+  // √で有理数になるが整数でない
+  { display: '√{1/4}', type: 'rational_noninteger' }, // = 1/2
+  // 無理数
+  { display: '√2',   type: 'irrational' },
+  { display: '√3',   type: 'irrational' },
+  { display: '√5',   type: 'irrational' },
+  { display: '√7',   type: 'irrational' },
+  { display: '√10',  type: 'irrational' },
+  { display: '√11',  type: 'irrational' },
+  { display: '√15',  type: 'irrational' },
+  { display: 'π',    type: 'irrational' },
+  { display: '√{2/3}', type: 'irrational' },
+];
+
+// 表示用：{a/b} を分数の見た目に変換、√ も装飾
+function renderDisplay(s) {
+  let out = s;
+  // {a/b} → 分数 HTML
+  out = out.replace(/\{([^/{}]+)\/([^/{}]+)\}/g, (_, n, d) =>
+    `<span class="frac"><span class="num">${n}</span><span class="den">${d}</span></span>`
+  );
+  // √ をスタイル
+  out = out.replace(/√/g, '<span class="sqrt-symbol">√</span>');
+  return out;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 1ゲーム分のカードを生成
+function pickGameCards() {
+  // 各カテゴリから一定数選ぶ
+  const byType = {
+    natural: POOL.filter(c => c.type === 'natural'),
+    integer_nonnatural: POOL.filter(c => c.type === 'integer_nonnatural'),
+    rational_noninteger: POOL.filter(c => c.type === 'rational_noninteger'),
+    irrational: POOL.filter(c => c.type === 'irrational'),
+  };
+  // 3 自然数, 2 整数(非自然), 2 有理数(非整数), 3 無理数 = 10枚
+  const cards = [
+    ...shuffle(byType.natural).slice(0, 3),
+    ...shuffle(byType.integer_nonnatural).slice(0, 2),
+    ...shuffle(byType.rational_noninteger).slice(0, 2),
+    ...shuffle(byType.irrational).slice(0, 3),
+  ];
+  return shuffle(cards);
+}
+
+// 進捗・報酬
+const PROGRESS = {
+  isCleared() { return localStorage.getItem('numsort_cleared') === '1'; },
+  setCleared() { localStorage.setItem('numsort_cleared', '1'); },
+  hasFirstReward() { return localStorage.getItem('numsort_first_reward') === '1'; },
+  setFirstReward() { localStorage.setItem('numsort_first_reward', '1'); },
+};
+
+const REWARDS = {
+  firstClear: 30,
+  thresholds: [30, 45, 60],
+  amounts:    [60, 40, 20],
+  timeBonus(sec) {
+    for (let i = 0; i < this.thresholds.length; i++) {
+      if (sec <= this.thresholds[i]) return this.amounts[i];
+    }
+    return 0;
+  },
+  maxThreshold() { return this.thresholds[this.thresholds.length - 1]; }
+};
+
+function addEarnedPeas(amount) {
+  if (amount <= 0) return;
+  try {
+    const KEY = 'mathPrint_v2';
+    const p = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    let cur = p.peaCount || 0;
+    let cups = p.peaCupCount || 0;
+    cur += amount;
+    while (cur >= 45) { cur -= 45; cups += 1; }
+    p.peaCount = cur; p.peaCupCount = cups;
+    if (!p.done || typeof p.done !== 'object') p.done = {};
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch(e) {}
+  try {
+    const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
+    const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
+    const save = JSON.parse(localStorage.getItem(key) || '{}') || {};
+    save.peas = (save.peas || 0) + amount;
+    localStorage.setItem(key, JSON.stringify(save));
+  } catch(e) {}
+}
+
+// =====================================================
+//   ゲーム本体
+// =====================================================
+const game = {
+  cards: [],      // 現ステージのカード
+  cardIdx: 0,     // 現ステージのカード番号
+  stage: 1,       // 1, 2, 3
+  passedCards: [], // 次のステージに進むカード
+  lives: 3,
+  elapsed: 0,
+  running: false,
+  locked: false,
+  intervalId: null,
+  lastTickTime: 0,
+
+  // 各ステージの「2択ラベル」と「正解判定」
+  stageInfo: {
+    1: {
+      labels: ['有理数', '無理数'],
+      isCorrect: (card, choice) => {
+        const isIrrational = card.type === 'irrational';
+        return (choice === 1) === isIrrational;
+      },
+      passesToNext: (card) => card.type !== 'irrational',  // 有理数だけ次へ
+      prompt: '<b>有理数</b> か <b>無理数</b> どっち？',
+    },
+    2: {
+      labels: ['整数', '整数でない'],
+      isCorrect: (card, choice) => {
+        const isInteger = card.type === 'natural' || card.type === 'integer_nonnatural';
+        return (choice === 0) === isInteger;
+      },
+      passesToNext: (card) => card.type === 'natural' || card.type === 'integer_nonnatural',
+      prompt: '<b>整数</b> か <b>整数でない</b> どっち？',
+    },
+    3: {
+      labels: ['自然数', '自然数でない'],
+      isCorrect: (card, choice) => {
+        const isNatural = card.type === 'natural';
+        return (choice === 0) === isNatural;
+      },
+      passesToNext: (card) => card.type === 'natural',
+      prompt: '<b>自然数</b> か <b>自然数でない</b> どっち？',
+    },
+  },
+
+  startGame() {
+    this.cards = pickGameCards();
+    this.cardIdx = 0;
+    this.stage = 1;
+    this.passedCards = [];
+    this.lives = 3;
+    this.elapsed = 0;
+    this.running = true;
+    this.locked = false;
+    this.updateStageUI();
+    this.updateHUD();
+    this.renderCard();
+    this.lastTickTime = performance.now();
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.intervalId = setInterval(() => this.tick(), 100);
+  },
+
+  stop() {
+    this.running = false;
+    if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+  },
+
+  tick() {
+    if (!this.running) { this.lastTickTime = performance.now(); return; }
+    const now = performance.now();
+    const dt = (now - this.lastTickTime) / 1000;
+    this.lastTickTime = now;
+    this.elapsed += dt;
+    this.updateHUD();
+  },
+
+  updateHUD() {
+    document.getElementById('hud-card').textContent =
+      `${Math.min(this.cardIdx + 1, this.cards.length)}/${this.cards.length}`;
+    const livesEl = document.getElementById('hud-lives');
+    if (livesEl) {
+      let s = '';
+      for (let i = 0; i < 3; i++) s += (i < this.lives) ? '♥' : '♡';
+      livesEl.textContent = s;
+    }
+    const t = this.elapsed;
+    const m = Math.floor(t / 60);
+    const s = (t - m * 60).toFixed(1);
+    document.getElementById('hud-time').textContent =
+      m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+  },
+
+  updateStageUI() {
+    const info = this.stageInfo[this.stage];
+    document.getElementById('stage-badge').textContent = `STAGE ${this.stage}`;
+    document.getElementById('stage-info').innerHTML = info.prompt;
+    document.getElementById('sort-box-0').textContent = info.labels[0];
+    document.getElementById('sort-box-1').textContent = info.labels[1];
+  },
+
+  renderCard() {
+    if (this.cardIdx >= this.cards.length) { this.advanceStage(); return; }
+    const card = this.cards[this.cardIdx];
+    document.getElementById('number-card').innerHTML = renderDisplay(card.display);
+    document.querySelectorAll('.sort-box').forEach(b => {
+      b.classList.remove('flash-correct', 'flash-wrong');
+    });
+  },
+
+  onChoose(choice) {
+    if (this.locked) return;
+    const card = this.cards[this.cardIdx];
+    const info = this.stageInfo[this.stage];
+    const correct = info.isCorrect(card, choice);
+    const box = document.getElementById(`sort-box-${choice}`);
+
+    if (correct) {
+      this.locked = true;
+      box.classList.add('flash-correct');
+      showFeedback('OK!', 'perfect');
+      // 次のステージに通過するカードか判定
+      if (info.passesToNext(card)) this.passedCards.push(card);
+      this.cardIdx += 1;
+      setTimeout(() => {
+        hideFeedback();
+        this.locked = false;
+        if (this.cardIdx >= this.cards.length) this.advanceStage();
+        else { this.renderCard(); this.updateHUD(); }
+      }, 450);
+    } else {
+      box.classList.add('flash-wrong');
+      showFeedback('MISS!', 'miss');
+      this.lives -= 1;
+      const livesEl = document.getElementById('hud-lives');
+      if (livesEl) {
+        livesEl.classList.remove('lost');
+        void livesEl.offsetWidth;
+        livesEl.classList.add('lost');
+      }
+      this.updateHUD();
+      if (this.lives <= 0) {
+        this.locked = true;
+        setTimeout(() => this.gameOver(), 800);
+      } else {
+        setTimeout(() => {
+          box.classList.remove('flash-wrong');
+          hideFeedback();
+        }, 600);
+      }
+    }
+  },
+
+  advanceStage() {
+    if (this.stage === 3) {
+      this.clearGame();
+      return;
+    }
+    // ステージ間オーバーレイ
+    const next = this.stage + 1;
+    const carryOver = this.passedCards.length;
+    const overlay = document.createElement('div');
+    overlay.className = 'stage-overlay';
+    overlay.innerHTML = `
+      <div class="stage-overlay-title">✅ STAGE ${this.stage} CLEAR!</div>
+      <div class="stage-overlay-sub">→ STAGE ${next}</div>
+      <div class="stage-overlay-detail">
+        ${this.stage === 1
+          ? `有理数と分けた <b>${carryOver}</b> 枚が次のステージへ。<br>整数かそうでないかを分けよう！`
+          : `整数と分けた <b>${carryOver}</b> 枚が次のステージへ。<br>自然数かそうでないかを分けよう！`}
+      </div>
+      <button class="btn" onclick="game.proceedToNextStage()">次のステージへ</button>
+    `;
+    document.getElementById('game-screen').appendChild(overlay);
+    this.locked = true;
+  },
+
+  proceedToNextStage() {
+    // 直近のオーバーレイを除去
+    document.querySelectorAll('.stage-overlay').forEach(el => el.remove());
+    this.stage += 1;
+    this.cards = shuffle(this.passedCards);
+    this.passedCards = [];
+    this.cardIdx = 0;
+    this.locked = false;
+    if (this.cards.length === 0) {
+      // 次に分けるカードが無い → クリア扱い
+      this.clearGame();
+      return;
+    }
+    this.updateStageUI();
+    this.updateHUD();
+    this.renderCard();
+  },
+
+  clearGame() {
+    this.stop();
+    showClearResult();
+  },
+
+  gameOver() {
+    this.stop();
+    showGameOverResult();
+  }
+};
+
+function showFeedback(text, type) {
+  const el = document.getElementById('feedback');
+  el.textContent = text;
+  el.classList.remove('miss', 'perfect');
+  if (type) el.classList.add(type);
+  el.classList.add('show');
+}
+function hideFeedback() {
+  document.getElementById('feedback').classList.remove('show');
+}
+
+function showScreen(id) {
+  for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = (t - m * 60).toFixed(1);
+  return m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
+}
+
+function showClearResult() {
+  const elapsed = game.elapsed;
+  const screen = document.getElementById('result-screen');
+  screen.classList.remove('gameover');
+  document.getElementById('result-title').textContent = '🎉 ALL CLEAR! 🎉';
+  document.getElementById('result-score').textContent = fmtTime(elapsed);
+  document.getElementById('result-unit').textContent = elapsed >= 60 ? '' : '秒';
+
+  const isFirstClear = !PROGRESS.hasFirstReward();
+  const firstRew = isFirstClear ? REWARDS.firstClear : 0;
+  const timeRew = REWARDS.timeBonus(elapsed);
+  const total = firstRew + timeRew;
+
+  PROGRESS.setCleared();
+  if (isFirstClear) PROGRESS.setFirstReward();
+  addEarnedPeas(total);
+
+  const bestKey = 'numsort_best';
+  const prev = parseFloat(localStorage.getItem(bestKey) || '999999');
+  let bestText = '';
+  if (elapsed < prev) {
+    localStorage.setItem(bestKey, String(elapsed));
+    bestText = '★ NEW BEST! ★';
+  } else {
+    bestText = `BEST: ${fmtTime(prev)}秒`;
+  }
+  document.getElementById('result-best').textContent = bestText;
+
+  const rewardsDiv = document.getElementById('result-rewards');
+  let html = '';
+  if (firstRew > 0) html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
+  if (timeRew > 0) {
+    const sec = Math.floor(elapsed);
+    html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+  } else {
+    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold()}秒超）</span><span>—</span></div>`;
+  }
+  rewardsDiv.innerHTML = html;
+  document.getElementById('reward-total').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('reward-total-num').textContent = total;
+  showScreen('result-screen');
+}
+
+function showGameOverResult() {
+  const screen = document.getElementById('result-screen');
+  screen.classList.add('gameover');
+  document.getElementById('result-title').textContent = '💀 GAME OVER';
+  const reached = `STAGE ${game.stage} 途中`;
+  document.getElementById('result-score').textContent = reached;
+  document.getElementById('result-unit').textContent = '';
+  document.getElementById('result-rewards').innerHTML =
+    '<div style="color:#aaa;font-size:14px;margin-top:8px;">ライフを使い切りました…<br>もう一度チャレンジしよう！</div>';
+  document.getElementById('reward-total').style.display = 'none';
+  document.getElementById('result-best').textContent = '';
+  showScreen('result-screen');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('title-start').addEventListener('click', () => {
+    showScreen('game-screen');
+    game.startGame();
+  });
+  document.getElementById('result-retry').addEventListener('click', () => {
+    showScreen('game-screen');
+    game.startGame();
+  });
+});
+</script>
+</body>
+</html>

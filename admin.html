@@ -727,6 +727,7 @@
       <div class="chapter-tabs" id="game-tabs">
         <button class="chapter-tab active" id="game-tab-wall" onclick="switchGameTab('wall')">🧱 共通因数ウォール</button>
         <button class="chapter-tab" id="game-tab-rootbreak" onclick="switchGameTab('rootbreak')">📏 ルート大小ウォール</button>
+        <button class="chapter-tab" id="game-tab-numsort" onclick="switchGameTab('numsort')">📦 数の分類ウォール</button>
         <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ（展開・因数分解）</button>
         <button class="chapter-tab" id="game-tab-cardmatch-sqrt" onclick="switchGameTab('cardmatch-sqrt')">√ カードマッチ（平方根）</button>
       </div>
@@ -818,6 +819,25 @@
         </ul>
       </div>
     </div><!-- /game-pane-rootbreak -->
+
+    <!-- 数の分類ウォール -->
+    <div class="game-pane hidden" id="game-pane-numsort">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/数の分類ウォール.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="numsort-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>数の分類ウォール</b> は、3 ステージの仕分けゲームです。</p>
+        <p>問題は自動生成されるため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>ステージ1：10枚を「有理数 / 無理数」に分類</li>
+          <li>ステージ2：有理数だったカードを「整数 / 整数でない」に分類</li>
+          <li>ステージ3：整数だったカードを「自然数 / 自然数でない」に分類</li>
+          <li>引っかけ：√9 (=3)、-√4 (=-2) など実は整数になるカードあり</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-numsort -->
 
     <!-- カードマッチ（平方根） -->
     <div class="game-pane hidden" id="game-pane-cardmatch-sqrt">
@@ -913,7 +933,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1211,8 +1231,12 @@ async function loadQuestions() {
   if (questionsData.gameDrafts.rootBreak === undefined) {
     questionsData.gameDrafts.rootBreak = true;
   }
+  if (questionsData.gameDrafts.numSort === undefined) {
+    questionsData.gameDrafts.numSort = true;
+  }
   renderCmSqrtPublishBar();
   renderRootBreakPublishBar();
+  renderNumSortPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1512,11 +1536,16 @@ function toggleGamePublish(gameKey, gameLabel) {
   // 該当のバーを再描画
   if (gameKey === 'cardMatchSqrt') renderCmSqrtPublishBar();
   if (gameKey === 'rootBreak')     renderRootBreakPublishBar();
+  if (gameKey === 'numSort')       renderNumSortPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
 function renderRootBreakPublishBar() {
   renderGamePublishBar('rootBreak', 'ルート大小ウォール', 'rootbreak-publish-bar');
+}
+
+function renderNumSortPublishBar() {
+  renderGamePublishBar('numSort', '数の分類ウォール', 'numsort-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画
