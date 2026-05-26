@@ -251,10 +251,85 @@
     text-align: center; max-width: 320px; line-height: 1.6;
   }
 
+  /* ==== まとめ図 ==== */
+  .summary-wrap {
+    width: min(94vw, 560px);
+    background: #fff;
+    color: #222;
+    border-radius: 14px;
+    padding: 10px;
+    margin: 6px 0 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  }
+  .summary-title {
+    font-size: 13px; font-weight: 900; color: #6d28d9;
+    text-align: center; letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .nest-box {
+    position: relative;
+    border: 2.5px solid #222;
+    border-radius: 4px;
+    padding: 18px 8px 8px;
+    margin: 12px 4px 4px;
+  }
+  .nest-label {
+    position: absolute;
+    top: -13px; left: 50%; transform: translateX(-50%);
+    background: #fff;
+    padding: 0 12px;
+    font-weight: 900; font-size: 15px;
+    color: #222;
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+  .nest-row {
+    display: flex; gap: 8px;
+    align-items: stretch;
+  }
+  .nest-col {
+    flex: 1;
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+  .nest-divider {
+    width: 2.5px;
+    background: #222;
+    margin: -8px 0;
+  }
+  .summary-cards {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    justify-content: center; align-items: center;
+    min-height: 28px;
+    padding: 4px 2px;
+  }
+  .summary-card {
+    background: linear-gradient(135deg, #fefefe, #e2e8f0);
+    color: #222;
+    min-width: 28px; padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 800;
+    font-family: 'Times New Roman', serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    line-height: 1.1;
+    text-align: center;
+  }
+  .summary-card .frac {
+    display: inline-flex; flex-direction: column; align-items: center;
+    vertical-align: middle; font-size: 0.78em; line-height: 1.05;
+  }
+  .summary-card .frac .num { border-bottom: 1.5px solid #222; padding: 0 3px; }
+  .summary-card .frac .den { padding: 0 3px; }
+  .summary-card sup { font-size: 0.6em; vertical-align: super; }
+  .summary-empty {
+    font-size: 11px; color: #aaa; font-style: italic;
+  }
+
   /* ==== 結果画面 ==== */
   #result-screen {
     background: linear-gradient(180deg, #1f1b3d 0%, #0f0a1f 100%);
-    color: white; gap: 16px;
+    color: white; gap: 12px;
+    overflow-y: auto;
+    padding: 18px 12px;
   }
   #result-screen.gameover .result-title { color: #ff5577; }
   .result-title { font-size: 14px; letter-spacing: 4px; color: #aaa; }
@@ -333,6 +408,7 @@
     <div class="result-title" id="result-title">CLEAR!</div>
     <div class="result-score" id="result-score">0.0</div>
     <div class="result-unit" id="result-unit">秒</div>
+    <div id="result-summary" style="display:none;"></div>
     <div id="result-rewards" style="margin-top: 8px;"></div>
     <div class="reward-total" id="reward-total" style="display:none">🌱 ×<span id="reward-total-num">0</span> 獲得！</div>
     <div class="result-best" id="result-best"></div>
@@ -852,11 +928,57 @@ function fmtTime(t) {
   return m > 0 ? `${m}:${s.padStart(4,'0')}` : s;
 }
 
+function buildSummaryHtml() {
+  // 各カードを実際の分類で分ける（gameのallCardsを使用）
+  const naturals = game.allCards.filter(c => c.type === 'natural');
+  const intNonNat = game.allCards.filter(c => c.type === 'integer_nonnatural');
+  const ratNonInt = game.allCards.filter(c => c.type === 'rational_noninteger');
+  const irr = game.allCards.filter(c => c.type === 'irrational');
+  const cardHtml = (arr) => arr.length === 0
+    ? '<span class="summary-empty">―</span>'
+    : arr.map(c => `<div class="summary-card">${renderDisplay(c.display)}</div>`).join('');
+  return `
+    <div class="summary-wrap">
+      <div class="summary-title">📚 まとめ：実数の分類</div>
+      <div class="nest-box">
+        <div class="nest-label">実数</div>
+        <div class="nest-row">
+          <div class="nest-col">
+            <div class="nest-box" style="margin-top:14px;">
+              <div class="nest-label">有理数</div>
+              <div class="summary-cards">${cardHtml(ratNonInt)}</div>
+              <div class="nest-box">
+                <div class="nest-label">整数</div>
+                <div class="summary-cards">${cardHtml(intNonNat)}</div>
+                <div class="nest-box">
+                  <div class="nest-label">自然数</div>
+                  <div class="summary-cards">${cardHtml(naturals)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="nest-divider"></div>
+          <div class="nest-col">
+            <div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:14px 4px 4px;">
+              <div style="text-align:center;font-weight:900;font-size:15px;letter-spacing:2px;margin-bottom:6px;">無理数</div>
+              <div class="summary-cards">${cardHtml(irr)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function showClearResult() {
   const elapsed = game.elapsed;
   const screen = document.getElementById('result-screen');
   screen.classList.remove('gameover');
   document.getElementById('result-title').textContent = '🎉 ALL CLEAR! 🎉';
+  // まとめ図を表示
+  const summary = document.getElementById('result-summary');
+  summary.innerHTML = buildSummaryHtml();
+  summary.style.display = 'block';
   document.getElementById('result-score').textContent = fmtTime(elapsed);
   document.getElementById('result-unit').textContent = elapsed >= 60 ? '' : '秒';
 
@@ -897,6 +1019,7 @@ function showClearResult() {
 function showGameOverResult() {
   const screen = document.getElementById('result-screen');
   screen.classList.add('gameover');
+  document.getElementById('result-summary').style.display = 'none';
   document.getElementById('result-title').textContent = '💀 GAME OVER';
   document.getElementById('result-score').textContent = `STAGE ${game.stage}`;
   document.getElementById('result-unit').textContent = '途中で終了';
