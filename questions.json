@@ -6099,6 +6099,7 @@
   "cardMatchSqrtStudentBestTime": null,
   "gameDrafts": {
     "cardMatchSqrt": false,
-    "rootBreak": false
+    "rootBreak": false,
+    "numSort": false
   }
 }
