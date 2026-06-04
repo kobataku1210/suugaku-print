@@ -952,7 +952,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
