@@ -113,10 +113,10 @@
 
   /* ===== ゲーム画面 ===== */
   #game-screen {
-    align-items: center;
+    align-items: stretch;
     padding: 0;
     gap: 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   #hud {
@@ -156,18 +156,20 @@
   }
 
   #card-grid {
+    flex: 1 1 auto;
     display: grid;
-    gap: 10px;
-    padding: 18px;
-    max-width: 600px;
+    gap: 8px;
+    padding: 10px;
     width: 100%;
-    margin: 0 auto;
+    min-height: 0;
+    grid-auto-rows: 1fr;
   }
 
   .card {
-    aspect-ratio: 3/4;
     perspective: 800px;
     cursor: pointer;
+    min-height: 0;
+    min-width: 0;
   }
   .card-inner {
     position: relative;
@@ -341,7 +343,6 @@
   <!-- ゲーム -->
   <div id="game-screen" class="screen">
     <div id="hud">
-      <div class="stat"><span class="label">TIME</span><span class="num" id="hud-time">0.0</span></div>
       <div class="stat"><span class="label">めくり</span><span class="num" id="hud-moves">0</span></div>
       <div class="stat"><span class="label">のこり</span><span class="num" id="hud-remain">0</span></div>
       <button class="btn btn-back" style="padding:4px 14px;font-size:12px" onclick="quitGame()">終了</button>
@@ -352,9 +353,7 @@
   <!-- 結果 -->
   <div id="result-screen" class="screen">
     <div class="title-emoji">🎉</div>
-    <div class="title-logo" style="font-size:clamp(28px,6vw,44px)">クリア!</div>
-    <div class="result-time" id="r-time">0.0秒</div>
-    <div class="result-best" id="r-best" style="display:none">🏅 自己ベスト更新!</div>
+    <div class="title-logo" style="font-size:clamp(36px,8vw,56px)">クリア!</div>
     <div class="result-meta">
       めくり回数 <strong id="r-moves">0</strong> 回 / ペア数 <strong id="r-pairs">0</strong>
     </div>
@@ -414,11 +413,7 @@ const STATE = {
   moves: 0,
   matchedPairs: 0,
   totalPairs: 0,
-  startTime: 0,
-  elapsed: 0,
-  rafId: null,
   busy: false,
-  started: false,
 };
 
 function startGame() {
@@ -426,9 +421,6 @@ function startGame() {
   STATE.totalPairs = pairCount;
   STATE.matchedPairs = 0;
   STATE.moves = 0;
-  STATE.elapsed = 0;
-  STATE.startTime = 0;
-  STATE.started = false;
   STATE.flipped = [];
   STATE.busy = false;
 
@@ -445,24 +437,53 @@ function startGame() {
 
   renderGrid();
   updateHUD();
-  document.getElementById('hud-time').textContent = '0.0';
 
   showScreen('game-screen');
+  // 画面表示後にレイアウト調整(viewport 確定後)
+  requestAnimationFrame(() => applyGridLayout());
 }
+
+// ===== グリッドの列・行を画面サイズに合わせて最適化 =====
+function pickGridDims(cardCount) {
+  const grid = document.getElementById('card-grid');
+  const w = grid.clientWidth;
+  const h = grid.clientHeight;
+  let best = { cols: 2, rows: cardCount, score: -1 };
+  for (let cols = 1; cols <= cardCount; cols++) {
+    const rows = Math.ceil(cardCount / cols);
+    const cellW = w / cols;
+    const cellH = h / rows;
+    // セルの最小辺(=カードサイズの目安)を最大化
+    const minDim = Math.min(cellW, cellH);
+    // アスペクト比が極端なら減点
+    const aspect = cellW / cellH;
+    if (aspect < 0.4 || aspect > 2.5) continue;
+    if (minDim > best.score) {
+      best = { cols, rows, score: minDim };
+    }
+  }
+  return { cols: best.cols, rows: best.rows };
+}
+
+function applyGridLayout() {
+  if (!STATE.cards.length) return;
+  const { cols, rows } = pickGridDims(STATE.cards.length);
+  const grid = document.getElementById('card-grid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+}
+
+// 画面サイズが変わったら(回転含む)レイアウト再計算
+window.addEventListener('resize', () => {
+  if (document.getElementById('game-screen').classList.contains('active')) {
+    applyGridLayout();
+  }
+});
 
 function renderGrid() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = '';
-
-  // カード数に応じて列数を決定
-  const n = STATE.cards.length;
-  let cols;
-  if (n <= 8) cols = 4;
-  else if (n <= 12) cols = 4;
-  else if (n <= 16) cols = 4;
-  else cols = 5;
-  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
+  // 列・行は applyGridLayout() で動的に設定
   STATE.cards.forEach((card, i) => {
     const el = document.createElement('div');
     el.className = 'card';
@@ -487,13 +508,6 @@ function onCardClick(idx) {
   if (card.matched) return;
   if (STATE.flipped.includes(idx)) return;
   if (STATE.flipped.length >= 2) return;
-
-  // 初クリックでタイマー開始
-  if (!STATE.started) {
-    STATE.started = true;
-    STATE.startTime = performance.now();
-    tickTimer();
-  }
 
   card.element.classList.add('flipped');
   STATE.flipped.push(idx);
@@ -532,50 +546,19 @@ function onCardClick(idx) {
   }
 }
 
-function tickTimer() {
-  if (!STATE.started || STATE.matchedPairs === STATE.totalPairs) return;
-  STATE.elapsed = (performance.now() - STATE.startTime) / 1000;
-  document.getElementById('hud-time').textContent = STATE.elapsed.toFixed(1);
-  STATE.rafId = requestAnimationFrame(tickTimer);
-}
-
 function updateHUD() {
   document.getElementById('hud-moves').textContent = STATE.moves;
   document.getElementById('hud-remain').textContent = STATE.totalPairs - STATE.matchedPairs;
 }
 
 function endGame() {
-  cancelAnimationFrame(STATE.rafId);
-  STATE.elapsed = (performance.now() - STATE.startTime) / 1000;
-  document.getElementById('r-time').textContent = STATE.elapsed.toFixed(1) + '秒';
   document.getElementById('r-moves').textContent = STATE.moves;
   document.getElementById('r-pairs').textContent = STATE.totalPairs;
-
-  // ベスト記録(難易度ごと)
-  const key = `平方根神経衰弱_ベスト_${STATE.totalPairs}`;
-  const prev = parseFloat(localStorage.getItem(key) || 'Infinity');
-  const bestEl = document.getElementById('r-best');
-  if (STATE.elapsed < prev) {
-    localStorage.setItem(key, String(STATE.elapsed));
-    bestEl.style.display = 'inline-block';
-    bestEl.textContent = isFinite(prev)
-      ? `🏅 自己ベスト更新! (前: ${prev.toFixed(1)}秒)`
-      : '🏅 初クリア!';
-  } else {
-    bestEl.style.display = 'inline-block';
-    bestEl.textContent = `🏅 自己ベスト: ${prev.toFixed(1)}秒`;
-    bestEl.style.background = 'rgba(255,255,255,0.1)';
-    bestEl.style.color = '#ddd';
-    bestEl.style.animation = 'none';
-  }
-
   showScreen('result-screen');
 }
 
 function quitGame() {
   if (confirm('終了しますか?')) {
-    cancelAnimationFrame(STATE.rafId);
-    STATE.started = false;
     showScreen('title-screen');
   }
 }
