@@ -1050,6 +1050,14 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #3a8aff, #ff3a6a)',
     isNew: true,
   },
+  {
+    title: '平方根神経衰弱',
+    desc: '√4 と 2、√9 と 3…ルートを外した数をペアで揃えるメモリーゲーム!',
+    icon: '🃏',
+    onclick: "window.location.href='games/平方根神経衰弱.html'",
+    gradient: 'linear-gradient(135deg, #2196f3, #0d47a1)',
+    isNew: true,
+  },
 ];
 // ===== ランキング画面 =====
 // 各単元のタイムアタック上位3名 ＋ カードマッチ上位3名を一覧表示
