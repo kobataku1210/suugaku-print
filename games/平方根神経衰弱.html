@@ -240,6 +240,20 @@
     25% { transform: rotateY(180deg) translateX(-6px); }
     75% { transform: rotateY(180deg) translateX(6px); }
   }
+  /* 練習モード: 選択中のハイライト */
+  .card.selected .card-front {
+    background: linear-gradient(180deg, #fff59d, #ffeb3b);
+    border-color: #f57f17;
+    color: #5a3500;
+    box-shadow: 0 0 20px rgba(245,127,23,0.7);
+  }
+  .card.selected {
+    animation: selectedPulse 0.3s ease-out;
+  }
+  @keyframes selectedPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.04); }
+  }
 
   /* 平方根記号(√付き数字)を見やすく */
   .sqrt-num {
@@ -279,6 +293,22 @@
     box-shadow: 0 4px 14px rgba(255,138,42,0.55);
     animation: bestPulse 0.8s ease-in-out infinite alternate;
   }
+  .result-peas {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: #fff;
+    padding: 12px 32px;
+    border-radius: 14px;
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 900;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    letter-spacing: 2px;
+    animation: peasPop 0.6s ease-out;
+  }
+  @keyframes peasPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
   @keyframes bestPulse {
     0% { transform: scale(1); }
     100% { transform: scale(1.05); }
@@ -307,12 +337,16 @@
       <span class="sqrt-num"><span class="sym">√</span><span class="body">9</span></span> と <strong style="color:#4fc3f7;font-size:1.2em">3</strong> …<br>
       <strong style="color:#4fc3f7">ルートを外した数</strong> をペアにしよう!
     </div>
-    <button class="btn btn-go" onclick="showScreen('setup-screen')">スタート</button>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-go" onclick="gotoSetup('memory')">🃏 神経衰弱</button>
+      <button class="btn" style="background:linear-gradient(180deg,#4caf50,#2e7d32);box-shadow:0 4px 14px rgba(76,175,80,0.5)" onclick="gotoSetup('practice')">⏱ 練習<small style="font-size:0.7em;display:block;letter-spacing:1px">(タイムアタック)</small></button>
+    </div>
   </div>
 
   <!-- 設定 -->
   <div id="setup-screen" class="screen">
     <div class="title-logo" style="font-size:clamp(24px,5vw,36px)">難易度を選ぶ</div>
+    <div id="setup-mode-label" style="font-size:14px;letter-spacing:2px;color:#4fc3f7"></div>
 
     <div class="setup-block">
       <h4>ペア数</h4>
@@ -343,6 +377,9 @@
   <!-- ゲーム -->
   <div id="game-screen" class="screen">
     <div id="hud">
+      <div class="stat" id="hud-time-row" style="display:none">
+        <span class="label">TIME</span><span class="num" id="hud-time">0.0</span>
+      </div>
       <div class="stat"><span class="label">めくり</span><span class="num" id="hud-moves">0</span></div>
       <div class="stat"><span class="label">のこり</span><span class="num" id="hud-remain">0</span></div>
       <button class="btn btn-back" style="padding:4px 14px;font-size:12px" onclick="quitGame()">終了</button>
@@ -354,6 +391,13 @@
   <div id="result-screen" class="screen">
     <div class="title-emoji">🎉</div>
     <div class="title-logo" style="font-size:clamp(36px,8vw,56px)">クリア!</div>
+    <div class="result-time" id="r-time-row" style="display:none">
+      <span id="r-time">0.0秒</span>
+    </div>
+    <div class="result-peas" id="r-peas-row" style="display:none">
+      🟢 +<span id="r-peas">0</span> グリンピース!
+    </div>
+    <div class="result-best" id="r-best" style="display:none"></div>
     <div class="result-meta">
       めくり回数 <strong id="r-moves">0</strong> 回 / ペア数 <strong id="r-pairs">0</strong>
     </div>
@@ -371,6 +415,18 @@
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+// タイトル→設定画面遷移(モード設定 + ラベル更新)
+function gotoSetup(mode) {
+  STATE.mode = mode;
+  const label = document.getElementById('setup-mode-label');
+  if (label) {
+    label.textContent = mode === 'practice'
+      ? '⏱ 練習モード(タイムアタック)'
+      : '🃏 神経衰弱モード';
+  }
+  showScreen('setup-screen');
 }
 
 // ========== チップ ==========
@@ -408,13 +464,22 @@ function sqrtHtml(n) {
 const ROOTS_AVAILABLE = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // ルートを外した値
 
 const STATE = {
+  mode: 'memory',  // 'memory' or 'practice'
   cards: [],
-  flipped: [],
+  flipped: [],     // 選択中(or めくり中)のカードIDX
   moves: 0,
   matchedPairs: 0,
   totalPairs: 0,
   busy: false,
+  // タイマー(練習モード用)
+  startTime: 0,
+  elapsed: 0,
+  rafId: null,
+  started: false,
 };
+
+// 練習モード報酬(難易度→グリンピース数)
+const PRACTICE_REWARDS = { 4: 2, 6: 3, 8: 5, 10: 8 };
 
 function startGame() {
   const pairCount = parseInt(getChipValue('pair-chips'), 10);
@@ -423,6 +488,9 @@ function startGame() {
   STATE.moves = 0;
   STATE.flipped = [];
   STATE.busy = false;
+  STATE.elapsed = 0;
+  STATE.started = false;
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
 
   // ペアを選択(ランダムに pairCount 個)
   const selectedRoots = shuffle(ROOTS_AVAILABLE).slice(0, pairCount);
@@ -438,9 +506,28 @@ function startGame() {
   renderGrid();
   updateHUD();
 
+  // HUDのTIME行を練習モード時のみ表示
+  document.getElementById('hud-time-row').style.display = (STATE.mode === 'practice') ? 'flex' : 'none';
+  document.getElementById('hud-time').textContent = '0.0';
+
   showScreen('game-screen');
-  // 画面表示後にレイアウト調整(viewport 確定後)
-  requestAnimationFrame(() => applyGridLayout());
+  requestAnimationFrame(() => {
+    applyGridLayout();
+    // 練習モード: 全カードを表向きにしてタイマー開始
+    if (STATE.mode === 'practice') {
+      STATE.cards.forEach(c => c.element.classList.add('flipped'));
+      STATE.started = true;
+      STATE.startTime = performance.now();
+      tickTimer();
+    }
+  });
+}
+
+function tickTimer() {
+  if (!STATE.started || STATE.matchedPairs === STATE.totalPairs) return;
+  STATE.elapsed = (performance.now() - STATE.startTime) / 1000;
+  document.getElementById('hud-time').textContent = STATE.elapsed.toFixed(1);
+  STATE.rafId = requestAnimationFrame(tickTimer);
 }
 
 // ===== グリッドの列・行を画面サイズに合わせて最適化 =====
@@ -509,7 +596,14 @@ function onCardClick(idx) {
   if (STATE.flipped.includes(idx)) return;
   if (STATE.flipped.length >= 2) return;
 
-  card.element.classList.add('flipped');
+  const isPractice = (STATE.mode === 'practice');
+  // 練習モード: カードは表向きのまま、selected を付ける
+  // 神経衰弱モード: flipped を付ける(裏→表)
+  if (isPractice) {
+    card.element.classList.add('selected');
+  } else {
+    card.element.classList.add('flipped');
+  }
   STATE.flipped.push(idx);
 
   if (STATE.flipped.length === 2) {
@@ -524,6 +618,10 @@ function onCardClick(idx) {
         STATE.cards[b].matched = true;
         STATE.cards[a].element.classList.add('matched');
         STATE.cards[b].element.classList.add('matched');
+        if (isPractice) {
+          STATE.cards[a].element.classList.remove('selected');
+          STATE.cards[b].element.classList.remove('selected');
+        }
         STATE.matchedPairs++;
         STATE.flipped = [];
         updateHUD();
@@ -537,11 +635,20 @@ function onCardClick(idx) {
       STATE.cards[a].element.classList.add('mismatch');
       STATE.cards[b].element.classList.add('mismatch');
       setTimeout(() => {
-        STATE.cards[a].element.classList.remove('flipped', 'mismatch');
-        STATE.cards[b].element.classList.remove('flipped', 'mismatch');
+        STATE.cards[a].element.classList.remove('mismatch');
+        STATE.cards[b].element.classList.remove('mismatch');
+        if (isPractice) {
+          // 練習モード: selected だけ外す。flipped(表向き)は維持
+          STATE.cards[a].element.classList.remove('selected');
+          STATE.cards[b].element.classList.remove('selected');
+        } else {
+          // 神経衰弱モード: 裏返す
+          STATE.cards[a].element.classList.remove('flipped');
+          STATE.cards[b].element.classList.remove('flipped');
+        }
         STATE.flipped = [];
         STATE.busy = false;
-      }, 1000);
+      }, 800);
     }
   }
 }
@@ -552,13 +659,82 @@ function updateHUD() {
 }
 
 function endGame() {
+  // タイマー停止
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+  STATE.started = false;
+  if (STATE.startTime) {
+    STATE.elapsed = (performance.now() - STATE.startTime) / 1000;
+  }
+
   document.getElementById('r-moves').textContent = STATE.moves;
   document.getElementById('r-pairs').textContent = STATE.totalPairs;
+
+  const timeRow  = document.getElementById('r-time-row');
+  const peasRow  = document.getElementById('r-peas-row');
+  const bestRow  = document.getElementById('r-best');
+
+  if (STATE.mode === 'practice') {
+    // タイム表示
+    timeRow.style.display = 'inline-block';
+    document.getElementById('r-time').textContent = STATE.elapsed.toFixed(1) + '秒';
+
+    // 自己ベスト判定
+    const key = `平方根神経衰弱_ベスト_${STATE.totalPairs}`;
+    const prev = parseFloat(localStorage.getItem(key) || 'Infinity');
+    if (STATE.elapsed < prev) {
+      localStorage.setItem(key, String(STATE.elapsed));
+      bestRow.style.display = 'inline-block';
+      bestRow.textContent = isFinite(prev)
+        ? `🏅 自己ベスト更新! (前: ${prev.toFixed(1)}秒)`
+        : '🏅 初クリア!';
+    } else {
+      bestRow.style.display = 'inline-block';
+      bestRow.textContent = `🏅 自己ベスト: ${prev.toFixed(1)}秒`;
+      bestRow.style.background = 'rgba(255,255,255,0.1)';
+      bestRow.style.color = '#ddd';
+      bestRow.style.animation = 'none';
+    }
+
+    // グリンピース獲得 + HP の localStorage に加算
+    const peaReward = PRACTICE_REWARDS[STATE.totalPairs] || 2;
+    addPeasToHP(peaReward);
+    peasRow.style.display = 'inline-block';
+    document.getElementById('r-peas').textContent = peaReward;
+  } else {
+    // 神経衰弱モード: タイム・ピース非表示
+    timeRow.style.display = 'none';
+    peasRow.style.display = 'none';
+    bestRow.style.display = 'none';
+  }
+
   showScreen('result-screen');
+}
+
+// 数学HP の localStorage(mathPrint_v2)にグリンピースを加算
+// 45個でお椀1杯完成 → リセット&杯数+1
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) {
+      p.peaCount -= 45;
+      cups++;
+    }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
 }
 
 function quitGame() {
   if (confirm('終了しますか?')) {
+    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+    STATE.started = false;
     showScreen('title-screen');
   }
 }
