@@ -2640,6 +2640,18 @@ function removeChoicesFromQuestion() {
   renderSections(currentChapter);
   if (typeof restoreActiveLevels === 'function') restoreActiveLevels(activeLevels);
 }
+
+// ===== パスワード認証廃止 — 自動ログイン =====
+(function autoLogin() {
+  enteredPassword = ADMIN_PASSWORD;
+  const login = document.getElementById('login-screen');
+  const admin = document.getElementById('admin-screen');
+  if (login) login.style.display = 'none';
+  if (admin) admin.style.display = 'block';
+  if (typeof switchPage === 'function') switchPage(currentAdminPage);
+  if (typeof switchGameTab === 'function') switchGameTab(currentGameTab);
+  if (typeof loadQuestions === 'function') loadQuestions();
+})();
 </script>
 
 <!-- 4択編集モーダル -->
