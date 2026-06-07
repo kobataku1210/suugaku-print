@@ -1371,7 +1371,36 @@ function renderDifficulty() {
   const ch  = mathData.chapters[state.chapterIdx];
   const sec = ch.sections[state.sectionIdx];
 
-  const cards = LEVELS.map((lv, li) => {
+  // 難易度分けなしの節（singleLevel）は basic 1枚だけ表示
+  const isSingleLevel = sec.singleLevel === true
+    || (Array.isArray(sec.basic) && sec.basic.length > 0
+        && (!sec.standard || sec.standard.length === 0)
+        && (!sec.advanced || sec.advanced.length === 0));
+
+  let cards;
+  if (isSingleLevel) {
+    const done = isLevelDone(state.chapterIdx, state.sectionIdx, 0);
+    const peasStr = '🌱'.repeat(LEVELS[0].peas);
+    cards = done ? `
+      <div class="diff-card diff-done fade-in" style="--diff-color:#8b5cf6;animation-delay:0.05s"
+           onclick="startQuiz(0)">
+        <span class="diff-stars">★</span>
+        <div class="diff-clear-badge">✓ クリア済み</div>
+        <div class="diff-label">10問にチャレンジ</div>
+        <div class="diff-desc">${sec.basic.length}問から${sec.basic.length}問<br>しっかり解こう！</div>
+        <div class="diff-pea-earned">${peasStr} 獲得済み！</div>
+        <button class="diff-btn diff-btn-retry">もう一度チャレンジ</button>
+      </div>` : `
+      <div class="diff-card diff-lv0 fade-in" style="--diff-color:#8b5cf6;animation-delay:0.05s"
+           onclick="startQuiz(0)">
+        <span class="diff-stars">★</span>
+        <div class="diff-label">10問にチャレンジ</div>
+        <div class="diff-desc">難易度分けなし<br>全${sec.basic.length}問！</div>
+        <div class="diff-pea-hint">${peasStr} クリアで${LEVELS[0].peas}個</div>
+        <button class="diff-btn diff-btn-lv0">挑戦する！</button>
+      </div>`;
+  } else {
+  cards = LEVELS.map((lv, li) => {
     const done     = isLevelDone(state.chapterIdx, state.sectionIdx, li);
     const unlocked = isLevelUnlocked(state.chapterIdx, state.sectionIdx, li);
     const delay    = `animation-delay:${li * 0.08}s`;
@@ -1409,6 +1438,7 @@ function renderDifficulty() {
         <button class="diff-btn diff-btn-lv${li}">10問に挑戦！</button>
       </div>`;
   }).join('');
+  }
 
   // ===== 小テストカード（パスワード必要） =====
   const mtDone = isMiniTestDone(state.chapterIdx, state.sectionIdx);
