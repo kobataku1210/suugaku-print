@@ -678,6 +678,24 @@
     margin-bottom: 4px;
     font-weight: 700;
   }
+  /* 時間ボーナス */
+  #timeBonusBanner {
+    background: linear-gradient(135deg, #ffd56a, #ff8a2a);
+    color: #2a1810;
+    padding: 8px 22px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: clamp(14px, 2.6vw, 18px);
+    letter-spacing: 2px;
+    box-shadow: 0 4px 14px rgba(255,138,42,0.6);
+    margin: 6px auto;
+    animation: timeBonusPulse 0.8s ease-in-out infinite alternate;
+    display: inline-block;
+  }
+  @keyframes timeBonusPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+  }
   .peas-count-row {
     display: flex;
     align-items: center;
@@ -876,11 +894,15 @@
 
   <div class="peas-area">
     <div class="peas-label">🫛 グリンピース獲得！ 🫛</div>
+    <div id="timeBonusBanner" style="display:none">⚡ 時間ボーナス +<span id="timeBonusAmount">0</span> 🫛</div>
     <div class="peas-count-row">
       <div class="peas-count" id="peasCount">0</div>
       <div class="peas-icon">🫛</div>
     </div>
     <div class="peas-unit">グリンピース</div>
+    <div id="peasBreakdown" style="display:none;font-size:0.85rem;color:#fff;opacity:0.85;margin-top:4px">
+      内訳: 宝石 <strong id="peasGem">0</strong> + ⏱ 時間ボーナス <strong id="peasTimeBonusBreakdown">0</strong>
+    </div>
     <div class="peas-rank" id="peasRank">🐣 グリンピースの卵</div>
   </div>
 
@@ -934,6 +956,10 @@ const DIFFICULTY_RANGES = {
 };
 // タイムアタックは各レベル 15 問
 const TA_PROBLEMS_PER_GAME = 15;
+
+// タイムアタック 時間ボーナス目標タイム(秒) & ボーナスグリンピース数
+const TA_TARGET_TIMES     = { easy: 105, medium: 150, hard: 195 };
+const TA_TIME_BONUS_PEAS  = { easy: 25,  medium: 50,  hard: 100 };
 
 // ===== 状態 =====
 let gameMode = 'practice'; // 'practice' | 'timeattack'
@@ -1381,10 +1407,37 @@ function playFanfare() {
 // ===== リザルト画面 =====
 function showResultScreen() {
   const total = collected.reduce((s, g) => s + g.value, 0);
-  const peas = Math.floor(total / 100);
+  const gemPeas = Math.floor(total / 100);
 
   // タイトル / タイム表示の出し分け
   const isTA = (gameMode === 'timeattack');
+
+  // ===== 時間ボーナス計算 =====
+  let timeBonus = 0;
+  if (isTA) {
+    const target = TA_TARGET_TIMES[selectedDifficulty];
+    if (target && elapsedTime <= target) {
+      timeBonus = TA_TIME_BONUS_PEAS[selectedDifficulty] || 0;
+    }
+  }
+  const peas = gemPeas + timeBonus;
+
+  // 時間ボーナスバナー / 内訳表示
+  const bonusBanner = document.getElementById('timeBonusBanner');
+  const breakdown   = document.getElementById('peasBreakdown');
+  if (timeBonus > 0) {
+    bonusBanner.style.display = 'inline-block';
+    document.getElementById('timeBonusAmount').textContent = timeBonus;
+    breakdown.style.display = 'block';
+    document.getElementById('peasGem').textContent = gemPeas;
+    document.getElementById('peasTimeBonusBreakdown').textContent = timeBonus;
+  } else {
+    bonusBanner.style.display = 'none';
+    breakdown.style.display = 'none';
+  }
+
+  // 数学HPの localStorage(mathPrint_v2)に獲得ピースを加算
+  if (peas > 0) addPeasToHP(peas);
   document.getElementById('resultTitle').textContent = isTA ? '🏁 ALL CLEAR!' : '🌱 おつかれさま！';
   const timeBlock = document.getElementById('rsTimeBlock');
   const bestEl    = document.getElementById('rsBest');
@@ -1453,6 +1506,27 @@ function getRank(peas) {
   if (peas >= 30)  return '🌱 グリンピース見習い';
   if (peas >= 10)  return '🥚 グリンピース新人';
   return '🐣 グリンピースの卵';
+}
+
+// 数学HP の localStorage(mathPrint_v2)にグリンピースを加算
+// 45個でお椀1杯完成 → リセット&杯数+1
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) {
+      p.peaCount -= 45;
+      cups++;
+    }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
 }
 
 function animateCountTo(elementId, target, duration, formatComma) {
