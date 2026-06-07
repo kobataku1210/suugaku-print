@@ -990,6 +990,14 @@ function formatNewsDate(iso) {
 // ===== ゲーム選択画面 =====
 // 今後ゲームを追加する場合は GAME_ITEMS に1要素加えるだけ。
 // onclick: 外部HTML → "window.open(...)" / 内部遷移 → "navigate('xxx')"
+// ===== ゲームカテゴリ =====
+const GAME_CATEGORIES = [
+  { id: 'factor', label: '式の展開と因数分解', icon: '✖️',
+    gradient: 'linear-gradient(90deg, #ff8a2a, #e05a00)' },
+  { id: 'sqrt',   label: '平方根',           icon: '√',
+    gradient: 'linear-gradient(90deg, #2196f3, #0d47a1)' },
+];
+
 const GAME_ITEMS = [
   {
     title: '因数分解シューティング',
@@ -998,6 +1006,7 @@ const GAME_ITEMS = [
     onclick: "navigate('shooting')",
     gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
     isNew: true,
+    category: 'factor',
   },
   {
     title: 'カードマッチ',
@@ -1006,6 +1015,7 @@ const GAME_ITEMS = [
     onclick: "cmVariant='factor';navigate('cardmatch')",
     gradient: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
     isNew: false,
+    category: 'factor',
   },
   {
     title: 'カードマッチ 平方根',
@@ -1015,6 +1025,7 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #4ECDC4, #45B7D1)',
     isNew: true,
     draftKey: 'cardMatchSqrt', // questions.json の gameDrafts で公開制御
+    category: 'sqrt',
   },
   {
     title: '共通因数ウォール',
@@ -1023,6 +1034,7 @@ const GAME_ITEMS = [
     onclick: "window.location.href='games/共通因数ウォール.html'",
     gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
     isNew: true,
+    category: 'factor',
   },
   {
     title: 'ルート大小ウォール',
@@ -1032,6 +1044,7 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #4a90e2, #6c5ce7)',
     isNew: true,
     draftKey: 'rootBreak',
+    category: 'sqrt',
   },
   {
     title: '数の分類ウォール',
@@ -1041,6 +1054,7 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
     isNew: true,
     draftKey: 'numSort',
+    category: 'sqrt',
   },
   {
     title: '計算バトル',
@@ -1049,6 +1063,7 @@ const GAME_ITEMS = [
     onclick: "window.location.href='games/計算バトル.html'",
     gradient: 'linear-gradient(135deg, #3a8aff, #ff3a6a)',
     isNew: true,
+    category: 'factor',
   },
   {
     title: '平方根神経衰弱',
@@ -1057,6 +1072,16 @@ const GAME_ITEMS = [
     onclick: "window.location.href='games/平方根神経衰弱.html'",
     gradient: 'linear-gradient(135deg, #2196f3, #0d47a1)',
     isNew: true,
+    category: 'sqrt',
+  },
+  {
+    title: 'ルートの宝石',
+    desc: '√n の中に隠れた平方数を見つけて宝石を発見！簡約のしくみを体感',
+    icon: '💎',
+    onclick: "window.location.href='games/ルートの宝石.html'",
+    gradient: 'linear-gradient(135deg, #cc66ff, #4477ff)',
+    isNew: true,
+    category: 'sqrt',
   },
 ];
 // ===== ランキング画面 =====
@@ -1158,8 +1183,8 @@ function renderGamesPage() {
   }
   const visibleGames = GAME_ITEMS.filter(g => !isGameDraft(g) || PREVIEW_MODE);
 
-  const cards = visibleGames.map(g => {
-    // カードマッチ系のみ自己ベスト・生徒ベストをサブテキストに表示
+  // 1ゲームのカードを HTML 化
+  function renderGameCard(g) {
     let subText = '';
     if (g.onclick && g.onclick.includes("cmVariant='factor'")) {
       const parts = [];
@@ -1182,14 +1207,45 @@ function renderGamesPage() {
       ${subText}
       <div class="game-card-cta">遊ぶ ›</div>
     </div>`;
+  }
+
+  // カテゴリごとにグループ化して描画
+  const categoryHtml = GAME_CATEGORIES.map(cat => {
+    const games = visibleGames.filter(g => g.category === cat.id);
+    if (games.length === 0) return '';
+    const cards = games.map(renderGameCard).join('');
+    return `
+      <div class="game-category">
+        <div class="game-category-header" style="background:${cat.gradient}">
+          <span class="game-category-icon">${cat.icon}</span>
+          <span class="game-category-label">${cat.label}</span>
+          <span class="game-category-count">${games.length}つ</span>
+        </div>
+        <div class="games-grid">${cards}</div>
+      </div>
+    `;
   }).join('');
+
+  // カテゴリ未設定のゲーム(将来の追加忘れ防止)
+  const uncategorized = visibleGames.filter(g => !g.category);
+  const uncatHtml = uncategorized.length ? `
+    <div class="game-category">
+      <div class="game-category-header" style="background:linear-gradient(90deg,#666,#444)">
+        <span class="game-category-icon">📋</span>
+        <span class="game-category-label">その他</span>
+        <span class="game-category-count">${uncategorized.length}つ</span>
+      </div>
+      <div class="games-grid">${uncategorized.map(renderGameCard).join('')}</div>
+    </div>` : '';
+
   return `
     <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
     <div class="section-title">
       <h2>🎮 数学ゲーム</h2>
       <p>遊びたいゲームを選んでね</p>
     </div>
-    <div class="games-grid">${cards}</div>`;
+    ${categoryHtml}
+    ${uncatHtml}`;
 }
 
 // ===== 数学便利グッズ画面 =====
