@@ -2948,30 +2948,6 @@
           "studentBestList": []
         },
         {
-          "title": "有理数と無理数",
-          "teacherTime": null,
-          "basic": [],
-          "standard": [],
-          "advanced": [],
-          "miniTestPassword": "6627",
-          "studentBestName": null,
-          "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
-        },
-        {
-          "title": "真の値と近似値",
-          "teacherTime": null,
-          "basic": [],
-          "standard": [],
-          "advanced": [],
-          "miniTestPassword": "6961",
-          "studentBestName": null,
-          "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
-        },
-        {
           "title": "ルートのついた数の積と商",
           "teacherTime": null,
           "basic": [
