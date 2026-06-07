@@ -731,6 +731,7 @@
         <button class="chapter-tab" id="game-tab-cardmatch" onclick="switchGameTab('cardmatch')">🃏 カードマッチ（展開・因数分解）</button>
         <button class="chapter-tab" id="game-tab-cardmatch-sqrt" onclick="switchGameTab('cardmatch-sqrt')">√ カードマッチ（平方根）</button>
         <button class="chapter-tab" id="game-tab-sqrt-memory" onclick="switchGameTab('sqrt-memory')">🃏 平方根神経衰弱</button>
+        <button class="chapter-tab" id="game-tab-rootgem" onclick="switchGameTab('rootgem')">💎 ルートの宝石</button>
       </div>
     </div>
 
@@ -898,6 +899,25 @@
         </ul>
       </div>
     </div><!-- /game-pane-sqrt-memory -->
+
+    <!-- ルートの宝石 -->
+    <div class="game-pane hidden" id="game-pane-rootgem">
+      <div style="padding:0.8rem 2rem 0;">
+        <a href="games/ルートの宝石.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>ルートの宝石</b> は、√n の中に隠れている平方数を見つけて簡約のしくみを体感するゲームです。</p>
+        <p>問題は自動生成されるため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>例: √75 → 隠れた √25 を見つけて 5√3 へ簡約</li>
+          <li>出題範囲: 2 ≤ n ≤ 200 のうち簡約できる n のみ</li>
+          <li>難易度: 1〜3問目=n≤50、4〜6問目=n≤100、7問目以降=全範囲</li>
+          <li>正解で原石が砕け宝石が登場、簡約のステップをアニメで表示</li>
+          <li>連続正解でスコアにボーナス</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-rootgem -->
   </div>
 
   <!-- 📰 NEWS ページ -->
@@ -952,7 +972,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
