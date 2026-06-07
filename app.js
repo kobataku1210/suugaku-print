@@ -285,6 +285,19 @@ function isLevelUnlocked(chIdx, secIdx, levelIdx) {
 function completeLevel(chIdx, secIdx, levelIdx) {
   const p = getProgress();
   const key = doneKey(chIdx, secIdx, levelIdx);
+  // 難易度分けなしの節（singleLevel）はクリアするたびに 10 個もらえる
+  const sec = mathData.chapters[chIdx]?.sections?.[secIdx];
+  const isSingleLevel = sec && (sec.singleLevel === true
+    || (Array.isArray(sec.basic) && sec.basic.length > 0
+        && (!sec.standard || sec.standard.length === 0)
+        && (!sec.advanced || sec.advanced.length === 0)));
+  if (isSingleLevel) {
+    const wasFirst = !p.done[key];
+    p.done[key] = true;
+    saveProgress(p);
+    addPeas(10);
+    return wasFirst;
+  }
   if (!p.done[key]) {
     p.done[key] = true;
     saveProgress(p);
@@ -1380,15 +1393,14 @@ function renderDifficulty() {
   let cards;
   if (isSingleLevel) {
     const done = isLevelDone(state.chapterIdx, state.sectionIdx, 0);
-    const peasStr = '🌱'.repeat(LEVELS[0].peas);
     cards = done ? `
       <div class="diff-card diff-done fade-in" style="--diff-color:#8b5cf6;animation-delay:0.05s"
            onclick="startQuiz(0)">
         <span class="diff-stars">★</span>
         <div class="diff-clear-badge">✓ クリア済み</div>
         <div class="diff-label">10問にチャレンジ</div>
-        <div class="diff-desc">${sec.basic.length}問から${sec.basic.length}問<br>しっかり解こう！</div>
-        <div class="diff-pea-earned">${peasStr} 獲得済み！</div>
+        <div class="diff-desc">クリアするたびに<br>🌱×10 もらえる！</div>
+        <div class="diff-pea-earned">🌱×10 毎回ゲット</div>
         <button class="diff-btn diff-btn-retry">もう一度チャレンジ</button>
       </div>` : `
       <div class="diff-card diff-lv0 fade-in" style="--diff-color:#8b5cf6;animation-delay:0.05s"
@@ -1396,7 +1408,7 @@ function renderDifficulty() {
         <span class="diff-stars">★</span>
         <div class="diff-label">10問にチャレンジ</div>
         <div class="diff-desc">難易度分けなし<br>全${sec.basic.length}問！</div>
-        <div class="diff-pea-hint">${peasStr} クリアで${LEVELS[0].peas}個</div>
+        <div class="diff-pea-hint">🌱×10 クリアで毎回</div>
         <button class="diff-btn diff-btn-lv0">挑戦する！</button>
       </div>`;
   } else {
@@ -1813,21 +1825,32 @@ function showQuizMsg(msg, isError) {
 
 function showLevelComplete() {
   const lv      = LEVELS[state.quizLevelIdx];
+  const sec     = mathData.chapters[state.chapterIdx]?.sections?.[state.sectionIdx];
+  const isSingleLevel = sec && (sec.singleLevel === true
+    || (Array.isArray(sec.basic) && sec.basic.length > 0
+        && (!sec.standard || sec.standard.length === 0)
+        && (!sec.advanced || sec.advanced.length === 0)));
   const isNew   = completeLevel(state.chapterIdx, state.sectionIdx, state.quizLevelIdx);
-  const peasStr = '🌱'.repeat(lv.peas);
+
+  const peasToShow = isSingleLevel ? 10 : lv.peas;
+  // 報酬を表示するか（singleLevel は毎回、それ以外は初回のみ）
+  const showReward = isSingleLevel || isNew;
+  const peasStr = '🌱'.repeat(Math.min(peasToShow, 10));
 
   const card = document.getElementById('quiz-card');
   card.classList.add('quiz-success');
   card.innerHTML = `
     <div class="quiz-success-icon">🎉</div>
     <div class="quiz-success-text">レベルクリア！！</div>
-    <div class="quiz-success-level">${lv.stars} ${lv.label}</div>
-    <div class="quiz-success-peas">${isNew ? peasStr + ' ×' + lv.peas + '個ゲット！' : 'クリア済みです！'}</div>
+    <div class="quiz-success-level">${isSingleLevel ? '★ 10問チャレンジ' : lv.stars + ' ' + lv.label}</div>
+    <div class="quiz-success-peas">${showReward ? peasStr + ' ×' + peasToShow + '個ゲット！' : 'クリア済みです！'}</div>
   `;
-  if (isNew) {
+  if (showReward) {
     setTimeout(() => {
-      for (let i = 0; i < lv.peas; i++) {
-        setTimeout(() => bounceAndAddPea(), i * 300);
+      // 演出回数は最大10回まで（10個一気にバウンスさせる）
+      const bounceCount = Math.min(peasToShow, 10);
+      for (let i = 0; i < bounceCount; i++) {
+        setTimeout(() => bounceAndAddPea(), i * 200);
       }
       showConfetti();
     }, 500);
