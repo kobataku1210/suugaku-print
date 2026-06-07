@@ -1859,44 +1859,63 @@ body {
 }
 
 /* ===== ゲーム選択画面 ===== */
-/* カテゴリ */
-.game-category {
-  max-width: 1200px;
-  margin: 1.5rem auto 0.5rem;
+/* カテゴリ選択画面 */
+.game-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 2rem auto;
   padding: 0 1rem;
 }
-.game-category-header {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.65rem 1.2rem;
-  border-radius: 12px;
+.game-cat-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 2.4rem 1.5rem 1.8rem;
   color: #fff;
-  font-weight: 800;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-  margin-bottom: 0.4rem;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
 }
-.game-category-icon {
-  font-size: 1.4em;
+.game-cat-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.game-cat-card:active { transform: translateY(0) scale(0.99); }
+.game-cat-card-icon {
+  display: block;
+  font-size: 3.6em;
   font-family: 'Cambria Math', 'Cambria', serif;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-.game-category-label {
-  font-size: 1.15em;
-  flex: 1;
+.game-cat-card-title {
+  font-size: 1.5em;
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin-bottom: 0.4rem;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
-.game-category-count {
-  font-size: 0.78em;
-  background: rgba(255,255,255,0.2);
-  padding: 2px 12px;
+.game-cat-card-count {
+  font-size: 0.85em;
+  background: rgba(255,255,255,0.25);
+  padding: 4px 14px;
   border-radius: 999px;
+  display: inline-block;
   font-weight: bold;
   letter-spacing: 1px;
 }
-.game-category .games-grid {
-  margin: 0.6rem 0 0;
-  padding: 0;
-  max-width: none;
+.game-cat-card-cta {
+  margin-top: 1rem;
+  font-weight: bold;
+  font-size: 1em;
+  background: rgba(0,0,0,0.25);
+  padding: 6px 18px;
+  border-radius: 999px;
+  display: inline-block;
 }
 
 .games-grid {

@@ -114,6 +114,7 @@ const state = {
   quizLevelIdx: null,      // 0=basic, 1=standard, 2=advanced
   quizQIdx: null,          // 0〜9
   quizShuffled: null,      // クイズ開始時にシャッフルされた問題リスト
+  gameCategory: null,      // ゲーム一覧画面で選択中のカテゴリID (null=カテゴリ選択画面)
 
   // 小テスト
   miniTestPhase: 'quiz',   // 'quiz' | 'result'
@@ -804,11 +805,23 @@ function btIpChange() {
 function navigate(view, opts = {}) {
   // cardmatch へ外部から遷移する場合はメニュー表示に戻す
   if (view === 'cardmatch' && state.view !== 'cardmatch') cmMode = 'menu';
+  // games 画面に他から戻ってきた時はカテゴリ選択画面に戻す
+  if (view === 'games' && state.view !== 'games' && opts.gameCategory === undefined) {
+    state.gameCategory = null;
+  }
   state.view = view;
   if (opts.chapterIdx   !== undefined) state.chapterIdx   = opts.chapterIdx;
   if (opts.sectionIdx   !== undefined) state.sectionIdx   = opts.sectionIdx;
   if (opts.quizLevelIdx !== undefined) state.quizLevelIdx = opts.quizLevelIdx;
   if (opts.quizQIdx     !== undefined) state.quizQIdx     = opts.quizQIdx;
+  if (opts.gameCategory !== undefined) state.gameCategory = opts.gameCategory;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ゲーム一覧でカテゴリを切替
+function selectGameCategory(catId) {
+  state.gameCategory = catId;
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1209,43 +1222,65 @@ function renderGamesPage() {
     </div>`;
   }
 
-  // カテゴリごとにグループ化して描画
-  const categoryHtml = GAME_CATEGORIES.map(cat => {
-    const games = visibleGames.filter(g => g.category === cat.id);
-    if (games.length === 0) return '';
-    const cards = games.map(renderGameCard).join('');
-    return `
-      <div class="game-category">
-        <div class="game-category-header" style="background:${cat.gradient}">
-          <span class="game-category-icon">${cat.icon}</span>
-          <span class="game-category-label">${cat.label}</span>
-          <span class="game-category-count">${games.length}つ</span>
+  // ===== カテゴリ別の表示 =====
+  const selectedCat = state.gameCategory;
+  // 「その他」(カテゴリ未指定) も含めた全カテゴリ
+  const allCats = [
+    ...GAME_CATEGORIES,
+    ...(visibleGames.some(g => !g.category)
+        ? [{ id: '__other__', label: 'その他', icon: '📋',
+             gradient: 'linear-gradient(90deg,#666,#444)' }]
+        : [])
+  ];
+
+  // ===== 1) カテゴリ選択画面 =====
+  if (!selectedCat) {
+    const catCards = allCats.map(cat => {
+      const games = visibleGames.filter(g =>
+        cat.id === '__other__' ? !g.category : g.category === cat.id
+      );
+      if (games.length === 0) return '';
+      return `
+        <div class="game-cat-card" style="background:${cat.gradient}"
+             onclick="selectGameCategory('${cat.id}')">
+          <span class="game-cat-card-icon">${cat.icon}</span>
+          <div class="game-cat-card-title">${cat.label}</div>
+          <div class="game-cat-card-count">ゲーム ${games.length}つ</div>
+          <div class="game-cat-card-cta">選ぶ ›</div>
         </div>
-        <div class="games-grid">${cards}</div>
+      `;
+    }).join('');
+    return `
+      <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+      <div class="section-title">
+        <h2>🎮 数学ゲーム</h2>
+        <p>カテゴリを選んでね</p>
       </div>
-    `;
-  }).join('');
+      <div class="game-cat-grid">${catCards}</div>`;
+  }
 
-  // カテゴリ未設定のゲーム(将来の追加忘れ防止)
-  const uncategorized = visibleGames.filter(g => !g.category);
-  const uncatHtml = uncategorized.length ? `
-    <div class="game-category">
-      <div class="game-category-header" style="background:linear-gradient(90deg,#666,#444)">
-        <span class="game-category-icon">📋</span>
-        <span class="game-category-label">その他</span>
-        <span class="game-category-count">${uncategorized.length}つ</span>
-      </div>
-      <div class="games-grid">${uncategorized.map(renderGameCard).join('')}</div>
-    </div>` : '';
-
+  // ===== 2) 選択されたカテゴリのゲーム一覧 =====
+  const cat = allCats.find(c => c.id === selectedCat);
+  if (!cat) {
+    // カテゴリが見つからない → カテゴリ選択に戻す
+    state.gameCategory = null;
+    return renderGamesPage();
+  }
+  const games = visibleGames.filter(g =>
+    cat.id === '__other__' ? !g.category : g.category === cat.id
+  );
+  const cards = games.map(renderGameCard).join('');
   return `
-    <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+    <button class="back-btn" onclick="selectGameCategory(null)">← カテゴリ一覧へ</button>
     <div class="section-title">
-      <h2>🎮 数学ゲーム</h2>
+      <h2 style="display:inline-flex;align-items:center;gap:0.5rem;">
+        <span style="background:${cat.gradient};padding:4px 14px;border-radius:10px;color:#fff;font-size:0.85em;">
+          ${cat.icon} ${cat.label}
+        </span>
+      </h2>
       <p>遊びたいゲームを選んでね</p>
     </div>
-    ${categoryHtml}
-    ${uncatHtml}`;
+    <div class="games-grid">${cards}</div>`;
 }
 
 // ===== 数学便利グッズ画面 =====
