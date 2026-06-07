@@ -1050,10 +1050,10 @@ function startGame(mode) {
   timerStat.classList.remove('danger');
 
   if (mode === 'timeattack') {
-    // 難易度内の問題プールから 15 問だけランダムに抽選
+    // 難易度内の問題プールから 15 問を「サブ難易度順(2√x→3√x→…)」に抽選
     const range = DIFFICULTY_RANGES[selectedDifficulty];
     const pool = ALL.filter(p => p.n >= range.min && p.n <= range.max);
-    problemQueue = shuffleArr(pool.slice()).slice(0, TA_PROBLEMS_PER_GAME);
+    problemQueue = pickStratified(pool, TA_PROBLEMS_PER_GAME);
     totalProblems = problemQueue.length;
     elapsedTime = 0;
     taStartedAt = performance.now();
@@ -1079,6 +1079,40 @@ function shuffleArr(a) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// サブ難易度別(隠れた平方数 k² 小さい順)に均等に取って、易→難の順に並べる
+//  - 隠れた平方数 = 簡約時に取り出される係数の二乗(2²=4 が最易、3²=9, 4²=16 ...)
+//  - 各サブ難易度から円卓巡回的に取り、必ず全層が含まれるように
+//  - 最終的に易しい順に並ぶので、進行が「分かりやすい→難しい」になる
+function pickStratified(pool, targetCount) {
+  // hiddenSquare ごとにグループ化
+  const groups = new Map();
+  pool.forEach(p => {
+    if (!groups.has(p.hiddenSquare)) groups.set(p.hiddenSquare, []);
+    groups.get(p.hiddenSquare).push(p);
+  });
+  // 易しい順(k² 小さい順)にキー
+  const keys = [...groups.keys()].sort((a, b) => a - b);
+  // 各層内をシャッフル
+  keys.forEach(k => shuffleArr(groups.get(k)));
+
+  // 円卓巡回ピック(易→難の順、必要数まで)
+  const selected = [];
+  let added = true;
+  while (selected.length < targetCount && added) {
+    added = false;
+    for (const k of keys) {
+      if (selected.length >= targetCount) break;
+      if (groups.get(k).length > 0) {
+        selected.push(groups.get(k).shift());
+        added = true;
+      }
+    }
+  }
+  // 最終並び: 隠れた平方数 昇順(= 易しい順)
+  selected.sort((a, b) => a.hiddenSquare - b.hiddenSquare);
+  return selected;
 }
 
 // ===== タイマー(タイムアタック: カウントアップ) =====
