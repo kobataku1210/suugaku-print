@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ルートの宝石</title>
+<style>
+  :root {
+    --bg-dark: #0a0a1f;
+    --bg-mid: #2a1f4d;
+    --gold: #ffd966;
+    --gold-bright: #ffeb99;
+    --gold-dark: #d4a017;
+    --text: #f5f5f5;
+    --error: #ff8866;
+    --pea-light: #c4f070;
+    --pea-mid: #5da82c;
+    --pea-dark: #234f1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; overflow-x: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: var(--text);
+    user-select: none;
+    background: radial-gradient(ellipse at top, var(--bg-mid) 0%, var(--bg-dark) 70%);
+    background-attachment: fixed;
+    touch-action: manipulation;
+    min-height: 100vh;
+  }
+
+  /* ===== Screens 共通 ===== */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 12px 24px;
+    gap: 10px;
+  }
+  .screen.active { display: flex; }
+
+  /* ===== Title Screen ===== */
+  #titleScreen { justify-content: center; gap: 12px; }
+  .title-emoji-big {
+    font-size: 76px;
+    line-height: 1;
+    filter: drop-shadow(0 0 18px var(--gold));
+    animation: bob 2s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+  .title-name {
+    font-size: clamp(28px, 8vw, 44px);
+    font-weight: 900;
+    color: var(--gold-bright);
+    text-shadow: 0 0 24px rgba(255, 215, 100, 0.6), 0 2px 0 #000;
+    letter-spacing: 4px;
+  }
+  .title-tag {
+    font-size: clamp(12px, 2.8vw, 14px);
+    color: #ddd;
+    max-width: 360px;
+    text-align: center;
+    line-height: 1.7;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 215, 100, 0.2);
+  }
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 440px;
+    margin-top: 8px;
+  }
+  .mode-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 215, 100, 0.3);
+    border-radius: 16px;
+    padding: 18px 10px;
+    color: white;
+    text-align: center;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.2s, background 0.2s;
+  }
+  .mode-card:hover, .mode-card:active {
+    transform: scale(1.03);
+    border-color: var(--gold);
+    background: rgba(255, 215, 100, 0.12);
+  }
+  .mode-card.selected {
+    background: rgba(255, 215, 100, 0.2);
+    border-color: var(--gold-bright);
+  }
+  .mode-card-icon { font-size: 36px; line-height: 1; }
+  .mode-card-name { font-size: 16px; font-weight: 900; margin-top: 4px; letter-spacing: 2px; }
+  .mode-card-sub  { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+
+  /* 難易度セクション */
+  .difficulty-section {
+    width: 100%;
+    max-width: 440px;
+  }
+  .section-title {
+    text-align: center;
+    font-size: 13px;
+    color: #ddd;
+    margin: 4px 0 8px;
+    letter-spacing: 3px;
+  }
+  .difficulty-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .diff-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 10px 4px;
+    color: white;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+  }
+  .diff-btn:active { transform: scale(0.96); }
+  .diff-btn[data-diff="easy"].active {
+    border-color: #66dd66;
+    background: rgba(102, 221, 102, 0.18);
+    box-shadow: 0 0 16px rgba(102, 221, 102, 0.25);
+  }
+  .diff-btn[data-diff="medium"].active {
+    border-color: var(--gold);
+    background: rgba(255, 215, 100, 0.18);
+    box-shadow: 0 0 16px rgba(255, 215, 100, 0.25);
+  }
+  .diff-btn[data-diff="hard"].active {
+    border-color: #ff5566;
+    background: rgba(255, 85, 100, 0.18);
+    box-shadow: 0 0 16px rgba(255, 85, 100, 0.25);
+  }
+  .diff-icon { font-size: 22px; line-height: 1; }
+  .diff-name { font-size: 14px; font-weight: 900; margin-top: 4px; letter-spacing: 2px; }
+  .diff-range {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 3px;
+    font-family: 'Cambria Math', 'STIX', Georgia, serif;
+  }
+
+  .time-section {
+    width: 100%;
+    max-width: 440px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s, max-height 0.3s;
+  }
+  .time-section.visible {
+    opacity: 1;
+    max-height: 220px;
+  }
+  .time-section h3 {
+    text-align: center;
+    font-size: 13px;
+    color: #ddd;
+    margin: 8px 0 8px;
+    letter-spacing: 3px;
+  }
+  .time-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .time-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 215, 100, 0.3);
+    border-radius: 12px;
+    padding: 14px 6px;
+    color: white;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 17px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .time-btn:hover, .time-btn:active {
+    background: rgba(255, 215, 100, 0.25);
+  }
+  .time-btn:active { transform: scale(0.96); }
+
+  /* ===== Top Bar ===== */
+  .topbar {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    border: 1px solid #555;
+    padding: 6px 14px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .title-bar {
+    font-size: clamp(14px, 3.6vw, 18px);
+    letter-spacing: 3px;
+    color: var(--gold-bright);
+    text-shadow: 0 0 12px rgba(255, 215, 100, 0.4);
+    font-weight: 900;
+  }
+  .topbar .placeholder { width: 60px; }
+
+  /* ===== HUD ===== */
+  .hud {
+    width: 100%;
+    max-width: 520px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .hud.with-timer { grid-template-columns: 1fr 1fr 1fr 1.3fr; }
+  .hud .stat {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 6px 4px;
+    text-align: center;
+    border: 1px solid rgba(255, 215, 100, 0.15);
+  }
+  .hud .label {
+    font-size: 9px;
+    opacity: 0.7;
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+  .hud .value {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .timer-stat .value {
+    color: var(--gold-bright);
+    font-size: 24px;
+    text-shadow: 0 0 8px rgba(255, 215, 100, 0.5);
+  }
+  .timer-stat.danger { background: rgba(255, 80, 60, 0.18); border-color: var(--error); }
+  .timer-stat.danger .value {
+    color: var(--error);
+    animation: timer-pulse 0.5s ease-in-out infinite;
+  }
+  @keyframes timer-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.15); }
+  }
+
+  /* ===== 宝石コレクションストリップ ===== */
+  .gem-strip {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 215, 100, 0.18);
+    border-radius: 12px;
+    padding: 6px 8px 8px;
+  }
+  .strip-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #bbb;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+    padding: 0 2px;
+  }
+  .strip-header .total-yen {
+    color: var(--gold);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+  .strip-content {
+    display: flex;
+    gap: 4px;
+    min-height: 34px;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+  }
+  .strip-content::-webkit-scrollbar { height: 4px; }
+  .strip-content::-webkit-scrollbar-thumb { background: rgba(255, 215, 100, 0.3); border-radius: 4px; }
+  .strip-content:empty::before {
+    content: 'まだ宝石は集まっていません…';
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    padding: 0 8px;
+    font-style: italic;
+  }
+  .strip-gem {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    animation: pop-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+  }
+  .strip-gem svg { width: 100%; height: 100%; display: block; }
+  @keyframes pop-in {
+    0%   { transform: scale(0)   rotate(-90deg); opacity: 0; }
+    100% { transform: scale(1)   rotate(0);      opacity: 1; }
+  }
+
+  /* ===== 石 ===== */
+  .stone-area {
+    position: relative;
+    width: min(64vw, 248px);
+    height: min(64vw, 248px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stone {
+    position: absolute;
+    inset: 0;
+    transition: filter 0.3s;
+  }
+  .stone.shake { animation: shake 0.5s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    20% { transform: translateX(-12px) rotate(-3deg); }
+    40% { transform: translateX(12px) rotate(3deg); }
+    60% { transform: translateX(-8px) rotate(-2deg); }
+    80% { transform: translateX(8px) rotate(2deg); }
+  }
+  .stone.cracking { animation: crack-disappear 0.9s forwards; }
+  @keyframes crack-disappear {
+    0%   { transform: scale(1)    rotate(0);   opacity: 1; filter: brightness(1); }
+    30%  { transform: scale(1.15) rotate(5deg); filter: brightness(1.6); }
+    60%  { transform: scale(0.9);  opacity: 0.5; filter: brightness(2); }
+    100% { transform: scale(0.4);  opacity: 0; }
+  }
+  .stone svg {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
+  }
+  .formula {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(34px, 10vw, 52px);
+    font-weight: 900;
+    color: #e8d090;
+    font-family: 'Cambria Math', 'STIX', Georgia, serif;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+  }
+
+  /* ===== 宝石（出現時の大きいもの）===== */
+  .gem {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .gem.show {
+    display: flex;
+    animation: gem-appear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes gem-appear {
+    0%   { transform: scale(0) rotate(-180deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .gem svg {
+    width: 78%; height: 78%;
+    filter: drop-shadow(0 0 24px var(--gold));
+    animation: gem-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes gem-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
+  }
+  .gem.show::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 235, 153, 0.45) 0%, transparent 55%);
+    pointer-events: none;
+    animation: shine 1s ease-out;
+  }
+  @keyframes shine {
+    0%, 100% { opacity: 0; }
+    40%      { opacity: 1; }
+  }
+
+  /* レアリティラベル */
+  .rarity-label {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1.5px solid currentColor;
+    white-space: nowrap;
+    opacity: 0;
+    animation: rarity-fade 0.5s ease-out 0.4s forwards;
+  }
+  @keyframes rarity-fade {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ===== 簡約ステップ ===== */
+  .result-area {
+    width: 100%;
+    max-width: 520px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .formula-step {
+    font-size: clamp(17px, 4.2vw, 24px);
+    font-weight: 700;
+    color: var(--gold);
+    font-family: 'Cambria Math', 'STIX', Georgia, serif;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.45s, transform 0.45s;
+    text-align: center;
+  }
+  .formula-step.show { opacity: 1; transform: translateY(0); }
+  .formula-step.final {
+    font-size: clamp(26px, 6.5vw, 36px);
+    color: var(--gold-bright);
+    text-shadow: 0 0 24px rgba(255, 215, 100, 0.7);
+    margin-top: 4px;
+  }
+
+  /* ===== 入力 ===== */
+  .input-area {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px;
+    border: 1px solid rgba(255, 215, 100, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .prompt {
+    text-align: center;
+    font-size: 13px;
+    color: #ddd;
+    letter-spacing: 0.04em;
+  }
+  .answer-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .root-wrap {
+    display: flex;
+    align-items: center;
+    font-family: 'Cambria Math', 'STIX', Georgia, serif;
+    font-size: 34px;
+    color: var(--gold);
+    padding: 0 4px;
+    font-weight: 700;
+  }
+  input[type="number"] {
+    flex: 1;
+    min-width: 70px;
+    font-size: 26px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 2px solid rgba(255, 215, 100, 0.3);
+    border-radius: 10px;
+    color: #fff;
+    padding: 6px 8px;
+    font-family: 'Cambria Math', 'STIX', Georgia, serif;
+    font-weight: 700;
+  }
+  input[type="number"]:focus { outline: none; border-color: var(--gold); }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+  .btn {
+    border: none;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dark));
+    color: #2a1a00;
+    font-weight: 900;
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(255, 215, 100, 0.45);
+    cursor: pointer;
+    letter-spacing: 3px;
+    font-family: inherit;
+    transition: transform 0.1s;
+    flex-shrink: 0;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .hint {
+    text-align: center;
+    font-size: 13px;
+    color: var(--error);
+    min-height: 16px;
+  }
+
+  /* ===== パーティクル ===== */
+  .particle {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .floating-points {
+    position: absolute;
+    color: var(--gold-bright);
+    font-size: 24px;
+    font-weight: 900;
+    pointer-events: none;
+    animation: float-up 1.5s ease-out forwards;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  @keyframes float-up {
+    0%   { opacity: 0; transform: translateY(0)   scale(0.5); }
+    20%  { opacity: 1; transform: translateY(-10px) scale(1.2); }
+    80%  { opacity: 1; transform: translateY(-60px) scale(1); }
+    100% { opacity: 0; transform: translateY(-90px) scale(0.9); }
+  }
+
+  /* ===== Result Screen ===== */
+  #resultScreen {
+    justify-content: flex-start;
+    padding-top: 18px;
+    overflow-y: auto;
+  }
+  .time-up {
+    font-size: clamp(34px, 9vw, 50px);
+    font-weight: 900;
+    color: var(--error);
+    text-shadow: 0 4px 0 #000, 0 0 24px rgba(255, 136, 102, 0.6);
+    letter-spacing: 4px;
+    animation: timeup-pop 0.6s ease-out;
+  }
+  @keyframes timeup-pop {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .result-stats {
+    width: 100%;
+    max-width: 440px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .result-stat {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+  }
+  .result-stat-label { font-size: 10px; opacity: 0.7; letter-spacing: 2px; }
+  .result-stat-value { font-size: 26px; font-weight: 900; color: var(--gold); margin-top: 2px; line-height: 1; font-variant-numeric: tabular-nums; }
+
+  .result-gems-section {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 10px;
+    border: 1px solid rgba(255, 215, 100, 0.2);
+  }
+  .result-section-label {
+    font-size: 11px;
+    color: #ccc;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .result-gems {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .result-gem-card {
+    aspect-ratio: 0.85;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .result-gem-card svg { width: 100%; height: 70%; }
+  .result-gem-card .gv {
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .result-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #999;
+    padding: 18px 0;
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  .total-block { text-align: center; margin-top: 4px; }
+  .total-label-text {
+    font-size: 11px;
+    color: #ccc;
+    letter-spacing: 3px;
+  }
+  .total-display {
+    font-size: clamp(36px, 9vw, 52px);
+    font-weight: 900;
+    color: var(--gold-bright);
+    text-shadow: 0 0 28px rgba(255, 215, 100, 0.55);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    margin-top: 2px;
+  }
+
+  /* ===== グリンピース ===== */
+  .peas-area {
+    width: 100%;
+    max-width: 440px;
+    background: linear-gradient(135deg, var(--pea-dark), #0f2a08);
+    border: 2px solid var(--pea-mid);
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 4px 22px rgba(93, 168, 44, 0.45);
+    margin-top: 4px;
+  }
+  .peas-label {
+    font-size: 12px;
+    color: #b5e88a;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .peas-count-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 6px 0;
+  }
+  .peas-count {
+    font-size: clamp(50px, 14vw, 72px);
+    font-weight: 900;
+    color: var(--pea-light);
+    text-shadow: 0 0 22px rgba(196, 240, 112, 0.6), 0 4px 0 #1a3a0a;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .peas-icon { font-size: 40px; line-height: 1; }
+  .peas-unit {
+    font-size: 13px;
+    color: #b5e88a;
+    letter-spacing: 3px;
+    margin-top: 2px;
+    font-weight: 700;
+  }
+  .peas-rank {
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+    margin-top: 10px;
+    padding: 6px 18px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 999px;
+    display: inline-block;
+    letter-spacing: 2px;
+  }
+
+  .retry-btn {
+    border: none;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dark));
+    color: #2a1a00;
+    font-weight: 900;
+    font-size: 18px;
+    padding: 14px 40px;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(255, 215, 100, 0.5);
+    cursor: pointer;
+    letter-spacing: 4px;
+    font-family: inherit;
+    margin-top: 8px;
+  }
+  .retry-btn:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<!-- ===== タイトル ===== -->
+<div class="screen active" id="titleScreen">
+  <div class="title-emoji-big">💎</div>
+  <div class="title-name">ルートの宝石</div>
+  <div class="title-tag">√n の中に隠れている平方数を見つけて、宝石を発掘しよう！レアな宝石ほど高価値。たくさん集めてグリンピースをゲット！</div>
+
+  <div class="difficulty-section">
+    <div class="section-title">難易度</div>
+    <div class="difficulty-buttons">
+      <button class="diff-btn active" data-diff="easy">
+        <div class="diff-icon">🌱</div>
+        <div class="diff-name">初級</div>
+        <div class="diff-range">√2 〜 √50</div>
+      </button>
+      <button class="diff-btn" data-diff="medium">
+        <div class="diff-icon">⚡</div>
+        <div class="diff-name">中級</div>
+        <div class="diff-range">√51 〜 √120</div>
+      </button>
+      <button class="diff-btn" data-diff="hard">
+        <div class="diff-icon">🔥</div>
+        <div class="diff-name">難関</div>
+        <div class="diff-range">√121 〜 √200</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="mode-grid">
+    <button class="mode-card" data-mode="practice">
+      <div class="mode-card-icon">🌱</div>
+      <div class="mode-card-name">練習</div>
+      <div class="mode-card-sub">時間制限なし</div>
+    </button>
+    <button class="mode-card" data-mode="timeattack">
+      <div class="mode-card-icon">⏱️</div>
+      <div class="mode-card-name">タイムアタック</div>
+      <div class="mode-card-sub">全問題をクリアするまでのタイムを計測！</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="screen" id="gameScreen">
+  <div class="topbar">
+    <button class="back-btn" onclick="returnToTitle()">← やめる</button>
+    <div class="title-bar">💎 ルートの宝石</div>
+    <div class="placeholder"></div>
+  </div>
+
+  <div class="hud" id="hud">
+    <div class="stat">
+      <div class="label">スコア</div>
+      <div class="value" id="scoreVal">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">れんぞく</div>
+      <div class="value" id="streakVal">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">もんだい</div>
+      <div class="value" id="problemNumVal">1</div>
+    </div>
+    <div class="stat timer-stat" id="timerStat" style="display:none;">
+      <div class="label">TIME</div>
+      <div class="value" id="timerVal">0.0</div>
+    </div>
+  </div>
+
+  <div class="gem-strip">
+    <div class="strip-header">
+      <span>💎 集めた宝石</span>
+      <span>合計 <span class="total-yen" id="totalValueLive">0</span> 円</span>
+    </div>
+    <div class="strip-content" id="stripContent"></div>
+  </div>
+
+  <div class="stone-area" id="stoneArea">
+    <div class="stone" id="stone">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="stoneGrad" x1="0" y1="0" x2="0.6" y2="1">
+            <stop offset="0"   stop-color="#9d8e76"/>
+            <stop offset="0.5" stop-color="#5a4d3f"/>
+            <stop offset="1"   stop-color="#2a1f12"/>
+          </linearGradient>
+        </defs>
+        <polygon points="100,15 142,22 175,52 188,100 178,158 132,186 80,192 38,170 12,128 18,72 50,28 80,18"
+                 fill="url(#stoneGrad)" stroke="#1a1208" stroke-width="3" stroke-linejoin="round"/>
+        <polygon points="100,15 142,22 175,52 100,90 50,28 80,18" fill="rgba(255,255,255,0.14)"/>
+        <path d="M 60,80 L 90,110 L 78,142" stroke="rgba(0,0,0,0.3)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <path d="M 140,100 L 122,130" stroke="rgba(0,0,0,0.25)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="formula">√<span id="radicand">75</span></div>
+    </div>
+    <div class="gem" id="gem"></div>
+  </div>
+
+  <div class="result-area" id="resultArea"></div>
+
+  <div class="input-area" id="inputArea">
+    <div class="prompt">中に隠れている平方数は？</div>
+    <div class="answer-row">
+      <div class="root-wrap">√</div>
+      <input type="number" id="answerInput" placeholder="例: 25" inputmode="numeric" min="0">
+      <button class="btn" id="actionBtn">割る！</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<!-- ===== リザルト画面 ===== -->
+<div class="screen" id="resultScreen">
+  <div class="time-up" id="resultTitle">🎉 ALL CLEAR!</div>
+
+  <!-- タイムアタック専用: 全問クリアタイム -->
+  <div id="rsTimeBlock" style="display:none;text-align:center;margin:0.5rem 0 1rem">
+    <div style="font-size:0.85rem;color:#fff;opacity:0.8;letter-spacing:2px">CLEAR TIME</div>
+    <div id="rsTime" style="font-size:clamp(40px,9vw,72px);font-weight:900;color:#ffdd5a;font-family:'Consolas','Menlo',monospace;letter-spacing:4px;text-shadow:0 4px 16px rgba(255,221,90,0.5)">0.0秒</div>
+    <div id="rsBest" style="display:none;background:linear-gradient(135deg,#ffd56a,#ff8a2a);color:#2a1810;padding:6px 18px;border-radius:999px;font-weight:900;letter-spacing:2px;font-size:0.9rem;display:inline-block;margin-top:6px"></div>
+  </div>
+
+  <div class="result-stats">
+    <div class="result-stat">
+      <div class="result-stat-label">問題数</div>
+      <div class="result-stat-value" id="rsTotal">0</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-label">せいかい</div>
+      <div class="result-stat-value" id="rsCorrect">0</div>
+    </div>
+  </div>
+
+  <div class="result-gems-section">
+    <div class="result-section-label">💎 集めた宝石コレクション 💎</div>
+    <div class="result-gems" id="resultGems"></div>
+  </div>
+
+  <div class="total-block">
+    <div class="total-label-text">合計金額</div>
+    <div class="total-display">¥<span id="totalYen">0</span></div>
+  </div>
+
+  <div class="peas-area">
+    <div class="peas-label">🫛 グリンピース獲得！ 🫛</div>
+    <div class="peas-count-row">
+      <div class="peas-count" id="peasCount">0</div>
+      <div class="peas-icon">🫛</div>
+    </div>
+    <div class="peas-unit">グリンピース</div>
+    <div class="peas-rank" id="peasRank">🐣 グリンピースの卵</div>
+  </div>
+
+  <button class="retry-btn" onclick="returnToTitle()">もう一度やる</button>
+</div>
+
+<script>
+// ===== レアリティ定義 =====
+const TIER_DEFS = [
+  { tier: 1, name: 'エメラルド',  value: 100,  color: { core: '#33dd88', light: '#88ffbb', shadow: '#117755' } },
+  { tier: 2, name: 'サファイア',  value: 300,  color: { core: '#5588ff', light: '#aabbff', shadow: '#2244aa' } },
+  { tier: 3, name: 'アメジスト',  value: 800,  color: { core: '#cc66ff', light: '#dd99ff', shadow: '#7733aa' } },
+  { tier: 4, name: 'トパーズ',    value: 2000, color: { core: '#ffbb33', light: '#ffeb99', shadow: '#aa7700' } },
+  { tier: 5, name: 'ルビー',      value: 5000, color: { core: '#ff5566', light: '#ffaabb', shadow: '#aa1133' } },
+];
+
+function getTierForHiddenSquare(hiddenSquare) {
+  if (hiddenSquare <= 4)   return TIER_DEFS[0];
+  if (hiddenSquare <= 16)  return TIER_DEFS[1];
+  if (hiddenSquare <= 36)  return TIER_DEFS[2];
+  if (hiddenSquare <= 81)  return TIER_DEFS[3];
+  return TIER_DEFS[4];
+}
+
+// ===== 出題候補生成 =====
+function generateCandidates() {
+  const list = [];
+  for (let n = 2; n <= 200; n++) {
+    let maxSq = 1;
+    for (let k = 2; k * k <= n; k++) {
+      if (n % (k * k) === 0) maxSq = k * k;
+    }
+    if (maxSq > 1) {
+      const rad = n / maxSq;
+      if (rad > 1) {  // 完全平方数は除外
+        list.push({ n, hiddenSquare: maxSq, coef: Math.sqrt(maxSq), rad });
+      }
+    }
+  }
+  return list;
+}
+
+const ALL = generateCandidates();
+const RECENT_MEM = 5;
+
+// ===== 難易度範囲 =====
+const DIFFICULTY_RANGES = {
+  easy:   { min: 2,   max: 50,  label: '初級' },
+  medium: { min: 51,  max: 120, label: '中級' },
+  hard:   { min: 121, max: 200, label: '難関' },
+};
+
+// ===== 状態 =====
+let gameMode = 'practice'; // 'practice' | 'timeattack'
+let selectedDifficulty = 'easy'; // 'easy' | 'medium' | 'hard'
+let timerInterval = null;
+let elapsedTime = 0;       // タイムアタック: 経過秒数(カウントアップ)
+let taStartedAt = 0;       // タイムアタック開始時刻(performance.now())
+let problemQueue = [];     // タイムアタック: 残り出題キュー(全問シャッフル)
+let totalProblems = 0;     // タイムアタックの全問題数
+let usedRecent = [];
+let score = 0;
+let streak = 0;
+let problemNum = 1;
+let correctCount = 0;
+let wrongCount = 0;
+let current = null;
+let currentTier = null;
+let collected = []; // [{ tier, color, value, problem, svgHtml }]
+
+// 要素参照
+const titleScreen = document.getElementById('titleScreen');
+const gameScreen  = document.getElementById('gameScreen');
+const resultScreen= document.getElementById('resultScreen');
+const modeCards   = document.querySelectorAll('.mode-card');
+const diffButtons = document.querySelectorAll('.diff-btn');
+const hudEl       = document.getElementById('hud');
+const timerStat   = document.getElementById('timerStat');
+const timerVal    = document.getElementById('timerVal');
+const stripContent= document.getElementById('stripContent');
+const totalValueLive = document.getElementById('totalValueLive');
+const radicandEl  = document.getElementById('radicand');
+const inputEl     = document.getElementById('answerInput');
+const actionBtn   = document.getElementById('actionBtn');
+const stoneEl     = document.getElementById('stone');
+const stoneArea   = document.getElementById('stoneArea');
+const gemEl       = document.getElementById('gem');
+const resultArea  = document.getElementById('resultArea');
+const hintEl      = document.getElementById('hint');
+const scoreVal    = document.getElementById('scoreVal');
+const streakVal   = document.getElementById('streakVal');
+const problemNumVal = document.getElementById('problemNumVal');
+
+// ===== 画面切替 =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function returnToTitle() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  modeCards.forEach(c => c.classList.remove('selected'));
+  showScreen('titleScreen');
+}
+
+// ===== タイトル =====
+modeCards.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+    // 練習・タイムアタック どちらも即スタート(難易度は別途選択済み)
+    startGame(mode);
+  });
+});
+
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDifficulty = btn.dataset.diff;
+  });
+});
+
+// ===== ゲーム開始 =====
+function startGame(mode) {
+  gameMode = mode;
+  // リセット
+  score = 0;
+  streak = 0;
+  problemNum = 1;
+  correctCount = 0;
+  wrongCount = 0;
+  collected = [];
+  usedRecent = [];
+  stripContent.innerHTML = '';
+  totalValueLive.textContent = '0';
+  scoreVal.textContent = '0';
+  streakVal.textContent = '0';
+  problemNumVal.textContent = '1';
+  timerStat.classList.remove('danger');
+
+  if (mode === 'timeattack') {
+    // 難易度内の全問題をシャッフルしてキューに
+    const range = DIFFICULTY_RANGES[selectedDifficulty];
+    const pool = ALL.filter(p => p.n >= range.min && p.n <= range.max);
+    problemQueue = shuffleArr(pool.slice());
+    totalProblems = problemQueue.length;
+    elapsedTime = 0;
+    taStartedAt = performance.now();
+    timerStat.style.display = '';
+    hudEl.classList.add('with-timer');
+    updateTimerDisplay();
+    startTimer();
+  } else {
+    problemQueue = [];
+    totalProblems = 0;
+    timerStat.style.display = 'none';
+    hudEl.classList.remove('with-timer');
+  }
+
+  showScreen('gameScreen');
+  showProblem();
+}
+
+// Fisher-Yates シャッフル
+function shuffleArr(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ===== タイマー(タイムアタック: カウントアップ) =====
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsedTime = (performance.now() - taStartedAt) / 1000;
+    updateTimerDisplay();
+  }, 100);
+}
+
+function updateTimerDisplay() {
+  timerVal.textContent = elapsedTime.toFixed(1);
+}
+
+function endTimeAttack() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  // 最終タイムを確定
+  elapsedTime = (performance.now() - taStartedAt) / 1000;
+  inputEl.disabled = true;
+  actionBtn.disabled = true;
+  setTimeout(() => showResultScreen(), 600);
+}
+
+// ===== 出題 =====
+function pickProblem() {
+  // タイムアタック: キューから順に出題
+  if (gameMode === 'timeattack') {
+    return problemQueue.shift();
+  }
+  // 練習: ランダム出題(直近の重複避け)
+  const range = DIFFICULTY_RANGES[selectedDifficulty];
+  const pool = ALL.filter(p => p.n >= range.min && p.n <= range.max);
+  const effective = pool.length > 0 ? pool : ALL;
+  let p, tries = 0;
+  do {
+    p = effective[Math.floor(Math.random() * effective.length)];
+    tries++;
+  } while (usedRecent.includes(p.n) && tries < 50);
+  usedRecent.push(p.n);
+  if (usedRecent.length > RECENT_MEM) usedRecent.shift();
+  return p;
+}
+
+function showProblem() {
+  current = pickProblem();
+  currentTier = getTierForHiddenSquare(current.hiddenSquare);
+  radicandEl.textContent = current.n;
+  inputEl.value = '';
+  hintEl.textContent = '';
+  resultArea.innerHTML = '';
+  stoneEl.style.display = '';
+  stoneEl.className = 'stone';
+  gemEl.className = 'gem';
+  gemEl.innerHTML = '';
+  inputEl.disabled = false;
+  actionBtn.disabled = false;
+  actionBtn.textContent = '割る！';
+  actionBtn.onclick = onCheck;
+  problemNumVal.textContent = problemNum;
+  setTimeout(() => inputEl.focus(), 60);
+}
+
+function isPerfectSquare(num) {
+  if (num < 1) return false;
+  const s = Math.sqrt(num);
+  return s === Math.floor(s);
+}
+
+// ===== 判定 =====
+function onCheck() {
+  const val = parseInt(inputEl.value, 10);
+  if (isNaN(val)) {
+    hintEl.textContent = '数字を入れてね';
+    return;
+  }
+  if (val === current.hiddenSquare) {
+    handleCorrect();
+    return;
+  }
+  if (!isPerfectSquare(val)) {
+    hintEl.textContent = '平方数 (4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196) から選ぼう';
+  } else if (current.n % val !== 0) {
+    hintEl.textContent = `${current.n} は ${val} で割り切れないよ`;
+  } else if (val < current.hiddenSquare) {
+    hintEl.textContent = 'おしい！もっと大きい平方数が隠れているよ';
+  } else {
+    hintEl.textContent = 'ちょっと違うみたい…';
+  }
+  wobbleStone();
+  resetStreak();
+  wrongCount++;
+}
+
+function wobbleStone() {
+  stoneEl.classList.add('shake');
+  setTimeout(() => stoneEl.classList.remove('shake'), 500);
+  playWrong();
+}
+
+function resetStreak() {
+  streak = 0;
+  streakVal.textContent = streak;
+}
+
+// ===== 正解時 =====
+function handleCorrect() {
+  inputEl.disabled = true;
+  actionBtn.disabled = true;
+  hintEl.textContent = '';
+
+  const bonus = streak * 2;
+  const gained = 10 + bonus;
+  score += gained;
+  streak += 1;
+  correctCount += 1;
+  scoreVal.textContent = score;
+  streakVal.textContent = streak;
+  showFloatingPoints(`+${gained}`);
+
+  stoneEl.classList.add('cracking');
+  spawnSparkles();
+  playCorrect();
+
+  setTimeout(() => showGem(), 600);
+  setTimeout(() => collectGem(), 1100);
+  setTimeout(() => showFormulaSteps(), 1300);
+
+  // 簡約アニメ完了後に「次へ」ボタンを表示
+  setTimeout(() => {
+    // タイムアタックで全問クリアした場合は「ゴール!」ボタン
+    if (gameMode === 'timeattack' && problemQueue.length === 0) {
+      actionBtn.disabled = false;
+      actionBtn.textContent = '🏁 ゴール!';
+      actionBtn.onclick = endTimeAttack;
+      return;
+    }
+    actionBtn.disabled = false;
+    actionBtn.textContent = '次へ →';
+    actionBtn.onclick = goNext;
+  }, 3500);
+}
+
+function goNext() {
+  problemNum += 1;
+  showProblem();
+}
+
+// ===== 宝石 SVG 生成 (共通) =====
+function buildGemSvg(color, gid) {
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="${color.light}"/>
+        <stop offset="0.5" stop-color="${color.core}"/>
+        <stop offset="1"   stop-color="${color.shadow}"/>
+      </linearGradient>
+    </defs>
+    <polygon points="100,18 165,80 145,180 55,180 35,80"
+             fill="url(#${gid})" stroke="${color.shadow}" stroke-width="2.5" stroke-linejoin="round"/>
+    <polygon points="100,18 165,80 100,92 35,80" fill="rgba(255,255,255,0.5)"/>
+    <polygon points="100,18 100,92 35,80" fill="rgba(255,255,255,0.3)"/>
+    <polygon points="35,80 100,92 55,180" fill="rgba(0,0,0,0.18)"/>
+    <polygon points="100,92 165,80 145,180" fill="rgba(0,0,0,0.1)"/>
+    <line x1="100" y1="92" x2="55"  y2="180" stroke="${color.shadow}" stroke-width="1.4" opacity="0.55"/>
+    <line x1="100" y1="92" x2="145" y2="180" stroke="${color.shadow}" stroke-width="1.4" opacity="0.55"/>
+    <line x1="100" y1="92" x2="100" y2="180" stroke="${color.shadow}" stroke-width="1.1" opacity="0.4"/>
+  </svg>`;
+}
+
+// ===== 宝石登場 (石の中心) =====
+function showGem() {
+  if (!currentTier) return;
+  const c = currentTier.color;
+  const gid = 'gg' + (problemNum * 1000 + Math.floor(performance.now()) % 1000);
+  gemEl.innerHTML = buildGemSvg(c, gid)
+    + `<div class="rarity-label" style="color:${c.light}">${currentTier.name} ¥${currentTier.value.toLocaleString()}</div>`;
+  gemEl.classList.add('show');
+}
+
+// ===== 宝石をコレクションに追加 =====
+function collectGem() {
+  if (!currentTier || !current) return;
+  const c = currentTier.color;
+  const gid = 'gs' + collected.length;
+  const svgHtml = buildGemSvg(c, gid);
+
+  collected.push({
+    tier: currentTier.tier,
+    tierName: currentTier.name,
+    color: c,
+    value: currentTier.value,
+    problem: { n: current.n, hidden: current.hiddenSquare, coef: current.coef, rad: current.rad },
+    svgHtml
+  });
+
+  const div = document.createElement('div');
+  div.className = 'strip-gem';
+  div.innerHTML = svgHtml;
+  div.title = `√${current.n} → ${currentTier.name} ¥${currentTier.value.toLocaleString()}`;
+  stripContent.appendChild(div);
+  // 右端まで自動スクロール
+  stripContent.scrollLeft = stripContent.scrollWidth;
+
+  const total = collected.reduce((s, g) => s + g.value, 0);
+  totalValueLive.textContent = total.toLocaleString();
+}
+
+// ===== 簡約ステップ =====
+function showFormulaSteps() {
+  const p = current;
+  const steps = [
+    `√${p.n}`,
+    `= √(${p.hiddenSquare} × ${p.rad})`,
+    `= √${p.hiddenSquare} × √${p.rad}`,
+    `= ${p.coef}√${p.rad}`,
+  ];
+  steps.forEach((text, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'formula-step' + (i === steps.length - 1 ? ' final' : '');
+      div.textContent = text;
+      resultArea.appendChild(div);
+      requestAnimationFrame(() => div.classList.add('show'));
+      if (i === steps.length - 1) playFinal();
+    }, i * 500);
+  });
+}
+
+// ===== エフェクト =====
+function spawnSparkles() {
+  const rect = stoneArea.getBoundingClientRect();
+  for (let i = 0; i < 24; i++) {
+    const s = document.createElement('div');
+    s.className = 'particle';
+    s.style.background = ['#ffd966', '#ffeb99', '#ffaa33', '#ffffff'][Math.floor(Math.random() * 4)];
+    s.style.boxShadow = '0 0 8px currentColor';
+    s.style.left = (rect.width / 2) + 'px';
+    s.style.top  = (rect.height / 2) + 'px';
+    stoneArea.appendChild(s);
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 100 + Math.random() * 200;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 80;
+    const grav = 380;
+    const dur = 1000;
+    const start = performance.now();
+    function step(now) {
+      const t = (now - start) / 1000;
+      const tn = (now - start) / dur;
+      if (tn >= 1) { s.remove(); return; }
+      const tx = vx * t;
+      const ty = vy * t + 0.5 * grav * t * t;
+      s.style.transform = `translate(${tx}px, ${ty}px)`;
+      s.style.opacity = String(1 - tn);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+}
+
+function showFloatingPoints(text) {
+  const fp = document.createElement('div');
+  fp.className = 'floating-points';
+  fp.textContent = text;
+  const rect = stoneArea.getBoundingClientRect();
+  fp.style.left = (rect.width / 2 - 30) + 'px';
+  fp.style.top  = '0px';
+  stoneArea.appendChild(fp);
+  setTimeout(() => fp.remove(), 1500);
+}
+
+// ===== 効果音 =====
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, vol, type, startOffset) {
+  try { ensureAudio(); } catch(_) { return; }
+  const ctx = audioCtx;
+  const now = ctx.currentTime + (startOffset || 0);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(vol || 0.12, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + dur + 0.05);
+}
+function playCorrect() {
+  tone(523, 0.20, 0.15, 'sine', 0);
+  tone(659, 0.25, 0.13, 'sine', 0.08);
+  tone(784, 0.30, 0.13, 'sine', 0.16);
+}
+function playWrong() {
+  try { ensureAudio(); } catch(_) { return; }
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(200, now);
+  osc.frequency.linearRampToValueAtTime(80, now + 0.3);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.10, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.5);
+}
+function playFinal() {
+  tone(1047, 0.40, 0.14, 'sine', 0);
+  tone(1319, 0.50, 0.12, 'sine', 0.10);
+}
+function playFanfare() {
+  tone(523, 0.30, 0.16, 'sine', 0);
+  tone(659, 0.30, 0.14, 'sine', 0.12);
+  tone(784, 0.30, 0.14, 'sine', 0.24);
+  tone(1047, 0.60, 0.18, 'sine', 0.36);
+}
+
+// ===== リザルト画面 =====
+function showResultScreen() {
+  const total = collected.reduce((s, g) => s + g.value, 0);
+  const peas = Math.floor(total / 100);
+
+  // タイトル / タイム表示の出し分け
+  const isTA = (gameMode === 'timeattack');
+  document.getElementById('resultTitle').textContent = isTA ? '🏁 ALL CLEAR!' : '🌱 おつかれさま！';
+  const timeBlock = document.getElementById('rsTimeBlock');
+  const bestEl    = document.getElementById('rsBest');
+  if (isTA) {
+    timeBlock.style.display = 'block';
+    document.getElementById('rsTime').textContent = elapsedTime.toFixed(1) + '秒';
+    // 自己ベスト判定(難易度ごとに localStorage 保存)
+    const key = `ルートの宝石_ベスト_${selectedDifficulty}`;
+    const prev = parseFloat(localStorage.getItem(key) || 'Infinity');
+    if (elapsedTime < prev) {
+      localStorage.setItem(key, String(elapsedTime));
+      bestEl.style.display = 'inline-block';
+      bestEl.textContent = isFinite(prev)
+        ? `🏅 自己ベスト更新! (前 ${prev.toFixed(1)}秒)`
+        : '🏅 初クリア!';
+    } else {
+      bestEl.style.display = 'inline-block';
+      bestEl.textContent = `🏅 自己ベスト: ${prev.toFixed(1)}秒`;
+      bestEl.style.background = 'rgba(255,255,255,0.1)';
+      bestEl.style.color = '#fff';
+    }
+  } else {
+    timeBlock.style.display = 'none';
+  }
+
+  // 出題された問題数 = problemNum (今表示中のものも含む)
+  document.getElementById('rsTotal').textContent = isTA ? totalProblems : problemNum;
+  document.getElementById('rsCorrect').textContent = correctCount;
+
+  // 宝石グリッド
+  const grid = document.getElementById('resultGems');
+  grid.innerHTML = '';
+  if (collected.length === 0) {
+    grid.innerHTML = '<div class="result-empty">宝石はまだ集まっていません…</div>';
+  } else {
+    // 価値の高い順にソート
+    const sorted = collected.slice().sort((a, b) => b.value - a.value);
+    sorted.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'result-gem-card';
+      card.title = `√${g.problem.n} = ${g.problem.coef}√${g.problem.rad} (${g.tierName})`;
+      card.innerHTML = g.svgHtml + `<div class="gv">¥${g.value.toLocaleString()}</div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  // 合計
+  animateCountTo('totalYen', total, 1500, true);
+
+  // グリンピース
+  setTimeout(() => {
+    animateCountTo('peasCount', peas, 1300, false);
+    playFanfare();
+  }, 600);
+
+  // ランク
+  document.getElementById('peasRank').textContent = getRank(peas);
+
+  showScreen('resultScreen');
+}
+
+function getRank(peas) {
+  if (peas >= 300) return '👑 グリンピース神';
+  if (peas >= 150) return '🌟 グリンピース達人';
+  if (peas >= 70)  return '🌿 グリンピース中堅';
+  if (peas >= 30)  return '🌱 グリンピース見習い';
+  if (peas >= 10)  return '🥚 グリンピース新人';
+  return '🐣 グリンピースの卵';
+}
+
+function animateCountTo(elementId, target, duration, formatComma) {
+  const el = document.getElementById(elementId);
+  const startTime = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = Math.floor(target * eased);
+    el.textContent = formatComma ? value.toLocaleString() : value;
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = formatComma ? target.toLocaleString() : target;
+  }
+  requestAnimationFrame(step);
+}
+
+// ===== Enter キー =====
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (gameScreen.classList.contains('active')) {
+      if (!actionBtn.disabled) actionBtn.click();
+    } else if (resultScreen.classList.contains('active')) {
+      returnToTitle();
+    } else if (titleScreen.classList.contains('active')) {
+      // タイトルでは Enter は何もしない (モード選択を強制)
+    }
+  }
+});
+</script>
+</body>
+</html>
