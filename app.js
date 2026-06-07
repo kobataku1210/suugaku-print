@@ -1337,26 +1337,72 @@ function handleChapterClick(e, el, idx) {
 // ===== 節一覧 =====
 function renderSections() {
   const ch = mathData.chapters[state.chapterIdx];
-  const cards = ch.sections.length > 0
-    ? ch.sections.map((sec, i) => {
-        // 節レベルの draft（プレビューモードでは無視して全て見せる）
-        const isSecDraft = !!sec.draft && !PREVIEW_MODE;
-        const doneCount = LEVELS.filter((_, li) => isLevelDone(state.chapterIdx, i, li)).length;
-        let badge = '';
-        if (isSecDraft) {
-          badge = `<span class="sec-coming-badge">準備中</span>`;
-        } else if (doneCount === 3) {
-          badge = `<span class="sec-done-badge">全クリア 🌱×6</span>`;
-        } else if (doneCount > 0) {
-          badge = `<span class="sec-progress-badge">${doneCount}/3 クリア</span>`;
+
+  // 連続する同じ group.id をまとめる
+  const items = [];
+  {
+    let i = 0;
+    while (i < ch.sections.length) {
+      const sec = ch.sections[i];
+      if (sec.group && sec.group.id) {
+        const gid = sec.group.id;
+        const members = [];
+        let j = i;
+        while (j < ch.sections.length && ch.sections[j].group && ch.sections[j].group.id === gid) {
+          members.push({ sec: ch.sections[j], idx: j });
+          j++;
         }
-        return `
-          <div class="section-card${isSecDraft ? ' draft' : ''}" style="--gradient:${ch.gradient}"
-               onclick="handleSectionClick(event,this,${i})">
-            <div class="sec-badge">${String(i+1).padStart(2,'0')}</div>
-            <div class="sec-title">${sec.title}<br>${badge}</div>
-            <div class="sec-arrow">›</div>
-          </div>`;
+        items.push({ type: 'group', groupTitle: sec.group.title, members });
+        i = j;
+      } else {
+        items.push({ type: 'single', sec, idx: i });
+        i++;
+      }
+    }
+  }
+
+  const cards = items.length > 0
+    ? items.map((it, n) => {
+        const num = String(n+1).padStart(2,'0');
+        if (it.type === 'single') {
+          const sec = it.sec;
+          const i   = it.idx;
+          const isSecDraft = !!sec.draft && !PREVIEW_MODE;
+          const doneCount = LEVELS.filter((_, li) => isLevelDone(state.chapterIdx, i, li)).length;
+          let badge = '';
+          if (isSecDraft) badge = `<span class="sec-coming-badge">準備中</span>`;
+          else if (doneCount === 3) badge = `<span class="sec-done-badge">全クリア 🌱×6</span>`;
+          else if (doneCount > 0)  badge = `<span class="sec-progress-badge">${doneCount}/3 クリア</span>`;
+          return `
+            <div class="section-card${isSecDraft ? ' draft' : ''}" style="--gradient:${ch.gradient}"
+                 onclick="handleSectionClick(event,this,${i})">
+              <div class="sec-badge">${num}</div>
+              <div class="sec-title">${sec.title}<br>${badge}</div>
+              <div class="sec-arrow">›</div>
+            </div>`;
+        } else {
+          // group card
+          const allDraft = it.members.every(m => !!m.sec.draft);
+          const isGroupDraft = allDraft && !PREVIEW_MODE;
+          // メンバーごとの基礎レベルクリアを数える（singleLevel 前提で 0 or 1）
+          let doneSubs = 0;
+          for (const m of it.members) {
+            if (isLevelDone(state.chapterIdx, m.idx, 0)) doneSubs++;
+          }
+          let badge = '';
+          if (isGroupDraft) badge = `<span class="sec-coming-badge">準備中</span>`;
+          else if (doneSubs === it.members.length) badge = `<span class="sec-done-badge">全クリア</span>`;
+          else if (doneSubs > 0) badge = `<span class="sec-progress-badge">${doneSubs}/${it.members.length} クリア</span>`;
+          const idxsAttr = it.members.map(m => m.idx).join(',');
+          const titleAttr = encodeURIComponent(it.groupTitle);
+          return `
+            <div class="section-card${isGroupDraft ? ' draft' : ''}" style="--gradient:${ch.gradient}"
+                 onclick="handleGroupClick(event,this,'${idxsAttr}','${titleAttr}')">
+              <div class="sec-badge">${num}</div>
+              <div class="sec-title">${it.groupTitle}<br>${badge}</div>
+              <div class="sec-arrow">›</div>
+            </div>`;
+        }
       }).join('')
     : `<div class="empty-state">
          <div class="empty-icon">🚧</div>
@@ -1377,6 +1423,66 @@ function handleSectionClick(e, el, idx) {
   const sec = ch.sections[idx];
   if (sec.draft && !PREVIEW_MODE) return; // draft の節は開けない
   setTimeout(() => navigate('difficulty', { sectionIdx: idx }), 180);
+}
+
+// ===== グループ節クリック =====
+function handleGroupClick(e, el, idxsStr, encodedTitle) {
+  addRipple(e, el);
+  const idxs = idxsStr.split(',').map(Number);
+  const ch = mathData.chapters[state.chapterIdx];
+  const allDraft = idxs.every(i => !!ch.sections[i].draft);
+  if (allDraft && !PREVIEW_MODE) return;
+  const title = decodeURIComponent(encodedTitle);
+  setTimeout(() => showGroupPicker(idxs, title), 180);
+}
+
+function showGroupPicker(idxs, title) {
+  // 既存のオーバーレイを除去
+  const existing = document.getElementById('group-picker-overlay');
+  if (existing) existing.remove();
+
+  const ch = mathData.chapters[state.chapterIdx];
+  const buttons = idxs.map(i => {
+    const sec = ch.sections[i];
+    const label = (sec.group && sec.group.label) || sec.title;
+    const isDraft = !!sec.draft && !PREVIEW_MODE;
+    const done = isLevelDone(state.chapterIdx, i, 0);
+    const stateText = isDraft ? '<span class="gp-coming">準備中</span>'
+                     : done    ? '<span class="gp-done">✓ クリア済み</span>'
+                     :           '<span class="gp-go">10問チャレンジ</span>';
+    return `<button class="gp-btn${isDraft ? ' gp-disabled' : ''}"
+             ${isDraft ? '' : `onclick="pickGroupSection(${i})"`}>
+              <span class="gp-label">${label}</span>
+              ${stateText}
+            </button>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'group-picker-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-card" id="group-picker-card">
+      <div class="modal-level" style="margin-bottom:0.3rem">${title}</div>
+      <p class="modal-desc">どちらに挑戦しますか？</p>
+      <div class="gp-list">${buttons}</div>
+      <div class="modal-btns" style="margin-top:0.8rem">
+        <button class="modal-btn-cancel" onclick="closeGroupPicker()">閉じる</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeGroupPicker(); });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+function pickGroupSection(idx) {
+  closeGroupPicker();
+  setTimeout(() => navigate('difficulty', { sectionIdx: idx }), 120);
+}
+
+function closeGroupPicker() {
+  const o = document.getElementById('group-picker-overlay');
+  if (o) o.remove();
 }
 
 // ===== 難易度選択 =====
