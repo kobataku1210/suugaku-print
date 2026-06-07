@@ -1663,15 +1663,17 @@ function renderDifficulty() {
 }
 
 function startQuiz(levelIdx) {
-  // この難易度の問題をシャッフルしてセッションに保存
+  // この難易度の問題をセッションに保存
   const ch = mathData.chapters[state.chapterIdx];
   const sec = ch.sections[state.sectionIdx];
   const lv = LEVELS[levelIdx];
   const src = (sec[lv.key] || []).slice();
-  // Fisher-Yates シャッフル
-  for (let i = src.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [src[i], src[j]] = [src[j], src[i]];
+  // inOrder=true の節は JSON の順番のまま、それ以外は Fisher-Yates シャッフル
+  if (!sec.inOrder) {
+    for (let i = src.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [src[i], src[j]] = [src[j], src[i]];
+    }
   }
   state.quizShuffled = src;
   navigate('quiz', { quizLevelIdx: levelIdx, quizQIdx: 0 });
