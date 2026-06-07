@@ -768,7 +768,7 @@
     <button class="mode-card" data-mode="timeattack">
       <div class="mode-card-icon">⏱️</div>
       <div class="mode-card-name">タイムアタック</div>
-      <div class="mode-card-sub">全問題をクリアするまでのタイムを計測！</div>
+      <div class="mode-card-sub">15問をクリアするまでのタイムを計測！</div>
     </button>
   </div>
 </div>
@@ -928,10 +928,12 @@ const RECENT_MEM = 5;
 
 // ===== 難易度範囲 =====
 const DIFFICULTY_RANGES = {
-  easy:   { min: 2,   max: 50,  label: '初級' },
-  medium: { min: 51,  max: 120, label: '中級' },
-  hard:   { min: 121, max: 200, label: '難関' },
+  easy:   { min: 2,   max: 60,  label: '初級' },
+  medium: { min: 61,  max: 130, label: '中級' },
+  hard:   { min: 131, max: 200, label: '難関' },
 };
+// タイムアタックは各レベル 15 問
+const TA_PROBLEMS_PER_GAME = 15;
 
 // ===== 状態 =====
 let gameMode = 'practice'; // 'practice' | 'timeattack'
@@ -1022,10 +1024,10 @@ function startGame(mode) {
   timerStat.classList.remove('danger');
 
   if (mode === 'timeattack') {
-    // 難易度内の全問題をシャッフルしてキューに
+    // 難易度内の問題プールから 15 問だけランダムに抽選
     const range = DIFFICULTY_RANGES[selectedDifficulty];
     const pool = ALL.filter(p => p.n >= range.min && p.n <= range.max);
-    problemQueue = shuffleArr(pool.slice());
+    problemQueue = shuffleArr(pool.slice()).slice(0, TA_PROBLEMS_PER_GAME);
     totalProblems = problemQueue.length;
     elapsedTime = 0;
     taStartedAt = performance.now();
