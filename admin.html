@@ -710,6 +710,7 @@
   <div class="page-tabs">
     <button class="page-tab active" id="page-tab-problems" onclick="switchPage('problems')">📝 問題編集</button>
     <button class="page-tab" id="page-tab-games" onclick="switchPage('games')">🎮 ゲーム管理</button>
+    <button class="page-tab" id="page-tab-tools" onclick="switchPage('tools')">🧰 ツール管理</button>
     <button class="page-tab" id="page-tab-news" onclick="switchPage('news')">📰 NEWS</button>
   </div>
 
@@ -920,6 +921,44 @@
     </div><!-- /game-pane-rootgem -->
   </div>
 
+  <!-- 🧰 ツール管理ページ -->
+  <div class="page-content hidden" id="page-tools">
+    <div class="admin-content" style="padding-top:1.5rem;">
+      <h3 style="color:#fff;font-size:1.1rem;letter-spacing:2px;margin:0 0 1rem 0;border-left:4px solid #00bcd4;padding-left:10px">
+        🧰 数学便利グッズ
+      </h3>
+
+      <!-- 素因数分解ヘルパー -->
+      <div class="game-pane" style="display:block">
+        <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+          <a href="tools/素因数分解ヘルパー.html" target="_blank" rel="noopener"
+             class="preview-game-btn">🔢 素因数分解ヘルパーを試す（新しいタブで開く）</a>
+          <div id="prime-factor-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+        </div>
+        <div style="padding:1rem 2rem;color:rgba(255,255,255,0.65);font-size:0.88rem;line-height:1.6;">
+          <p><b>素因数分解ヘルパー</b> は、生徒が小さい素数から順に割っていく素因数分解の練習ツールです。</p>
+          <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+            <li>例: 60 → ÷2 → 30 → ÷2 → 15 → ÷3 → 5 → ÷5 → 1 → <b>60 = 2² × 3 × 5</b></li>
+            <li>計算履歴を表示しながら、最終結果は指数形式で表示</li>
+            <li>正解・不正解にヒント、Enterキーで送信可</li>
+            <li>2〜9999 の整数を入力可能</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 因数分解アシスタント -->
+      <div class="game-pane" style="display:block;border-top:1px dashed rgba(255,255,255,0.15);margin-top:1.5rem">
+        <div style="padding:0.8rem 2rem 0;">
+          <a href="tools/因数分解アシスタント/index.html" target="_blank" rel="noopener"
+             class="preview-game-btn">🧩 因数分解アシスタントを試す（新しいタブで開く）</a>
+        </div>
+        <div style="padding:1rem 2rem;color:rgba(255,255,255,0.55);font-size:0.85rem;">
+          <p><b>因数分解アシスタント</b> は係数スライダーで因数分解を体験するツールです。常時公開中。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 📰 NEWS ページ -->
   <div class="page-content hidden" id="page-news">
     <div class="news-admin-section">
@@ -961,7 +1000,7 @@ let currentGameTab = localStorage.getItem('adminCurrentGameTab') || 'wall';
 function switchPage(name) {
   currentAdminPage = name;
   localStorage.setItem('adminCurrentPage', name);
-  ['problems', 'games', 'news'].forEach(p => {
+  ['problems', 'games', 'tools', 'news'].forEach(p => {
     const tab = document.getElementById('page-tab-' + p);
     const pane = document.getElementById('page-' + p);
     if (tab) tab.classList.toggle('active', p === name);
@@ -1276,6 +1315,7 @@ async function loadQuestions() {
   renderCmSqrtPublishBar();
   renderRootBreakPublishBar();
   renderNumSortPublishBar();
+  renderPrimeFactorPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1576,6 +1616,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'cardMatchSqrt') renderCmSqrtPublishBar();
   if (gameKey === 'rootBreak')     renderRootBreakPublishBar();
   if (gameKey === 'numSort')       renderNumSortPublishBar();
+  if (gameKey === 'primeFactor')   renderPrimeFactorPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1585,6 +1626,10 @@ function renderRootBreakPublishBar() {
 
 function renderNumSortPublishBar() {
   renderGamePublishBar('numSort', '数の分類ウォール', 'numsort-publish-bar');
+}
+
+function renderPrimeFactorPublishBar() {
+  renderGamePublishBar('primeFactor', '素因数分解ヘルパー', 'prime-factor-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画

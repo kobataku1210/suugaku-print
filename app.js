@@ -1314,17 +1314,32 @@ const TOOL_ITEMS = [
     onclick: "window.location.href='tools/素因数分解ヘルパー.html'",
     gradient: 'linear-gradient(135deg, #00bcd4, #006978)',
     isNew: true,
+    draftKey: 'primeFactor', // questions.json の gameDrafts で公開制御
   },
 ];
 function renderToolsPage() {
-  const cards = TOOL_ITEMS.map(t => `
-    <div class="game-card" style="--gradient:${t.gradient}"
+  // draftKey が指定されたツールは gameDrafts で非公開なら隠す(プレビュー時は表示)
+  function isToolDraft(t) {
+    if (t.draft) return true;
+    if (t.draftKey) {
+      const drafts = (mathData && mathData.gameDrafts) || {};
+      return drafts[t.draftKey] !== false;
+    }
+    return false;
+  }
+  const visibleTools = TOOL_ITEMS.filter(t => !isToolDraft(t) || PREVIEW_MODE);
+  const cards = visibleTools.map(t => {
+    const draft = isToolDraft(t);
+    const draftMark = draft ? '<span class="game-new-badge" style="background:#f7971e;color:#2a1a00">🚧下書き</span>' : '';
+    return `
+    <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${t.gradient}"
          onclick="${t.onclick}">
       <span class="game-card-icon">${t.icon}</span>
-      <div class="game-card-title">${t.title}${t.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}</div>
+      <div class="game-card-title">${t.title}${t.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
       <div class="game-card-desc">${t.desc}</div>
       <div class="game-card-cta">使う ›</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return `
     <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
     <div class="section-title">
