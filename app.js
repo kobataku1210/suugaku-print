@@ -1307,6 +1307,14 @@ const TOOL_ITEMS = [
     gradient: 'linear-gradient(135deg, #56ab2f, #a8e063)',
     isNew: true,
   },
+  {
+    title: '素因数分解ヘルパー',
+    desc: '12 ÷ 2 = 6 → 6 ÷ 2 = 3 → ... 小さい素数から順に割って、12 = 2² × 3 を完成!',
+    icon: '🔢',
+    onclick: "window.location.href='tools/素因数分解ヘルパー.html'",
+    gradient: 'linear-gradient(135deg, #00bcd4, #006978)',
+    isNew: true,
+  },
 ];
 function renderToolsPage() {
   const cards = TOOL_ITEMS.map(t => `
