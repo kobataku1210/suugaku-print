@@ -97,11 +97,16 @@
   }
 
   /* 作業画面 */
-  #work-screen { justify-content: flex-start; }
+  #work-screen {
+    justify-content: flex-start;
+    padding: 16px;
+    overflow-y: auto;
+  }
   .topbar {
-    width: 100%; max-width: 540px;
+    width: 100%; max-width: 900px;
     display: flex; align-items: center; gap: 12px;
     padding: 4px 0;
+    margin-bottom: 4px;
   }
   .topbar-title {
     flex: 1; text-align: center;
@@ -109,30 +114,85 @@
     color: #4dd0e1; letter-spacing: 2px;
   }
 
-  .current-box {
-    background: linear-gradient(180deg, #00bcd4, #006978);
-    border-radius: 18px;
-    padding: 14px 24px;
-    text-align: center;
-    box-shadow: 0 6px 20px rgba(0,188,212,0.5);
-    border: 3px solid #80deea;
-    animation: currentPop 0.3s ease-out;
+  /* 左右レイアウト */
+  .work-layout {
+    width: 100%; max-width: 900px;
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 2fr;
+    gap: 20px;
+    align-items: start;
   }
-  @keyframes currentPop {
-    0% { transform: scale(0.8); opacity: 0; }
+  @media (max-width: 640px) {
+    .work-layout { grid-template-columns: 1fr; }
+  }
+
+  /* 左: 数字の連鎖 */
+  .chain-section {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(0,188,212,0.2);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+  }
+  .chain-label {
+    font-size: 12px; color: #4dd0e1;
+    letter-spacing: 3px; font-weight: bold;
+    margin-bottom: 10px;
+    border-left: 3px solid #00bcd4;
+    padding-left: 6px;
+    text-align: left;
+  }
+  .chain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .chain-num {
+    font-size: clamp(36px, 7vw, 56px);
+    font-weight: 900;
+    color: #ddd;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(0,188,212,0.3);
+    border-radius: 14px;
+    padding: 6px 18px;
+    min-width: 90px;
+    text-align: center;
+    font-family: 'Cambria Math', serif;
+    line-height: 1.1;
+  }
+  .chain-num.current {
+    background: linear-gradient(180deg, #00bcd4, #006978);
+    border-color: #80deea;
+    color: #fff;
+    text-shadow: 0 3px 0 #006064, 0 6px 14px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 20px rgba(0,188,212,0.55);
+    animation: chainCurrentPop 0.35s ease-out;
+  }
+  @keyframes chainCurrentPop {
+    0% { transform: scale(0.7); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
   }
-  .current-label {
-    font-size: 12px; color: #b2ebf2;
-    letter-spacing: 3px; font-weight: bold;
+  .chain-arrow {
+    font-size: 14px;
+    color: #ffdd5a;
+    font-weight: bold;
+    letter-spacing: 1px;
   }
-  .current-num {
-    font-size: clamp(64px, 14vw, 96px);
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 3px 0 #006064, 0 6px 16px rgba(0,0,0,0.3);
-    line-height: 1.1;
+  .chain-arrow .chain-d {
+    color: #ffdd5a;
+    font-size: 1.2em;
     font-family: 'Cambria Math', serif;
+  }
+
+  /* 右: 作業エリア */
+  .work-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
   }
 
   .prompt {
@@ -145,6 +205,7 @@
     border-radius: 12px;
     padding: 12px 20px;
     line-height: 1.5;
+    width: 100%;
   }
   .prompt-num, .prompt-divisor {
     font-family: 'Cambria Math', serif;
@@ -172,44 +233,6 @@
     text-align: center;
   }
   .hint-msg.correct { color: #b2ff59; }
-
-  .history-section {
-    width: 100%; max-width: 540px;
-    margin-top: 8px;
-  }
-  .history-label {
-    font-size: 13px; color: #4dd0e1;
-    letter-spacing: 2px; font-weight: bold;
-    border-left: 4px solid #00bcd4;
-    padding-left: 8px;
-    margin-bottom: 6px;
-  }
-  .history {
-    background: rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 10px 16px;
-    min-height: 60px;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  .history-row {
-    color: #ddd;
-    font-family: 'Cambria Math', serif;
-    font-size: 18px;
-    padding: 4px 0;
-    border-bottom: 1px dashed rgba(255,255,255,0.1);
-  }
-  .history-row:last-child { border-bottom: none; }
-  .history-row .h-d {
-    color: #ffdd5a; font-weight: bold;
-  }
-  .history-row .h-q {
-    color: #b2ff59; font-weight: bold;
-  }
-  .history-empty {
-    color: #888; font-size: 13px;
-    text-align: center; padding: 12px;
-  }
 
   /* 結果画面 */
   .result-num {
@@ -286,33 +309,32 @@
       <div style="width:60px"></div>
     </div>
 
-    <div class="current-box" id="current-box">
-      <div class="current-label">いま割っている数</div>
-      <div class="current-num" id="current-num">―</div>
-    </div>
+    <div class="work-layout">
+      <!-- 左: 数字の連鎖 -->
+      <div class="chain-section">
+        <div class="chain-label">📈 数字の流れ</div>
+        <div class="chain" id="chain"></div>
+      </div>
 
-    <div class="prompt">
-      <span class="prompt-num" id="prompt-n">―</span>
-      を
-      <span class="prompt-divisor" id="prompt-d">―</span>
-      で割ろう!
-    </div>
+      <!-- 右: 作業エリア -->
+      <div class="work-section">
+        <div class="prompt">
+          <span class="prompt-num" id="prompt-n">―</span>
+          を
+          <span class="prompt-divisor" id="prompt-d">―</span>
+          で割ろう!
+        </div>
 
-    <div class="answer-row">
-      <span id="ans-n">―</span>
-      <span>÷</span>
-      <span id="ans-d">―</span>
-      <span>=</span>
-      <input type="number" id="answer-input" placeholder="?" inputmode="numeric">
-      <button class="btn" onclick="checkAnswer()">OK</button>
-    </div>
+        <div class="answer-row">
+          <span id="ans-n">―</span>
+          <span>÷</span>
+          <span id="ans-d">―</span>
+          <span>=</span>
+          <input type="number" id="answer-input" placeholder="?" inputmode="numeric">
+          <button class="btn" onclick="checkAnswer()">OK</button>
+        </div>
 
-    <div class="hint-msg" id="hint-msg"></div>
-
-    <div class="history-section">
-      <div class="history-label">📝 これまでの計算</div>
-      <div class="history" id="history">
-        <div class="history-empty">まだ何も計算していません</div>
+        <div class="hint-msg" id="hint-msg"></div>
       </div>
     </div>
   </div>
@@ -340,6 +362,7 @@ const STATE = {
   current: 0,
   divisor: 2,
   factors: [],
+  chain: [],   // [{ num, divisor }] divisor は num に至った除数(初期=null)
 };
 
 function showScreen(id) {
@@ -358,8 +381,8 @@ function startTool() {
   STATE.current = val;
   STATE.divisor = 2;
   STATE.factors = [];
-  document.getElementById('history').innerHTML =
-    '<div class="history-empty">まだ何も計算していません</div>';
+  STATE.chain = [{ num: val, divisor: null }];
+  renderChain();
   showScreen('work-screen');
   promptNext();
 }
@@ -372,6 +395,20 @@ function findSmallestPrimeFactor(n, startD) {
   return n; // n は素数
 }
 
+// ===== 数字の流れを描画 =====
+function renderChain() {
+  const el = document.getElementById('chain');
+  el.innerHTML = STATE.chain.map((item, i) => {
+    const isLast = i === STATE.chain.length - 1;
+    let html = '';
+    if (item.divisor != null) {
+      html += `<div class="chain-arrow">↓ ÷<span class="chain-d">${item.divisor}</span></div>`;
+    }
+    html += `<div class="chain-num${isLast ? ' current' : ''}">${item.num}</div>`;
+    return html;
+  }).join('');
+}
+
 // ===== 次のステップを表示 =====
 function promptNext() {
   if (STATE.current <= 1) {
@@ -379,12 +416,14 @@ function promptNext() {
     return;
   }
   const d = findSmallestPrimeFactor(STATE.current, STATE.divisor);
+  // 現在の数自身が素数 → 自動的に素因数に追加して終了
+  if (d === STATE.current) {
+    STATE.factors.push(STATE.current);
+    STATE.current = 1;
+    setTimeout(() => showResult(), 300);
+    return;
+  }
   STATE.divisor = d;
-  // ボックス更新
-  document.getElementById('current-num').textContent = STATE.current;
-  // ボックスの再アニメ
-  const box = document.getElementById('current-box');
-  box.style.animation = 'none'; void box.offsetWidth; box.style.animation = '';
   // プロンプト
   document.getElementById('prompt-n').textContent = STATE.current;
   document.getElementById('prompt-d').textContent = d;
@@ -408,9 +447,10 @@ function checkAnswer() {
   const expected = STATE.current / STATE.divisor;
   if (val === expected) {
     // 正解
-    addToHistory(STATE.current, STATE.divisor, val);
     STATE.factors.push(STATE.divisor);
+    STATE.chain.push({ num: val, divisor: STATE.divisor });
     STATE.current = val;
+    renderChain();
     hint.textContent = '✓ せいかい!';
     hint.classList.add('correct');
     setTimeout(() => {
@@ -423,21 +463,9 @@ function checkAnswer() {
   } else {
     hint.textContent = `❌ 違うよ! ${STATE.current} ÷ ${STATE.divisor} をもう一度計算してみよう`;
     hint.classList.remove('correct');
-    // 入力欄を選択して再入力しやすく
     const input = document.getElementById('answer-input');
     input.select();
   }
-}
-
-function addToHistory(n, d, q) {
-  const hist = document.getElementById('history');
-  const empty = hist.querySelector('.history-empty');
-  if (empty) empty.remove();
-  const row = document.createElement('div');
-  row.className = 'history-row';
-  row.innerHTML = `${n} ÷ <span class="h-d">${d}</span> = <span class="h-q">${q}</span>`;
-  hist.appendChild(row);
-  hist.scrollTop = hist.scrollHeight;
 }
 
 // ===== 結果表示 =====
@@ -460,8 +488,8 @@ function resetTool() {
   STATE.current = STATE.initial;
   STATE.divisor = 2;
   STATE.factors = [];
-  document.getElementById('history').innerHTML =
-    '<div class="history-empty">まだ何も計算していません</div>';
+  STATE.chain = [{ num: STATE.initial, divisor: null }];
+  renderChain();
   showScreen('work-screen');
   promptNext();
 }
