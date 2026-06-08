@@ -1368,11 +1368,18 @@ function renderSections() {
           const sec = it.sec;
           const i   = it.idx;
           const isSecDraft = !!sec.draft && !PREVIEW_MODE;
-          const doneCount = LEVELS.filter((_, li) => isLevelDone(state.chapterIdx, i, li)).length;
+          // 中身のあるレベルだけを対象に進捗を計算
+          const availableLevels = LEVELS.filter(lv => Array.isArray(sec[lv.key]) && sec[lv.key].length > 0);
+          const availableCount  = availableLevels.length;
+          const doneCount = availableLevels.filter(lv => {
+            const li = LEVELS.indexOf(lv);
+            return isLevelDone(state.chapterIdx, i, li);
+          }).length;
+          const totalPeas = availableLevels.reduce((s, lv) => s + (lv.peas || 0), 0);
           let badge = '';
           if (isSecDraft) badge = `<span class="sec-coming-badge">準備中</span>`;
-          else if (doneCount === 3) badge = `<span class="sec-done-badge">全クリア 🌱×6</span>`;
-          else if (doneCount > 0)  badge = `<span class="sec-progress-badge">${doneCount}/3 クリア</span>`;
+          else if (availableCount > 0 && doneCount === availableCount) badge = `<span class="sec-done-badge">全クリア 🌱×${totalPeas}</span>`;
+          else if (doneCount > 0)  badge = `<span class="sec-progress-badge">${doneCount}/${availableCount} クリア</span>`;
           return `
             <div class="section-card${isSecDraft ? ' draft' : ''}" style="--gradient:${ch.gradient}"
                  onclick="handleSectionClick(event,this,${i})">
@@ -1518,10 +1525,13 @@ function renderDifficulty() {
         <button class="diff-btn diff-btn-lv0">挑戦する！</button>
       </div>`;
   } else {
-  cards = LEVELS.map((lv, li) => {
+  // 中身のあるレベルだけ表示（例: advanced を作らない節）
+  const visibleLevels = LEVELS.map((lv, li) => ({ lv, li }))
+    .filter(({ lv }) => Array.isArray(sec[lv.key]) && sec[lv.key].length > 0);
+  cards = visibleLevels.map(({ lv, li }, displayIdx) => {
     const done     = isLevelDone(state.chapterIdx, state.sectionIdx, li);
     const unlocked = isLevelUnlocked(state.chapterIdx, state.sectionIdx, li);
-    const delay    = `animation-delay:${li * 0.08}s`;
+    const delay    = `animation-delay:${displayIdx * 0.08}s`;
     const peasStr  = '🌱'.repeat(lv.peas);
 
     if (!unlocked) {
