@@ -4128,6 +4128,7 @@
         {
           "title": "式の値",
           "teacherTime": null,
+          "showCalculator": true,
           "basic": [
             {
               "q": "√5 = 2.236 として √20 を求めよ",

@@ -1778,7 +1778,82 @@ function renderQuiz() {
       ${getBlankHint(q) ? `<div class="quiz-blank-hint"><span class="quiz-blank-hint-label">答えの形</span>${formatQuestion(getBlankHint(q))}</div>` : ''}
       ${answerArea}
       <div id="quiz-msg" class="quiz-msg"></div>
+    </div>
+    ${sec.showCalculator ? renderCalcWidget() : ''}`;
+}
+
+// ===== 電卓ウィジェット =====
+function renderCalcWidget() {
+  const keys = [
+    ['C','⌫','(',')'],
+    ['7','8','9','÷'],
+    ['4','5','6','×'],
+    ['1','2','3','−'],
+    ['0','.','=','＋'],
+  ];
+  return `
+    <div class="calc-widget" id="calc-widget">
+      <div class="calc-title">🔢 電卓</div>
+      <div class="calc-display" id="calc-display">0</div>
+      <div class="calc-keys">
+        ${keys.flat().map(k => {
+          const isOp = ['÷','×','−','＋'].includes(k);
+          const isEq = k === '=';
+          const isClr = k === 'C' || k === '⌫';
+          const cls = isEq ? 'calc-key calc-eq'
+                    : isOp ? 'calc-key calc-op'
+                    : isClr ? 'calc-key calc-clr'
+                    : 'calc-key';
+          return `<button type="button" class="${cls}" onclick="calcPress('${k}')">${k}</button>`;
+        }).join('')}
+      </div>
     </div>`;
+}
+
+// 電卓の内部状態（文字列式を保持）
+const _calc = { expr: '', justEvaluated: false };
+
+function calcPress(k) {
+  const disp = document.getElementById('calc-display');
+  if (!disp) return;
+  if (k === 'C') {
+    _calc.expr = '';
+    _calc.justEvaluated = false;
+  } else if (k === '⌫') {
+    if (_calc.justEvaluated) {
+      _calc.expr = '';
+      _calc.justEvaluated = false;
+    } else {
+      _calc.expr = _calc.expr.slice(0, -1);
+    }
+  } else if (k === '=') {
+    try {
+      let e = _calc.expr
+        .replace(/÷/g, '/')
+        .replace(/×/g, '*')
+        .replace(/−/g, '-')
+        .replace(/＋/g, '+');
+      // 数字・演算子・括弧・小数点のみ許可
+      if (!/^[0-9+\-*/().\s]*$/.test(e)) throw new Error('bad');
+      // eslint-disable-next-line no-new-func
+      const r = Function('"use strict";return (' + e + ')')();
+      if (typeof r !== 'number' || !isFinite(r)) throw new Error('nan');
+      // 表示は最大8桁
+      let s = (Math.round(r * 1e8) / 1e8).toString();
+      _calc.expr = s;
+      _calc.justEvaluated = true;
+    } catch (err) {
+      _calc.expr = 'Error';
+      _calc.justEvaluated = true;
+    }
+  } else {
+    if (_calc.justEvaluated && /[0-9.]/.test(k)) {
+      _calc.expr = '';
+    }
+    _calc.justEvaluated = false;
+    _calc.expr += k;
+  }
+  disp.textContent = _calc.expr === '' ? '0' : _calc.expr;
 }
 
 // ライフ表示 ♥♥♥

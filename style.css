@@ -919,6 +919,71 @@ body {
   transition: background 0.2s;
 }
 
+/* ===== クイズ画面 電卓ウィジェット ===== */
+.calc-widget {
+  margin: 1.1rem auto 0;
+  max-width: 320px;
+  background: linear-gradient(160deg, rgba(30,28,55,0.95), rgba(20,18,40,0.95));
+  border: 1.5px solid rgba(139,92,246,0.4);
+  border-radius: 16px;
+  padding: 0.85rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  color: #fff;
+}
+.calc-title {
+  font-size: 0.78rem; font-weight: 800; letter-spacing: 2px;
+  color: #c4b5fd; text-align: center; margin-bottom: 0.5rem;
+}
+.calc-display {
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  text-align: right;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 1.4rem; font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.6rem;
+  min-height: 2.4rem;
+  overflow: hidden;
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+.calc-keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.calc-key {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.7rem 0;
+  font-size: 1.1rem; font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+.calc-key:active { transform: scale(0.94); background: rgba(255,255,255,0.16); }
+.calc-key.calc-op {
+  background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(118,75,162,0.35));
+  border-color: rgba(139,92,246,0.55);
+  color: #ede9fe;
+}
+.calc-key.calc-clr {
+  background: rgba(220,38,38,0.22);
+  border-color: rgba(220,38,38,0.45);
+  color: #fca5a5;
+}
+.calc-key.calc-eq {
+  background: linear-gradient(135deg, #6d28d9, #4c1d95);
+  border-color: #8b5cf6;
+  color: #fff;
+}
+.calc-key.calc-eq:active { background: linear-gradient(135deg, #5b21b6, #3b0764); }
+
 /* ===== グループ節ピッカー ===== */
 .gp-list { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.6rem; }
 .gp-btn {
