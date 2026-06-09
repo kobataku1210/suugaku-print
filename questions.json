@@ -4123,8 +4123,7 @@
           "miniTestPassword": "4820",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
+          "studentBestList": []
         },
         {
           "title": "式の値",
