@@ -5876,5 +5876,11 @@
     "rootBreak": false,
     "numSort": false,
     "primeFactor": false
+  },
+  "kyotsuingenWallRankings": {
+    "lv1": [],
+    "lv2": [],
+    "lv3": [],
+    "all": []
   }
 }

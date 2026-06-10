@@ -63,6 +63,29 @@
   .level-card-best .lbl { color: #888; font-weight: 600; font-size: 11px; }
   .level-card-best .time { font-family: monospace; font-size: 14px; }
   .level-card.locked .level-card-best { display: none; }
+  .level-card-ranking {
+    margin-top: 8px;
+    background: #fff8ee;
+    border: 1px solid #ffd28a;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #555;
+  }
+  .level-card-ranking-title {
+    font-weight: 900; font-size: 11px; letter-spacing: 1px;
+    color: #ff8a2a; margin-bottom: 3px;
+  }
+  .level-card-ranking-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 2px 0; font-size: 12px;
+  }
+  .level-card-ranking-medal { font-size: 14px; width: 24px; text-align: center; }
+  .level-card-ranking-name { font-weight: 800; color: #333; flex: 1; min-width: 0;
+                              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .level-card-ranking-time { font-family: monospace; color: #ff8a2a; font-weight: 800; }
+  .level-card-ranking-empty { color: #aaa; font-style: italic; font-size: 11px; }
+  .level-card.locked .level-card-ranking { display: none; }
   .level-card.locked {
     opacity: 0.5; cursor: not-allowed; filter: grayscale(0.55);
     border-left-color: #888 !important;
@@ -460,6 +483,7 @@
       </div>
       <p>2項。共通因数は<strong>文字1つ</strong>または<strong>数字のみ</strong>。</p>
       <div class="level-card-best" id="lv1-best"></div>
+      <div class="level-card-ranking" id="lv1-ranking"></div>
     </div>
     <div class="level-card lv2" data-level="2" id="lvcard-2">
       <div class="level-card-head">
@@ -470,6 +494,7 @@
       </div>
       <p>2項。共通因数は<strong>数字×文字</strong>の組み合わせ。</p>
       <div class="level-card-best" id="lv2-best"></div>
+      <div class="level-card-ranking" id="lv2-ranking"></div>
     </div>
     <div class="level-card lv3" data-level="3" id="lvcard-3">
       <div class="level-card-head">
@@ -480,6 +505,7 @@
       </div>
       <p><strong>3項</strong>からの共通因数くくり出し。</p>
       <div class="level-card-best" id="lv3-best"></div>
+      <div class="level-card-ranking" id="lv3-ranking"></div>
     </div>
 
     <div class="bonus-info">
@@ -883,6 +909,7 @@ const SAMPLE_PROBLEMS = [
 ];
 
 let customProblems = []; // [{ left: "6ab", right: "9bc" }, ...]
+let serverRankings = { lv1: [], lv2: [], lv3: [], all: [] }; // 共通因数ウォール ランキング
 
 function normalizeProblem(p) {
   // 後方互換: { left, right } → { terms: [left, right] }
@@ -898,6 +925,15 @@ async function loadCustomProblems() {
     const res = await fetch('../questions.json');
     if (res.ok) {
       const data = await res.json();
+      // ランキングは存在すれば取り込む（問題と独立）
+      if (data.kyotsuingenWallRankings) {
+        serverRankings = {
+          lv1: Array.isArray(data.kyotsuingenWallRankings.lv1) ? data.kyotsuingenWallRankings.lv1 : [],
+          lv2: Array.isArray(data.kyotsuingenWallRankings.lv2) ? data.kyotsuingenWallRankings.lv2 : [],
+          lv3: Array.isArray(data.kyotsuingenWallRankings.lv3) ? data.kyotsuingenWallRankings.lv3 : [],
+          all: Array.isArray(data.kyotsuingenWallRankings.all) ? data.kyotsuingenWallRankings.all : [],
+        };
+      }
       if (data.wallProblems && data.wallProblems.length > 0) {
         customProblems = data.wallProblems.map(p => normalizeProblem(p));
         return; // サーバーデータを使用：localStorage は参照しない
@@ -1805,7 +1841,33 @@ function updateLevelLockState() {
         bestEl.style.display = 'none';
       }
     }
+    // ランキング表示
+    const rankEl = document.getElementById(`lv${lv}-ranking`);
+    if (rankEl) {
+      const list = serverRankings[`lv${lv}`] || [];
+      rankEl.innerHTML = renderRankingHtml(list);
+    }
   }
+}
+
+function renderRankingHtml(list) {
+  const medals = ['🥇','🥈','🥉'];
+  if (!list || list.length === 0) {
+    return `<div class="level-card-ranking-title">🏆 ランキング</div>
+            <div class="level-card-ranking-empty">まだ記録がありません</div>`;
+  }
+  const top3 = list.slice().sort((a,b) => (a.time||999999) - (b.time||999999)).slice(0,3);
+  const rows = top3.map((e, i) => `
+    <div class="level-card-ranking-row">
+      <span class="level-card-ranking-medal">${medals[i]}</span>
+      <span class="level-card-ranking-name">${escapeHtml(e.name || '?')}</span>
+      <span class="level-card-ranking-time">${fmtTime(parseFloat(e.time))}秒</span>
+    </div>`).join('');
+  return `<div class="level-card-ranking-title">🏆 ランキング TOP3</div>${rows}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // =====================================================

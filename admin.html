@@ -742,6 +742,33 @@
       <a href="games/共通因数ウォール.html" target="_blank" rel="noopener"
          class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
     </div>
+    <!-- 共通因数ウォール 生徒ベスト 上位3名（レベルごと） -->
+    <div class="cm-teacher-setting" style="flex-wrap:wrap">
+      <span class="cm-ts-label" style="color:#ff8a2a;">🏅 共通因数ウォール 生徒ベスト 上位3名</span>
+      <div id="wall-rk-tabs" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.3rem">
+        <button class="wall-lv-tab active" data-wallrk-lv="lv1" onclick="switchWallRkLevel('lv1')">Lv.1</button>
+        <button class="wall-lv-tab" data-wallrk-lv="lv2" onclick="switchWallRkLevel('lv2')">Lv.2</button>
+        <button class="wall-lv-tab" data-wallrk-lv="lv3" onclick="switchWallRkLevel('lv3')">Lv.3</button>
+        <button class="wall-lv-tab" data-wallrk-lv="all" onclick="switchWallRkLevel('all')">全部</button>
+      </div>
+      <div id="wall-rk-slots" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;width:100%;margin-top:0.4rem"></div>
+      <div id="wall-rk-add-row" style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;width:100%;margin-top:0.4rem">
+        <span class="cm-ts-label" style="color:#ff8a2a;font-size:0.85rem;">＋ 新記録追加</span>
+        <input type="text" id="wall-rk-add-name" class="cm-ts-input"
+               style="width:90px;border-color:rgba(255,138,42,0.4);color:#ffb15c;font-family:inherit;font-size:0.85rem;"
+               placeholder="名前">
+        <input type="number" id="wall-rk-add-time" class="cm-ts-input"
+               style="border-color:rgba(255,138,42,0.4);color:#ffb15c;"
+               min="1" max="600" step="0.1" placeholder="秒">
+        <span class="cm-ts-unit">秒</span>
+        <button class="cm-ts-btn" style="border-color:rgba(255,138,42,0.5);color:#ffb15c;background:rgba(255,138,42,0.15);"
+                onclick="addWallRecord()">追加</button>
+        <button class="cm-ts-btn" style="border-color:rgba(255,138,42,0.5);color:#ffb15c;background:rgba(255,138,42,0.15);"
+                onclick="saveWallRanking()">保存</button>
+        <span id="wall-rk-status" class="cm-ts-status"></span>
+      </div>
+    </div>
+
     <div class="wall-section">
       <div class="wall-section-header" onclick="toggleWallSection()">
         <span class="wall-section-label">🧱 共通因数ウォール 問題管理</span>
@@ -1292,6 +1319,8 @@ async function loadQuestions() {
   if (el && t != null) el.value = t;
   // カードマッチ 生徒ベスト 上位3名をフォームに反映
   renderCmRkSlots();
+  // 共通因数ウォール ランキングをフォームに反映
+  if (typeof renderWallRkSlots === 'function') renderWallRkSlots();
   // カードマッチ平方根 小林Tタイム
   const tSq = questionsData.cardMatchSqrtTeacherTime;
   const elSq = document.getElementById('cm-sqrt-teacher-time-input');
@@ -1584,6 +1613,102 @@ async function saveCmStudentBest() {
   const r = await res.json();
   if (r.ok) { refreshSnapshot(); renderNewsAdmin(); }
   sta.textContent = r.ok ? `✓ 保存しました` : '❌ 保存失敗';
+  setTimeout(() => { sta.textContent = ''; }, 3000);
+}
+
+// ===== 共通因数ウォール ランキング管理 =====
+let currentWallRkLevel = 'lv1';
+
+function ensureWallRankings() {
+  if (!questionsData.kyotsuingenWallRankings) {
+    questionsData.kyotsuingenWallRankings = { lv1: [], lv2: [], lv3: [], all: [] };
+  }
+  ['lv1','lv2','lv3','all'].forEach(k => {
+    if (!Array.isArray(questionsData.kyotsuingenWallRankings[k])) {
+      questionsData.kyotsuingenWallRankings[k] = [];
+    }
+  });
+}
+
+function switchWallRkLevel(lv) {
+  currentWallRkLevel = lv;
+  document.querySelectorAll('[data-wallrk-lv]').forEach(el => {
+    el.classList.toggle('active', el.dataset.wallrkLv === lv);
+  });
+  renderWallRkSlots();
+}
+
+function renderWallRkSlots() {
+  ensureWallRankings();
+  const wrap = document.getElementById('wall-rk-slots');
+  if (!wrap) return;
+  const list = questionsData.kyotsuingenWallRankings[currentWallRkLevel] || [];
+  const medals = ['🥇','🥈','🥉'];
+  wrap.innerHTML = [0,1,2].map(r => {
+    const e = list[r];
+    return `
+    <div class="rk-slot">
+      <span class="rk-medal">${medals[r]}</span>
+      <input type="text" id="wall-rk-name-${r}" class="cm-ts-input rk-name"
+             style="width:90px;border-color:rgba(255,138,42,0.4);color:#ffb15c;font-family:inherit;font-size:0.85rem;"
+             value="${escHtml(e ? e.name : '')}" placeholder="名前">
+      <input type="number" id="wall-rk-time-${r}" class="cm-ts-input rk-time"
+             style="border-color:rgba(255,138,42,0.4);color:#ffb15c;"
+             min="1" max="600" step="0.1" value="${e ? e.time : ''}" placeholder="秒">
+      <span class="cm-ts-unit">秒</span>
+      <button class="rk-del-btn" title="この記録を削除" onclick="deleteWallSlot(${r})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function readWallSlots() {
+  const slots = [];
+  for (let r = 0; r < 3; r++) {
+    const nameEl = document.getElementById(`wall-rk-name-${r}`);
+    const timeEl = document.getElementById(`wall-rk-time-${r}`);
+    if (!nameEl || !timeEl) continue;
+    slots.push({ name: nameEl.value, time: timeEl.value });
+  }
+  return rkNormalize(slots);
+}
+
+function deleteWallSlot(r) {
+  ensureWallRankings();
+  const slots = readWallSlots();
+  if (slots[r]) slots.splice(r, 1);
+  questionsData.kyotsuingenWallRankings[currentWallRkLevel] = rkNormalize(slots);
+  renderWallRkSlots();
+}
+
+function addWallRecord() {
+  ensureWallRankings();
+  const nmEl = document.getElementById('wall-rk-add-name');
+  const tmEl = document.getElementById('wall-rk-add-time');
+  const sta  = document.getElementById('wall-rk-status');
+  const name = (nmEl?.value || '').trim();
+  const time = parseFloat(tmEl?.value);
+  if (!name) { sta.textContent = '❌ 名前を入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  if (isNaN(time) || time <= 0) { sta.textContent = '❌ タイムを入力'; setTimeout(() => sta.textContent = '', 3000); return; }
+  questionsData.kyotsuingenWallRankings[currentWallRkLevel] =
+    rkMerge(readWallSlots(), { name, time });
+  if (nmEl) nmEl.value = '';
+  if (tmEl) tmEl.value = '';
+  renderWallRkSlots();
+}
+
+async function saveWallRanking() {
+  ensureWallRankings();
+  const sta = document.getElementById('wall-rk-status');
+  questionsData.kyotsuingenWallRankings[currentWallRkLevel] = readWallSlots();
+  renderWallRkSlots();
+  const res = await fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: enteredPassword, adminPassword: enteredPassword, data: questionsData })
+  });
+  const r = await res.json();
+  if (r.ok) refreshSnapshot();
+  sta.textContent = r.ok ? `✓ 保存しました（${currentWallRkLevel}）` : '❌ 保存失敗';
   setTimeout(() => { sta.textContent = ''; }, 3000);
 }
 
