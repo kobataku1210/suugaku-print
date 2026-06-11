@@ -5878,7 +5878,12 @@
     "primeFactor": false
   },
   "kyotsuingenWallRankings": {
-    "lv1": [],
+    "lv1": [
+      {
+        "name": "6組o君",
+        "time": 23.9
+      }
+    ],
     "lv2": [],
     "lv3": [],
     "all": []
