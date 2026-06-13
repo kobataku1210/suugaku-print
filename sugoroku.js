@@ -28,7 +28,9 @@ function sgEnterStage2() {
   setSgStage(2); _sgClearPhase(); renderSugoroku();
 }
 function sgEnterStage3() {
-  if (!sgIsStage2Cleared()) return;
+  // 本番ではステージ3未公開。プレビューモードのみ、または ステージ2クリア済みで入れる
+  const preview = (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE);
+  if (!preview && !sgIsStage2Cleared()) return;
   setSgStage(3); _sgClearPhase(); renderSugoroku();
 }
 function sgGoToStage1() { setSgStage(1); _sgClearPhase(); renderSugoroku(); }
@@ -1507,11 +1509,18 @@ function renderSugoroku() {
   // ステージ切替バー
   const s1cleared = sgIsStage1Cleared();
   const s2cleared = sgIsStage2Cleared();
+  // ステージ3は本番公開前。プレビューモード(?preview=draft)でのみ表示する
+  const sgPreview = (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE);
   let stageBar = '';
-  if (s1cleared) {
-    const s3Btn = s2cleared
-      ? `<button class="sg-stage-btn${sgStage===3?' sg-stage-active':''}" onclick="sgEnterStage3()">🔥 ステージ3</button>`
-      : '';
+  if (s1cleared || sgPreview) {
+    let s3Btn = '';
+    if (sgPreview) {
+      // プレビュー時はステージ2クリア前でも試せる（試作ラベル付き）
+      s3Btn = `<button class="sg-stage-btn${sgStage===3?' sg-stage-active':''}" onclick="sgEnterStage3()">🔥 ステージ3<span style="font-size:0.7em;opacity:0.8">（試作）</span></button>`;
+    } else if (s2cleared) {
+      // 本番では将来 ステージ2クリア後に出す想定（現状は非表示のまま）
+      s3Btn = '';
+    }
     stageBar = `
       <div class="sg-stage-bar">
         <button class="sg-stage-btn${sgStage===1?' sg-stage-active':''}" onclick="sgGoToStage1()">📌 ステージ1</button>
