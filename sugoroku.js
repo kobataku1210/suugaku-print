@@ -5,31 +5,15 @@
 // ===== ステージ管理 =====
 let sgStage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
 function setSgStage(n) { sgStage = n; localStorage.setItem('sgCurrentStage', String(n)); }
-function sgCurrentMax()    {
-  if (sgStage === 3) return 200;
-  if (sgStage === 2) return 150;
-  return 100;
-}
-function sgCurrentSpaces() {
-  if (sgStage === 3) return SUGOROKU_SPACES_V3;
-  if (sgStage === 2) return SUGOROKU_SPACES_V2;
-  return SUGOROKU_SPACES;
-}
+function sgCurrentMax()    { return sgStage === 1 ? 100 : 150; }
+function sgCurrentSpaces() { return sgStage === 1 ? SUGOROKU_SPACES : SUGOROKU_SPACES_V2; }
 function sgIsStage1Cleared() {
   try { return !!(JSON.parse(localStorage.getItem('sgSave_v1') || '{}').cleared); }
-  catch(e) { return false; }
-}
-function sgIsStage2Cleared() {
-  try { return !!(JSON.parse(localStorage.getItem('sgSave_v2') || '{}').cleared); }
   catch(e) { return false; }
 }
 function sgEnterStage2() {
   if (!sgIsStage1Cleared()) return;
   setSgStage(2); _sgClearPhase(); renderSugoroku();
-}
-function sgEnterStage3() {
-  if (!sgIsStage2Cleared()) return;
-  setSgStage(3); _sgClearPhase(); renderSugoroku();
 }
 function sgGoToStage1() { setSgStage(1); _sgClearPhase(); renderSugoroku(); }
 function _sgClearPhase() {
@@ -172,83 +156,6 @@ const SUGOROKU_SPACES_V2 = (() => {
   return sp;
 })();
 
-// ===== ステージ3 マス定義（200マス：難易度UP）=====
-const SUGOROKU_SPACES_V3 = (() => {
-  const sp = [null];
-  for (let i = 1; i <= 200; i++) sp.push({ num: i, type: 'normal' });
-  const set = (n, t, p) => { sp[n].type = t; if (p !== undefined) sp[n].param = p; };
-
-  // ⚔️ ボスマス（関門） - 4体
-  set(50,  'boss');
-  set(100, 'boss');
-  set(150, 'boss');
-  set(200, 'boss'); // 最終ボス兼ゴール
-
-  // ⬆ 進む（少なめ）
-  set(3,'forward',1);  set(8,'forward',2);  set(17,'forward',1);
-  set(33,'forward',2); set(48,'forward',1); set(58,'forward',2);
-  set(74,'forward',1); set(87,'forward',2); set(112,'forward',1);
-  set(133,'forward',2);set(147,'forward',1);set(158,'forward',2);
-  set(174,'forward',1);set(188,'forward',2);
-
-  // 🎲⬆ ロールして進む（少なめ）
-  set(20,'rollAndForward'); set(125,'rollAndForward'); set(175,'rollAndForward');
-
-  // ⬇ 戻る（多め）
-  set(6,'back',2);   set(12,'back',3);  set(28,'back',2);
-  set(38,'back',3);  set(42,'back',2);  set(67,'back',3);
-  set(72,'back',2);  set(82,'back',3);  set(95,'back',2);
-  set(110,'back',3); set(118,'back',2); set(127,'back',3);
-  set(142,'back',2); set(155,'back',3); set(165,'back',2);
-  set(178,'back',3); set(185,'back',2); set(195,'back',3);
-
-  // 🎲⬇ ロールして戻る（多め）
-  set(45,'rollAndBack');  set(97,'rollAndBack');
-  set(135,'rollAndBack'); set(170,'rollAndBack');
-
-  // 🎲 もう一度
-  set(16,'again'); set(55,'again'); set(90,'again');
-  set(128,'again');set(160,'again');set(192,'again');
-
-  // 💤 1回休み（多め）
-  set(30,'rest'); set(70,'rest'); set(105,'rest');
-  set(140,'rest');set(168,'rest');set(190,'rest');
-
-  // 🌀 ワープ
-  set(35,'warp',57); set(88,'warp',116);
-  set(126,'warp',148); set(166,'warp',183);
-
-  // 👾 モンスター（多数）
-  [9,22,36,46,62,77,85,96,108,119,131,143,
-   156,162,176,182,194,198].forEach(n => set(n,'monster'));
-
-  // 💀 球落とし（多め）
-  [14,29,43,66,81,102,117,129,144,
-   157,167,181,189,196].forEach(n => set(n,'dropBall'));
-
-  // ⭐ ラッキースター
-  set(65,'star'); set(132,'star'); set(180,'star');
-
-  // 🚪 関門（gate_v2）
-  set(49,  'gate_v2', 1);
-  set(99,  'gate_v2', 2);
-  set(149, 'gate_v2', 3);
-  set(199, 'gate_v2', 4);
-
-  // 🔄 交換所
-  [15,40,60,79,113,130,153,
-   164,177,186,193].forEach(n => set(n,'exchange'));
-
-  // ⛏ 掘れるマス
-  [2,4,7,11,13,18,21,25,27,31,34,39,41,47,
-   51,54,61,64,69,71,76,83,86,89,91,94,98,
-   103,106,109,111,114,121,124,134,136,139,141,
-   146,151,159,161,163,169,171,173,179,184,187,191,197]
-    .forEach(n => set(n,'dig'));
-
-  return sp;
-})();
-
 // ===== ウォーム配色 =====
 const SG_WARM = {
   normal:         { bg:'#ffffff', bd:'#c8a060' },
@@ -273,7 +180,6 @@ const SG_WARM = {
 // ===== セーブ =====
 const SG_SAVE_KEY    = 'sgSave_v1';
 const SG_SAVE_KEY_V2 = 'sgSave_v2';
-const SG_SAVE_KEY_V3 = 'sgSave_v3';
 
 function getSgSave() {
   try { const r = localStorage.getItem(SG_SAVE_KEY); if (r) return JSON.parse(r); }
@@ -282,7 +188,6 @@ function getSgSave() {
 }
 // setSgSave: ステージ対応（全既存コードがそのまま使える）
 function setSgSave(data) {
-  if (sgStage === 3) { localStorage.setItem(SG_SAVE_KEY_V3, JSON.stringify(data)); return; }
   if (sgStage === 2) { localStorage.setItem(SG_SAVE_KEY_V2, JSON.stringify(data)); return; }
   localStorage.setItem(SG_SAVE_KEY, JSON.stringify(data));
 }
@@ -327,51 +232,8 @@ function _ensureSgInitV2() {
   return save;
 }
 
-function _ensureSgInitV3() {
-  // ステージ2のグリンピース数を取得（持ち越し用）
-  let s2Peas = 0;
-  try { const s2 = JSON.parse(localStorage.getItem(SG_SAVE_KEY_V2)||'{}'); s2Peas = s2.peas || 0; }
-  catch(e) {}
-
-  let raw = localStorage.getItem(SG_SAVE_KEY_V3);
-  if (!raw) {
-    // 初回作成：グリンピースはステージ2から引き継ぐ
-    const save = {
-      peas: s2Peas, pos: 0, maxPos: 0,
-      skipNext: false, cleared: false,
-      balls: { red:0, blue:0, yellow:0, green:0, purple:0 },
-      boss50Cleared: false, boss100Cleared: false,
-      boss150Cleared: false, boss200Cleared: false,
-      gate49Opened: false, gate99Opened: false,
-      gate149Opened: false, gate199Opened: false,
-      digAnyActive: false,
-      stage3BonusPaid: false,
-      s2PeaCarried: true,
-    };
-    localStorage.setItem(SG_SAVE_KEY_V3, JSON.stringify(save));
-    return save;
-  }
-  const save = JSON.parse(raw);
-  let dirty = false;
-  ['boss50Cleared','boss100Cleared','boss150Cleared','boss200Cleared'].forEach(k => {
-    if (save[k] === undefined) { save[k] = false; dirty = true; }
-  });
-  ['gate49Opened','gate99Opened','gate149Opened','gate199Opened'].forEach(k => {
-    if (save[k] === undefined) { save[k] = false; dirty = true; }
-  });
-  if (save.digAnyActive    === undefined) { save.digAnyActive    = false; dirty = true; }
-  if (save.stage3BonusPaid === undefined) { save.stage3BonusPaid = false; dirty = true; }
-  if (!save.s2PeaCarried) {
-    if ((save.peas || 0) < s2Peas) { save.peas = s2Peas; dirty = true; }
-    save.s2PeaCarried = true; dirty = true;
-  }
-  if (dirty) localStorage.setItem(SG_SAVE_KEY_V3, JSON.stringify(save));
-  return save;
-}
-
 // ensureSgInit: ステージ対応（全既存コードがそのまま使える）
 function ensureSgInit() {
-  if (sgStage === 3) return _ensureSgInitV3();
   if (sgStage === 2) return _ensureSgInitV2();
   let save = getSgSave();
   if (!save) {
@@ -497,7 +359,6 @@ let sgBossAnswered  = false; // 現問題を回答済みか
 // ===== ⚔️ ボスバトル 関数 =====
 function sgStartBoss(pos) {
   sgBossSquare = pos;
-  // ステージ3 ラスボス(200) は tier=3 を使用（最高難度）
   const tier = pos === 50 ? 1 : pos === 100 ? 2 : 3;
   const pool  = [...SG_BOSS_QUESTIONS[tier]].sort(() => Math.random() - 0.5);
   sgBossQList = pool.slice(0, 5);
@@ -580,7 +441,7 @@ function sgBossSuccess() {
   save[`boss${sgBossSquare}Cleared`] = true;
   save.digAnyActive = false; // ボスクリアでどこでも掘るを無効化
   setSgSave(save);
-  if (sgBossSquare === 150 && sgStage === 2) {
+  if (sgBossSquare === 150) {
     if (hasAllBalls()) {
       save.cleared = true;
       if (!save.stage2BonusPaid) { save.peas += 50; save.stage2BonusPaid = true; }
@@ -592,23 +453,6 @@ function sgBossSuccess() {
     } else {
       showSpaceOv('⚔️','ボスクリア！','ゴール地点到達！\nでも球がまだ揃っていない…\n球を5色集めて戻ってきて！', 2500, () => {
         sgMsg='⚔️ ボス150クリア！球を5色集めれば自動クリア！'; sgMsgType='info';
-        sgBossSquare=null; sgPhase='idle'; renderSugoroku();
-      });
-    }
-  } else if (sgBossSquare === 200 && sgStage === 3) {
-    // ステージ3 ラスボス
-    const doubleBalls = BALL_COLORS.every(c => (save.balls[c]||0) >= 2);
-    if (doubleBalls) {
-      save.cleared = true;
-      if (!save.stage3BonusPaid) { save.peas += 100; save.stage3BonusPaid = true; }
-      setSgSave(save);
-      showSpaceOv('👑','ステージ3クリア！！','5色×2個コンプリート！\n真の制覇者！\n🌱×100プレゼント！', 3500, () => {
-        sgMsg='👑 ステージ3クリア！真の制覇者！🌱×100ゲット！'; sgMsgType='good';
-        sgBossSquare=null; sgPhase='idle'; renderSugoroku();
-      });
-    } else {
-      showSpaceOv('👑','ラスボス撃破！','でもまだ各色2個ずつ揃っていない…\n各色2個ずつ集めて戻ってきて！', 2800, () => {
-        sgMsg='👑 ラスボス撃破！各色2個ずつ集めれば自動クリア！'; sgMsgType='info';
         sgBossSquare=null; sgPhase='idle'; renderSugoroku();
       });
     }
@@ -792,14 +636,12 @@ function sgDropBallClose() {
 
 // ===== リセット =====
 function sgReset() {
-  const label = sgStage === 3 ? 'ステージ3のデータ' : sgStage === 2 ? 'ステージ2のデータ' : 'データ';
+  const label = sgStage === 2 ? 'ステージ2のデータ' : 'データ';
   if (!confirm(`${label}をリセットして最初からやり直しますか？\n（グリンピース・球・進捗がすべて消えます）`)) return;
   document.getElementById('sg-dice-overlay')?.remove();
   document.getElementById('sg-dig-overlay')?.remove();
   document.getElementById('sg-boss-overlay')?.remove();
-  if (sgStage === 3) {
-    localStorage.removeItem(SG_SAVE_KEY_V3);
-  } else if (sgStage === 2) {
+  if (sgStage === 2) {
     localStorage.removeItem(SG_SAVE_KEY_V2);
   } else {
     localStorage.removeItem(SG_SAVE_KEY);
@@ -1021,34 +863,19 @@ function sgExecuteRoll(roll) {
 
   const rawPath = sgBuildMovePath(oldPos, roll);
 
-  // ★ ステージ2/3：関門＋ボスの統合ブロック処理
-  if (sgStage === 2 || sgStage === 3) {
+  // ★ ステージ2：関門＋ボスの統合ブロック処理
+  if (sgStage === 2) {
     const sv2 = ensureSgInit();
     const originalDest = oldPos + roll; // バウンス前の到達予定マス
     // ブロック候補をマス順に並べる（関門は未開放のみ・ボスは常時）
-    let blocks;
-    if (sgStage === 3) {
-      blocks = [
-        { pos: 49,  active: !sv2.gate49Opened  },
-        { pos: 50,  active: true },
-        { pos: 99,  active: !sv2.gate99Opened  },
-        { pos: 100, active: true },
-        { pos: 149, active: !sv2.gate149Opened },
-        { pos: 150, active: true },
-        { pos: 199, active: !sv2.gate199Opened },
-        { pos: 200, active: true },
-      ];
-    } else {
-      blocks = [
-        { pos: 49,  active: !sv2.gate49Opened  },
-        { pos: 50,  active: true },
-        { pos: 99,  active: !sv2.gate99Opened  },
-        { pos: 100, active: true },
-        { pos: 149, active: !sv2.gate149Opened },
-        { pos: 150, active: true },
-      ];
-    }
-    blocks = blocks.filter(b => b.active && b.pos > oldPos);
+    const blocks = [
+      { pos: 49,  active: !sv2.gate49Opened  },
+      { pos: 50,  active: true },
+      { pos: 99,  active: !sv2.gate99Opened  },
+      { pos: 100, active: true },
+      { pos: 149, active: !sv2.gate149Opened },
+      { pos: 150, active: true },
+    ].filter(b => b.active && b.pos > oldPos);
 
     for (const block of blocks) {
       const bp = block.pos;
@@ -1397,10 +1224,9 @@ function sgFinishDig() {
   document.getElementById('sg-dig-overlay')?.remove();
   sgDigResult=null; sgDigBallColor=null; sgDigSpaceNum=null;
   // 関門マスにいる場合は gateV2 フェーズに戻す
-  if (sgStage === 2 || sgStage === 3) {
+  if (sgStage === 2) {
     const sv = ensureSgInit();
-    const gates = sgStage === 3 ? [49,99,149,199] : [49,99,149];
-    const gp = gates.find(p => p === sv.pos && !sv[`gate${p}Opened`]);
+    const gp = [49,99,149].find(p => p === sv.pos && !sv[`gate${p}Opened`]);
     if (gp) { sgPhase='gateV2'; sgGateV2Pos=gp; renderSugoroku(); return; }
   }
   sgPhase='idle';
@@ -1506,19 +1332,11 @@ function renderSugoroku() {
 
   // ステージ切替バー
   const s1cleared = sgIsStage1Cleared();
-  const s2cleared = sgIsStage2Cleared();
-  let stageBar = '';
-  if (s1cleared) {
-    const s3Btn = s2cleared
-      ? `<button class="sg-stage-btn${sgStage===3?' sg-stage-active':''}" onclick="sgEnterStage3()">🔥 ステージ3</button>`
-      : '';
-    stageBar = `
-      <div class="sg-stage-bar">
-        <button class="sg-stage-btn${sgStage===1?' sg-stage-active':''}" onclick="sgGoToStage1()">📌 ステージ1</button>
-        <button class="sg-stage-btn${sgStage===2?' sg-stage-active':''}" onclick="sgEnterStage2()">⚔️ ステージ2</button>
-        ${s3Btn}
-      </div>`;
-  }
+  const stageBar  = s1cleared ? `
+    <div class="sg-stage-bar">
+      <button class="sg-stage-btn${sgStage===1?' sg-stage-active':''}" onclick="sgGoToStage1()">📌 ステージ1</button>
+      <button class="sg-stage-btn${sgStage===2?' sg-stage-active':''}" onclick="sgEnterStage2()">⚔️ ステージ2</button>
+    </div>` : '';
 
   // 球バー
   const ballsHtml = BALL_COLORS.map(c => {
@@ -1540,31 +1358,9 @@ function renderSugoroku() {
     }), 400);
   }
 
-  // ステージ3：ボス200クリア済み＋5色×2個以上 → 自動クリア（ハード条件）
-  const hasDoubleBalls = BALL_COLORS.every(c => (balls[c]||0) >= 2);
-  if (sgStage === 3 && hasDoubleBalls && save.boss200Cleared && !save.cleared) {
-    save.cleared = true;
-    if (!save.stage3BonusPaid) { save.peas += 100; save.stage3BonusPaid = true; }
-    setSgSave(save);
-    setTimeout(() => showSpaceOv('👑','ステージ3クリア！！','5色×2個コンプリート！\nラスボス撃破！\n🌱×100プレゼント！', 3500, () => {
-      sgMsg='👑 ステージ3クリア！真の制覇者！🌱×100ゲット！'; sgMsgType='good';
-      renderSugoroku();
-    }), 400);
-  }
-
   // 球コンプリートメッセージ（ステージ別）
   let completeTag = '';
-  if (sgStage === 3 && !save.cleared) {
-    const counts = BALL_COLORS.map(c => `${BALL_EMOJI[c]}${balls[c]||0}/2`).join(' ');
-    if (hasDoubleBalls) {
-      const b200 = save.boss200Cleared;
-      completeTag = b200
-        ? `<div class="sg-ball-complete">✨ 5色×2揃った！ラスボス撃破済み → 自動クリア！</div>`
-        : `<div class="sg-ball-complete">✨ 5色×2揃った！👑 ラスボス（200）へ急げ！</div>`;
-    } else {
-      completeTag = `<div class="sg-ball-complete" style="background:rgba(0,0,0,0.05);color:#666;font-weight:600">🎯 各色2個ずつ必要 ${counts}</div>`;
-    }
-  } else if (allBalls && !save.cleared) {
+  if (allBalls && !save.cleared) {
     if (sgStage === 2) {
       const b150 = save.boss150Cleared;
       completeTag = b150
@@ -1664,11 +1460,8 @@ function renderSgActionArea(save) {
                  : skip  ? `<button class="sg-roll-btn sg-roll-skip" onclick="sgRoll()">💤 1回休みを解除（🌱×10）</button>`
                  : can   ? `<button class="sg-roll-btn" onclick="sgRoll()">🎲 サイコロを振る（🌱×10）</button>`
                          : `<button class="sg-roll-btn sg-roll-disabled" disabled>🌱 グリンピースが足りない（10個必要）</button>`;
-      // どこでも掘る：ステージ3はマス200到達、ステージ2はマス150到達、ステージ1は門通過後
-      const digAnyUnlocked =
-        sgStage === 3 ? (save.maxPos >= 200) :
-        sgStage === 2 ? (save.maxPos >= 150) :
-                        !!save.passedGate1;
+      // どこでも掘る：ステージ2はマス150に一度でも到達したら解放、ステージ1は門通過後
+      const digAnyUnlocked = sgStage === 2 ? (save.maxPos >= 150) : !!save.passedGate1;
       const digAny = digAnyUnlocked
         ? `<button class="sg-dig-any-btn" onclick="sgDigAnyMode()">⛏ どこでも掘る（🌱×10）</button>` : '';
       const starMenu = sgStarActive ? `
@@ -1870,7 +1663,7 @@ function renderSgBoardGrid(currentPos) {
       if (!isHere) {
         if      (isGateBlocked)         { icon='🚪'; label='門'; }
         else if (spaceNum===1)          { icon='🚩'; label='S'; }
-        else if (spaceNum===maxPos)     { icon= sgStage===3?'👑':sgStage===2?'⚔️':'🏆'; label='GOAL'; }
+        else if (spaceNum===maxPos)     { icon= sgStage===2?'⚔️':'🏆'; label='GOAL'; }
         else {
           numStr = String(spaceNum);
           switch(space.type){
