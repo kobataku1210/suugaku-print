@@ -466,6 +466,8 @@
     for (const f of aqFishRT) {
       if (f.feedX !== null && !aqPeasRT.some(q => q.owner === f)) {
         f.feedX = null;
+        // 食事中に速度を落としていたので、通常の遊泳速度に戻す（止まったままを防ぐ）
+        f.vx = (f.vx < 0 ? -1 : 1) * f.baseSpeed;
         if (f.ateAny) aqOnFishEat(f);
         else f.feeding = false; // 全部こぼれた場合は成長なしで解除
       }
