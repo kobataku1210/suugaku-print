@@ -2391,6 +2391,98 @@ body {
   opacity: 0.8;
 }
 
+/* ============================================================
+   グリンピース水族館（aquarium.js）
+   ============================================================ */
+.aq-home-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #0d4d77 0%, #1f7bb0 60%, #2aa6d6 100%);
+  border: 3px solid #0a3a5c;
+  border-radius: 18px;
+  padding: 1rem 1.4rem;
+  margin: 0 auto 1.5rem;
+  max-width: 700px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 18px rgba(10,60,100,0.4);
+}
+.aq-home-banner:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(10,60,100,0.55); }
+.aq-home-banner-left { display: flex; align-items: center; gap: 1rem; }
+.aq-home-banner-icon { font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+.aq-home-banner-title { font-size: 1.2rem; font-weight: 900; color: #eaf7ff; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
+.aq-home-banner-sub { font-size: 0.82rem; color: #bfe6ff; margin-top: 0.15rem; }
+.aq-home-banner-arrow { font-size: 2rem; color: #eaf7ff; opacity: 0.8; }
+
+.aq-wrap { max-width: 780px; margin: 0 auto; padding: 0 0.5rem; }
+.aq-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+.aq-title { font-size: 1.4rem; font-weight: 900; color: var(--text, #1a2b3c); }
+.aq-stats { display: flex; gap: 0.8rem; }
+.aq-stat { font-size: 0.95rem; background: rgba(0,0,0,0.06); padding: 4px 12px; border-radius: 999px; }
+.aq-stat strong { font-size: 1.1rem; }
+
+.aq-tank {
+  position: relative; width: 100%; height: 300px;
+  background: linear-gradient(180deg, #0d4d77 0%, #062f4a 100%);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
+}
+.aq-tank-floor { position: absolute; bottom: 0; left: 0; right: 0; height: 26px; background: #0a3a5c; }
+.aq-fish { position: absolute; z-index: 3; cursor: pointer; will-change: transform; user-select: none; }
+.aq-fish-dying { opacity: 0.45; filter: grayscale(0.6) drop-shadow(0 0 5px #ff5555) !important; }
+.aq-grow { animation: aqGrowPop 0.5s ease; }
+@keyframes aqGrowPop { 0%{transform:scale(1);} 50%{transform:scale(1.25);} 100%{transform:scale(1);} }
+.aq-pea { position: absolute; z-index: 4; font-size: 16px; will-change: transform; }
+.aq-deco { position: absolute; z-index: 2; cursor: grab; transform: translate(-50%,-50%); user-select: none; touch-action: none; }
+.aq-deco-dragging { cursor: grabbing; filter: drop-shadow(0 0 8px #ffe27a); z-index: 6; }
+
+.aq-hint { text-align: center; font-size: 0.8rem; color: var(--text-sub, #678); margin: 0.6rem 0 1rem; }
+
+.aq-gacha-area { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+.aq-gacha-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: none; border-radius: 14px; padding: 0.9rem; cursor: pointer;
+  font-family: inherit; color: #fff; font-weight: 800;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.aq-gacha-btn:active { transform: scale(0.97); }
+.aq-gacha-fish { background: linear-gradient(135deg, #1D9E75, #0f6e56); box-shadow: 0 4px 12px rgba(15,110,86,0.4); }
+.aq-gacha-deco { background: linear-gradient(135deg, #BA7517, #854f0b); box-shadow: 0 4px 12px rgba(133,79,11,0.4); }
+.aq-gacha-em { font-size: 1.8rem; }
+.aq-gacha-name { font-size: 1rem; }
+.aq-gacha-cost { font-size: 0.85rem; background: rgba(255,255,255,0.22); padding: 2px 12px; border-radius: 999px; }
+
+.aq-prob-area { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+.aq-prob { background: rgba(0,0,0,0.05); border-radius: 10px; padding: 0.7rem 0.9rem; }
+.aq-prob-title { font-size: 0.82rem; font-weight: 800; margin-bottom: 4px; color: var(--text-sub, #567); }
+.aq-prob-row { display: flex; justify-content: space-between; font-size: 0.78rem; padding: 2px 0; }
+.aq-note { font-size: 0.8rem; color: var(--text-sub, #678); line-height: 1.7; text-align: center; padding: 0.5rem 0 1rem; }
+
+.aq-gacha-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.25s;
+}
+.aq-gacha-overlay.show { opacity: 1; }
+.aq-gacha-box { background: #fff; border-radius: 20px; padding: 2rem 2.5rem; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+.aq-capsule { font-size: 70px; line-height: 1; }
+.aq-gacha-label { margin-top: 1rem; font-size: 1.1rem; font-weight: 800; color: #1a2b3c; }
+@keyframes aqShake { 0%,100%{transform:rotate(0);} 25%{transform:rotate(-10deg);} 75%{transform:rotate(10deg);} }
+@keyframes aqPop { 0%{transform:scale(0.2);opacity:0;} 60%{transform:scale(1.2);} 100%{transform:scale(1);opacity:1;} }
+
+.aq-toast {
+  position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%) translateY(10px);
+  background: rgba(20,30,45,0.95); color: #fff; font-size: 0.9rem; font-weight: 700;
+  padding: 0.7rem 1.4rem; border-radius: 999px; z-index: 9100;
+  opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none;
+}
+.aq-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 600px) {
+  .aq-tank { height: 240px; }
+  .aq-home-banner { padding: 0.8rem 0.9rem; }
+  .aq-home-banner-icon { font-size: 1.8rem; }
+}
+
 /* ===== すごろく全体ラップ ===== */
 .sg-wrap {
   max-width: 780px;

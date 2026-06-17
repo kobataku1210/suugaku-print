@@ -927,6 +927,22 @@ function renderHome() {
       <div class="sg-home-banner-arrow">›</div>
     </div>`;
 
+  // ===== 水族館バナー（プレビューモード限定・本番非公開） =====
+  let aquariumBanner = '';
+  if (PREVIEW_MODE && typeof aqHomeBannerSub === 'function') {
+    aquariumBanner = `
+      <div class="aq-home-banner" onclick="navigate('aquarium')">
+        <div class="aq-home-banner-left">
+          <span class="aq-home-banner-icon">🐠</span>
+          <div class="aq-home-banner-text">
+            <div class="aq-home-banner-title">グリンピース水族館 <span class="game-new-badge">試作</span></div>
+            <div class="aq-home-banner-sub">${aqHomeBannerSub()}</div>
+          </div>
+        </div>
+        <div class="aq-home-banner-arrow">›</div>
+      </div>`;
+  }
+
   // カードマッチバナー（ホーム画面では非表示・数学ゲーム画面でのみ表示）
 
   // ===== 数学ゲームバナー =====
@@ -988,6 +1004,7 @@ function renderHome() {
       <p>学習したい単元をタップしてね</p>
     </div>
     ${sgBanner}
+    ${aquariumBanner}
     ${gamesBanner}
     ${toolsBanner}
     ${rankingBanner}
@@ -3616,12 +3633,19 @@ function render() {
   else if (state.view === 'ranking')    content = renderRanking();
   else if (state.view === 'tools')      content = renderToolsPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
+  else if (state.view === 'aquarium')   content = ''; // aquarium.js が直接 main-content を書き換える
   else if (state.view === 'shooting')   content = ''; // iframeで描画
 
   if (state.view === 'sugoroku') {
     document.body.classList.add('sg-mode');
     document.body.classList.remove('shooting-mode');
     renderSugoroku();
+    return;
+  }
+  if (state.view === 'aquarium') {
+    document.body.classList.remove('sg-mode', 'shooting-mode');
+    if (typeof renderAquarium === 'function') renderAquarium();
+    updateBowlWidget(false);
     return;
   }
   if (state.view === 'shooting') {
