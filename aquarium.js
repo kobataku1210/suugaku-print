@@ -476,10 +476,9 @@
     const newSize = aqFishSize(f);
     if (newSize !== rt.size) {
       rt.size = newSize;
+      // font-size の CSS transition でなめらかに大きくする
+      // （transform は位置制御に使っているので触らない）
       rt.el.style.fontSize = newSize + 'px';
-      rt.el.classList.remove('aq-grow');
-      void rt.el.offsetWidth;
-      rt.el.classList.add('aq-grow');
     }
     // ヘッダーの🌱残高は変わらないが、念のため再描画はしない（演出維持）
   }
