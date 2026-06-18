@@ -27,8 +27,8 @@ const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') 
       errEl.style.display = 'block';
       return;
     }
-    if (!count || count < 1 || count > 99) {
-      errEl.textContent = '1〜99の数を入力してください';
+    if (!count || count < 1 || count > 1000) {
+      errEl.textContent = '1〜1000の数を入力してください';
       errEl.style.display = 'block';
       return;
     }
@@ -452,7 +452,7 @@ function showTeacherPeaModal() {
       <input type="password" id="teacher-pw" class="modal-input"
              placeholder="パスワード" autocomplete="off" style="margin-bottom:0.7rem">
       <input type="number" id="teacher-pea-count" class="modal-input"
-             placeholder="追加する個数（例：3）" min="1" max="99" style="margin-bottom:0.3rem">
+             placeholder="追加する個数（例：1000）" min="1" max="1000" style="margin-bottom:0.3rem">
       <div id="teacher-modal-error" class="modal-error"></div>
       <div class="modal-btns">
         <button class="modal-btn-cancel" onclick="closeTeacherModal()">キャンセル</button>
