@@ -2448,15 +2448,34 @@ body {
 .aq-gacha-deco { background: linear-gradient(135deg, #BA7517, #854f0b); box-shadow: 0 4px 12px rgba(133,79,11,0.4); }
 .aq-gacha-ten  { background: linear-gradient(135deg, #d4537e, #7a2348); box-shadow: 0 4px 12px rgba(122,35,72,0.45); align-items: center; }
 
-/* 化石モード切替ボタン */
-.aq-fossil-toggle {
-  width: 100%; margin-bottom: 1rem;
+/* ツールボタン行（ずかん・化石） */
+.aq-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+.aq-tool-btn {
   border: 2px solid #888780; background: #f1efe8; color: #444441;
   border-radius: 12px; padding: 0.7rem; font-size: 0.95rem; font-weight: 800;
   font-family: inherit; cursor: pointer; transition: background 0.15s, transform 0.1s;
 }
-.aq-fossil-toggle:active { transform: scale(0.98); }
+.aq-tool-btn:active { transform: scale(0.98); }
+.aq-dex-btn { border-color: #378ADD; background: #E6F1FB; color: #0C447C; }
 .aq-fossil-toggle.active { background: #5f5e5a; color: #fff; border-color: #2c2c2a; }
+
+/* 図鑑 */
+.aq-dex-box {
+  background: #fff; border-radius: 18px; padding: 1.2rem 1.3rem;
+  width: min(92vw, 460px); max-height: 82vh; overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+.aq-dex-title { font-size: 1.2rem; font-weight: 900; color: #0a3a5c; text-align: center; margin-bottom: 0.6rem; }
+.aq-dex-section { font-size: 0.92rem; font-weight: 800; color: #1f7bb0; margin: 0.8rem 0 0.5rem; }
+.aq-dex-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.aq-dex-cell { border-radius: 10px; padding: 8px 2px; text-align: center; }
+.aq-dex-got { background: #eaf7ff; }
+.aq-dex-locked { background: #f1efe8; opacity: 0.85; }
+.aq-dex-em { font-size: 26px; line-height: 1.1; }
+.aq-dex-locked .aq-dex-em { filter: grayscale(1); opacity: 0.5; }
+.aq-dex-nm { font-size: 11px; font-weight: 700; color: #333; margin-top: 2px; }
+.aq-dex-locked .aq-dex-nm { color: #999; }
+.aq-dex-star { font-size: 10px; color: #d4537e; font-weight: 800; }
 .aq-tank.aq-fossil-active { box-shadow: inset 0 0 0 3px #d4537e, inset 0 0 30px rgba(0,0,0,0.4); }
 .aq-tank.aq-fossil-active .aq-fish { cursor: cell; }
 

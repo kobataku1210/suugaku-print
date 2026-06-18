@@ -106,7 +106,17 @@
     if (!Array.isArray(s.fishes)) s.fishes = [];
     if (!Array.isArray(s.decos))  s.decos  = [];
     if (!Array.isArray(s.fossils)) s.fossils = []; // 化石にした魚 [{type}]
+    if (!Array.isArray(s.discovered)) s.discovered = [];        // 図鑑：獲得済みの魚type
+    if (!Array.isArray(s.discoveredDeco)) s.discoveredDeco = []; // 図鑑：獲得済みの装飾type
     if (typeof s.nextId !== 'number') s.nextId = 1;
+    // 既存の所持（水槽・化石・装飾）からも図鑑を補完
+    const fset = new Set(s.discovered);
+    s.fishes.forEach(f => fset.add(f.type));
+    s.fossils.forEach(f => fset.add(f.type));
+    s.discovered = Array.from(fset);
+    const dset = new Set(s.discoveredDeco);
+    s.decos.forEach(d => dset.add(d.type));
+    s.discoveredDeco = Array.from(dset);
     return s;
   }
   function aqSave(s) { localStorage.setItem(AQ_KEY, JSON.stringify(s)); }
@@ -228,7 +238,7 @@
     if (tank) tank.classList.toggle('aq-fossil-active', aqFossilMode);
     if (btn) {
       btn.classList.toggle('active', aqFossilMode);
-      btn.textContent = aqFossilMode ? '🦴 化石モード中（魚をタップ）' : '🦴 化石にする';
+      btn.textContent = aqFossilMode ? '🦴 化石モード中' : '🦴 化石にする';
     }
     aqShowToast(aqFossilMode ? '化石にしたい魚をタップ' : '化石モードを解除しました');
   }
@@ -265,6 +275,48 @@
       renderAquarium();
     });
     ov.querySelector('#aq-fossil-no').addEventListener('click', () => ov.remove());
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  }
+
+  // ===== 図鑑 =====
+  function aqOpenDex() {
+    document.getElementById('aq-dex-overlay')?.remove();
+    const s = aqLoad();
+    const fishSet = new Set(s.discovered);
+    const decoSet = new Set(s.discoveredDeco);
+    const fishGot = FISH_POOL.filter(f => fishSet.has(f.type)).length;
+    const decoGot = DECO_POOL.filter(d => decoSet.has(d.type)).length;
+
+    const cell = (item, got) => got
+      ? `<div class="aq-dex-cell aq-dex-got">
+           <div class="aq-dex-em">${item.em}</div>
+           <div class="aq-dex-nm">${item.nm}</div>
+           <div class="aq-dex-star">${item.star.split(' ')[0]}</div>
+         </div>`
+      : `<div class="aq-dex-cell aq-dex-locked">
+           <div class="aq-dex-em">❓</div>
+           <div class="aq-dex-nm">？？？</div>
+           <div class="aq-dex-star">${item.star.split(' ')[0]}</div>
+         </div>`;
+
+    const fishCells = FISH_POOL.map(f => cell(f, fishSet.has(f.type))).join('');
+    const decoCells = DECO_POOL.map(d => cell(d, decoSet.has(d.type))).join('');
+
+    const ov = document.createElement('div');
+    ov.id = 'aq-dex-overlay';
+    ov.className = 'aq-gacha-overlay';
+    ov.innerHTML = `
+      <div class="aq-dex-box">
+        <div class="aq-dex-title">📖 水族館ずかん</div>
+        <div class="aq-dex-section">🐟 魚（${fishGot} / ${FISH_POOL.length} 種）</div>
+        <div class="aq-dex-grid">${fishCells}</div>
+        <div class="aq-dex-section">🪸 装飾（${decoGot} / ${DECO_POOL.length} 種）</div>
+        <div class="aq-dex-grid">${decoCells}</div>
+        <button class="aq-size-close" id="aq-dex-close">とじる</button>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+    ov.querySelector('#aq-dex-close').addEventListener('click', () => ov.remove());
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
@@ -539,9 +591,12 @@
           <span class="aq-gacha-cost">🌱${TEN_PULL_COST}</span>
         </button>
 
-        <button class="aq-fossil-toggle${aqFossilMode ? ' active' : ''}" id="aq-fossil-toggle" onclick="aqToggleFossilMode()">
-          ${aqFossilMode ? '🦴 化石モード中（魚をタップ）' : '🦴 化石にする'}
-        </button>
+        <div class="aq-tool-row">
+          <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
+          <button class="aq-tool-btn aq-fossil-toggle${aqFossilMode ? ' active' : ''}" id="aq-fossil-toggle" onclick="aqToggleFossilMode()">
+            ${aqFossilMode ? '🦴 化石モード中' : '🦴 化石にする'}
+          </button>
+        </div>
 
         <div class="aq-prob-area">${fishProb}${decoProb}</div>
 
@@ -733,5 +788,6 @@
   window.aqRollGacha = aqRollGacha;
   window.aqRollGacha10 = aqRollGacha10;
   window.aqToggleFossilMode = aqToggleFossilMode;
+  window.aqOpenDex = aqOpenDex;
   window.aqStopAnim = aqStopAnim;
 })();
