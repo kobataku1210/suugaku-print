@@ -59,13 +59,21 @@
   // プレビューモードか（?preview=draft）
   function aqPreview() { return (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE); }
 
-  // ===== 🌱残高（mathPrint_v2 と共有：cups×45 + count） =====
-  function aqGetPeas() {
-    if (aqPreview()) return Infinity; // プレビューは無限
+  // 学習で貯めた🌱の累計（お椀＝mathPrint_v2）。お椀は減らさない。
+  function aqEarnedTotal() {
     try {
       const p = JSON.parse(localStorage.getItem('mathPrint_v2') || '{}') || {};
       return (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
     } catch (e) { return 0; }
+  }
+  // 水族館で使った累計（aquarium_v1.spent に記録。お椀は減らさない）
+  function aqSpentTotal() {
+    try { return JSON.parse(localStorage.getItem(AQ_KEY) || '{}').spent || 0; } catch (e) { return 0; }
+  }
+  // ===== 🌱の使える残高 ＝ 累計 − 水族館使用分 =====
+  function aqGetPeas() {
+    if (aqPreview()) return Infinity; // プレビューは無限
+    return Math.max(0, aqEarnedTotal() - aqSpentTotal());
   }
   // 表示用（無限なら ∞）
   function aqPeasLabel() { return aqPreview() ? '∞' : String(aqGetPeas()); }
@@ -74,29 +82,14 @@
     const el = document.getElementById('aq-pea-count');
     if (el) el.textContent = aqPeasLabel();
   }
+  // 🌱を消費（お椀の累計は減らさず、水族館の使用分カウンターを増やすだけ）
   function aqSpendPeas(n) {
     if (aqPreview()) return true; // プレビューは消費しない（無限）
-    try {
-      const p = JSON.parse(localStorage.getItem('mathPrint_v2') || '{}') || {};
-      let total = (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
-      if (total < n) return false;
-      total -= n;
-      p.peaCupCount = Math.floor(total / 45);
-      p.peaCount    = total % 45;
-      if (!p.done || typeof p.done !== 'object') p.done = {};
-      localStorage.setItem('mathPrint_v2', JSON.stringify(p));
-      // すごろく用残高にも反映（あれば）
-      try {
-        const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1');
-        const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1';
-        const sv = JSON.parse(localStorage.getItem(key) || '{}') || {};
-        if (typeof sv.peas === 'number') {
-          sv.peas = Math.max(0, sv.peas - n);
-          localStorage.setItem(key, JSON.stringify(sv));
-        }
-      } catch (e) {}
-      return true;
-    } catch (e) { return false; }
+    if (aqGetPeas() < n) return false;
+    const s = aqLoad();
+    s.spent = (s.spent || 0) + n;
+    aqSave(s);
+    return true;
   }
 
   // ===== セーブ =====
@@ -109,6 +102,7 @@
     if (!Array.isArray(s.fossils)) s.fossils = []; // 化石にした魚 [{type}]
     if (!Array.isArray(s.discovered)) s.discovered = [];        // 図鑑：獲得済みの魚type
     if (!Array.isArray(s.discoveredDeco)) s.discoveredDeco = []; // 図鑑：獲得済みの装飾type
+    if (typeof s.spent !== 'number') s.spent = 0;               // 水族館で使った🌱の累計
     if (typeof s.nextId !== 'number') s.nextId = 1;
     // 既存の所持（水槽・化石・装飾）からも図鑑を補完
     const fset = new Set(s.discovered);
