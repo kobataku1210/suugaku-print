@@ -302,6 +302,22 @@
     const fishCells = FISH_POOL.map(f => cell(f, fishSet.has(f.type))).join('');
     const decoCells = DECO_POOL.map(d => cell(d, decoSet.has(d.type))).join('');
 
+    // 化石コレクション（種類ごとに数を集計）
+    const fossilCount = {};
+    s.fossils.forEach(f => { fossilCount[f.type] = (fossilCount[f.type] || 0) + 1; });
+    const fossilTypes = Object.keys(fossilCount);
+    const fossilTotal = s.fossils.length;
+    const fossilCells = fossilTypes.length === 0
+      ? `<div class="aq-dex-empty">まだ化石はありません</div>`
+      : fossilTypes.map(t => {
+          const def = fishDef(t);
+          return `<div class="aq-dex-cell aq-dex-got">
+            <div class="aq-dex-em">🦴${def.em}</div>
+            <div class="aq-dex-nm">${def.nm}</div>
+            <div class="aq-dex-star">×${fossilCount[t]}</div>
+          </div>`;
+        }).join('');
+
     const ov = document.createElement('div');
     ov.id = 'aq-dex-overlay';
     ov.className = 'aq-gacha-overlay';
@@ -312,6 +328,8 @@
         <div class="aq-dex-grid">${fishCells}</div>
         <div class="aq-dex-section">🪸 装飾（${decoGot} / ${DECO_POOL.length} 種）</div>
         <div class="aq-dex-grid">${decoCells}</div>
+        <div class="aq-dex-section">🦴 化石コレクション（${fossilTotal} 体）</div>
+        <div class="aq-dex-grid">${fossilCells}</div>
         <button class="aq-size-close" id="aq-dex-close">とじる</button>
       </div>`;
     document.body.appendChild(ov);
