@@ -529,8 +529,10 @@
     const fx = Math.max(20, Math.min(W - 20, rt.x + rt.size / 2));
     rt.feedX = fx;
     rt.ateAny = false;
+    // 魚の少し上から落とす（一番上からではなく）
+    const topY = Math.max(0, rt.y - 34);
     for (let n = 0; n < 3; n++) {
-      aqPeasRT.push({ x: fx + (n - 1) * 6, y: -12 - n * 18, vy: 1.5, owner: rt, eaten: false, el: null });
+      aqPeasRT.push({ x: fx + (n - 1) * 6, y: topY - n * 16, vy: 1.5, owner: rt, eaten: false, el: null });
     }
   }
 
