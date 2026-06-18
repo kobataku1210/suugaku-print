@@ -2446,7 +2446,8 @@ body {
 .aq-gacha-btn:active { transform: scale(0.97); }
 .aq-gacha-fish { background: linear-gradient(135deg, #1D9E75, #0f6e56); box-shadow: 0 4px 12px rgba(15,110,86,0.4); }
 .aq-gacha-deco { background: linear-gradient(135deg, #BA7517, #854f0b); box-shadow: 0 4px 12px rgba(133,79,11,0.4); }
-.aq-gacha-ten  { background: linear-gradient(135deg, #d4537e, #7a2348); box-shadow: 0 4px 12px rgba(122,35,72,0.45); align-items: center; }
+.aq-gacha-ten  { background: linear-gradient(135deg, #d4537e, #7a2348); box-shadow: 0 4px 12px rgba(122,35,72,0.45); }
+.aq-gacha-ten-deco { background: linear-gradient(135deg, #BA7517, #633806); box-shadow: 0 4px 12px rgba(99,56,6,0.45); }
 
 /* ツールボタン行（ずかん・化石） */
 .aq-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }

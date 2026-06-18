@@ -14,8 +14,9 @@
   const AQ_MAX_FISH = 50;
   const FISH_COST = 100;
   const DECO_COST = 50;
-  const TEN_PULL_COST = 1000;                     // 10連ガチャの価格
-  const TEN_PULL_COUNT = 11;                      // 10連で獲得できる魚の数（10+おまけ1）
+  const TEN_PULL_COST = 1000;                     // 魚10連ガチャの価格
+  const DECO_TEN_PULL_COST = 500;                 // 装飾10連ガチャの価格
+  const TEN_PULL_COUNT = 11;                      // 10連で獲得できる数（10+おまけ1）
   const FEED_COST = 3;                            // 餌やり1回で🌱3個消費
   const GROW_MAX = 10;                           // 餌10回で最大サイズ（以降は餌やり不可）
   // 最大サイズ到達後に選べる「理想の大きさ」（最大サイズに対する倍率）
@@ -181,34 +182,43 @@
     });
   }
 
-  // ===== 10連ガチャ（🌱1000で魚11匹） =====
-  function aqRollGacha10() {
+  // ===== 10連ガチャ（魚🌱1000で11匹 / 装飾🌱500で11個） =====
+  function aqRollGacha10(kind) {
     if (aqGachaBusy) return;
+    const isFish = (kind !== 'deco');
+    const cost = isFish ? TEN_PULL_COST : DECO_TEN_PULL_COST;
     const s = aqLoad();
-    const room = AQ_MAX_FISH - s.fishes.length;
-    if (room < TEN_PULL_COUNT) {
-      aqShowToast('水槽に' + TEN_PULL_COUNT + '匹分の空きが必要（化石にして空けよう）');
+    if (isFish) {
+      const room = AQ_MAX_FISH - s.fishes.length;
+      if (room < TEN_PULL_COUNT) {
+        aqShowToast('水槽に' + TEN_PULL_COUNT + '匹分の空きが必要（化石にして空けよう）');
+        return;
+      }
+    }
+    if (aqGetPeas() < cost) {
+      aqShowToast('🌱が足りません（' + cost + '個 必要）');
       return;
     }
-    if (aqGetPeas() < TEN_PULL_COST) {
-      aqShowToast('🌱が足りません（' + TEN_PULL_COST + '個 必要）');
-      return;
-    }
-    if (!aqSpendPeas(TEN_PULL_COST)) { aqShowToast('🌱が足りません'); return; }
+    if (!aqSpendPeas(cost)) { aqShowToast('🌱が足りません'); return; }
     aqGachaBusy = true;
+    const pool = isFish ? FISH_POOL : DECO_POOL;
     const results = [];
-    for (let i = 0; i < TEN_PULL_COUNT; i++) results.push(aqPick(FISH_POOL));
-    aqShow10PullResult(results, () => {
+    for (let i = 0; i < TEN_PULL_COUNT; i++) results.push(aqPick(pool));
+    aqShow10PullResult(results, isFish, () => {
       const s2 = aqLoad();
       const now = Date.now();
-      for (const r of results) s2.fishes.push({ id: s2.nextId++, type: r.type, fed: 0, lastFed: now });
+      if (isFish) {
+        for (const r of results) s2.fishes.push({ id: s2.nextId++, type: r.type, fed: 0, lastFed: now });
+      } else {
+        for (const r of results) s2.decos.push({ id: s2.nextId++, type: r.type, x: 0.1 + Math.random() * 0.8, y: 0.6 + Math.random() * 0.32 });
+      }
       aqSave(s2);
       aqGachaBusy = false;
       renderAquarium();
     });
   }
 
-  function aqShow10PullResult(results, done) {
+  function aqShow10PullResult(results, isFish, done) {
     document.getElementById('aq-gacha-overlay')?.remove();
     const ov = document.createElement('div');
     ov.id = 'aq-gacha-overlay';
@@ -218,11 +228,12 @@
          <div class="aq-pull-em">${r.em}</div>
          <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
        </div>`).join('');
+    const unit = isFish ? '匹' : '個';
     ov.innerHTML = `
       <div class="aq-gacha-box" style="max-width:340px;">
-        <div class="aq-gacha-label" style="margin:0 0 0.6rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}匹ゲット！</div>
+        <div class="aq-gacha-label" style="margin:0 0 0.6rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}${unit}ゲット！</div>
         <div class="aq-pull-grid">${cells}</div>
-        <button class="aq-size-close" id="aq-pull-ok">水槽に入れる</button>
+        <button class="aq-size-close" id="aq-pull-ok">${isFish ? '水槽に入れる' : '水槽に飾る'}</button>
       </div>`;
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
@@ -603,11 +614,18 @@
           </button>
         </div>
 
-        <button class="aq-gacha-btn aq-gacha-ten" style="width:100%;margin-bottom:1rem;flex-direction:row;gap:10px;" onclick="aqRollGacha10()">
-          <span class="aq-gacha-em">🎰✨</span>
-          <span class="aq-gacha-name">10連ガチャ（魚${TEN_PULL_COUNT}匹）</span>
-          <span class="aq-gacha-cost">🌱${TEN_PULL_COST}</span>
-        </button>
+        <div class="aq-gacha-area">
+          <button class="aq-gacha-btn aq-gacha-ten" onclick="aqRollGacha10('fish')">
+            <span class="aq-gacha-em">🎰✨</span>
+            <span class="aq-gacha-name">魚10連（${TEN_PULL_COUNT}匹）</span>
+            <span class="aq-gacha-cost">🌱${TEN_PULL_COST}</span>
+          </button>
+          <button class="aq-gacha-btn aq-gacha-ten-deco" onclick="aqRollGacha10('deco')">
+            <span class="aq-gacha-em">🎰✨</span>
+            <span class="aq-gacha-name">装飾10連（${TEN_PULL_COUNT}個）</span>
+            <span class="aq-gacha-cost">🌱${DECO_TEN_PULL_COST}</span>
+          </button>
+        </div>
 
         <div class="aq-tool-row">
           <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
