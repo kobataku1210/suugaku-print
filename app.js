@@ -10,7 +10,7 @@ const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') 
 
 // ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
 (function() {
-  const H = 'c81b8146c567dfe6cc166ffc1963130bd559c77a987b6e0196e17b71ee48194c';
+  const H = '76ad0a76d1f92881cea44787d5d4501aba0d145faccf9ce1aaa6ff9daf0060d8';
   const S = 'mathprint_';
   async function _h(p) {
     const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(S + p));
