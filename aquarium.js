@@ -47,14 +47,21 @@
   function fishDef(t){ return FISH_POOL.find(f => f.type === t) || FISH_POOL[0]; }
   function decoDef(t){ return DECO_POOL.find(d => d.type === t) || DECO_POOL[0]; }
 
+  // プレビューモードか（?preview=draft）
+  function aqPreview() { return (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE); }
+
   // ===== 🌱残高（mathPrint_v2 と共有：cups×45 + count） =====
   function aqGetPeas() {
+    if (aqPreview()) return Infinity; // プレビューは無限
     try {
       const p = JSON.parse(localStorage.getItem('mathPrint_v2') || '{}') || {};
       return (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
     } catch (e) { return 0; }
   }
+  // 表示用（無限なら ∞）
+  function aqPeasLabel() { return aqPreview() ? '∞' : String(aqGetPeas()); }
   function aqSpendPeas(n) {
+    if (aqPreview()) return true; // プレビューは消費しない（無限）
     try {
       const p = JSON.parse(localStorage.getItem('mathPrint_v2') || '{}') || {};
       let total = (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
@@ -265,7 +272,7 @@
     const s = aqProcessTime(aqLoad(), now);
     aqSave(s);
 
-    const peas = aqGetPeas();
+    const peas = aqPeasLabel();
     const fishCount = s.fishes.length;
 
     // 確率表
@@ -500,7 +507,7 @@
   // ===== ホームバナー用テキスト（app.js から参照） =====
   window.aqHomeBannerSub = function () {
     const s = aqProcessTime(aqLoad(), Date.now());
-    return `🐟 ${s.fishes.length}/${AQ_MAX_FISH}匹　🌱${aqGetPeas()}`;
+    return `🐟 ${s.fishes.length}/${AQ_MAX_FISH}匹　🌱${aqPeasLabel()}`;
   };
 
   // グローバル公開
