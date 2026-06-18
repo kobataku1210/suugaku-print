@@ -11,11 +11,9 @@
   'use strict';
 
   const AQ_KEY = 'aquarium_v1';
-  const AQ_MAX_FISH = 12;
+  const AQ_MAX_FISH = 30;
   const FISH_COST = 100;
   const DECO_COST = 50;
-  const HUNGER_DECAY_MS = 3 * 24 * 3600 * 1000; // 3日で100%→0%
-  const DEATH_GRACE_MS  = 1 * 24 * 3600 * 1000; // 0%後1日でひん死→消滅
   const GROW_MAX = 5;                            // 餌5回で最大サイズ
 
   // ===== ガチャ排出テーブル =====
@@ -97,28 +95,10 @@
   }
   function aqSave(s) { localStorage.setItem(AQ_KEY, JSON.stringify(s)); }
 
-  // 空腹を時間で再計算し、ひん死を超えた魚は消滅させる
-  function aqProcessTime(s, now) {
-    const kept = [];
-    for (const f of s.fishes) {
-      const elapsed = now - (f.lastFed || now);
-      if (elapsed > HUNGER_DECAY_MS + DEATH_GRACE_MS) continue; // 消滅
-      kept.push(f);
-    }
-    s.fishes = kept;
-    return s;
-  }
-  // 魚の空腹%（0-100）
-  function aqHunger(f, now) {
-    const elapsed = now - (f.lastFed || now);
-    const v = 100 - (elapsed / HUNGER_DECAY_MS) * 100;
-    return Math.max(0, Math.min(100, Math.round(v)));
-  }
-  // 空腹0%が継続→ひん死かどうか
-  function aqIsDying(f, now) {
-    const elapsed = now - (f.lastFed || now);
-    return elapsed > HUNGER_DECAY_MS;
-  }
+  // 空腹/弱り要素は廃止：魚は減らさない（そのまま返す）
+  function aqProcessTime(s, now) { return s; }
+  // ひん死は常になし
+  function aqIsDying(f, now) { return false; }
   // 成長係数（小さく生まれ、餌5回で最大）
   function aqSizeFactor(f) {
     const fed = Math.min(f.fed || 0, GROW_MAX);
@@ -328,7 +308,7 @@
 
         <div class="aq-note">
           魚は小さく生まれ、餌を食べるたびに成長（餌${GROW_MAX}回で最大）。<br>
-          餌は数日でゆっくり減り、空腹が続くと弱って消えてしまうので、ときどき餌やりを！
+          餌をあげなくても魚は元気なまま。じっくりコレクションを増やそう！
         </div>
       </div>`;
 
