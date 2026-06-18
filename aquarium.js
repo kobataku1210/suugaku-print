@@ -686,12 +686,9 @@
           </button>
         </div>
 
-        <div class="aq-tool-row aq-tool-row-3">
+        <div class="aq-tool-row">
           <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
-          <button class="aq-tool-btn aq-list-btn" onclick="aqOpenFishList()">🐟 魚一覧</button>
-          <button class="aq-tool-btn aq-fossil-toggle${aqFossilMode ? ' active' : ''}" id="aq-fossil-toggle" onclick="aqToggleFossilMode()">
-            ${aqFossilMode ? '🦴 化石中' : '🦴 化石にする'}
-          </button>
+          <button class="aq-tool-btn aq-list-btn" onclick="aqOpenFishList()">🐟 魚一覧・化石にする</button>
         </div>
 
         <div class="aq-prob-area">${fishProb}${decoProb}</div>
