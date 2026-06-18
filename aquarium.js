@@ -14,6 +14,8 @@
   const AQ_MAX_FISH = 50;
   const FISH_COST = 100;
   const DECO_COST = 50;
+  const TEN_PULL_COST = 1000;                     // 10連ガチャの価格
+  const TEN_PULL_COUNT = 11;                      // 10連で獲得できる魚の数（10+おまけ1）
   const FEED_COST = 3;                            // 餌やり1回で🌱3個消費
   const GROW_MAX = 10;                           // 餌10回で最大サイズ（以降は餌やり不可）
   // 最大サイズ到達後に選べる「理想の大きさ」（最大サイズに対する倍率）
@@ -103,6 +105,7 @@
     if (!s || typeof s !== 'object') s = {};
     if (!Array.isArray(s.fishes)) s.fishes = [];
     if (!Array.isArray(s.decos))  s.decos  = [];
+    if (!Array.isArray(s.fossils)) s.fossils = []; // 化石にした魚 [{type}]
     if (typeof s.nextId !== 'number') s.nextId = 1;
     return s;
   }
@@ -166,6 +169,103 @@
       aqGachaBusy = false;
       renderAquarium();
     });
+  }
+
+  // ===== 10連ガチャ（🌱1000で魚11匹） =====
+  function aqRollGacha10() {
+    if (aqGachaBusy) return;
+    const s = aqLoad();
+    const room = AQ_MAX_FISH - s.fishes.length;
+    if (room < TEN_PULL_COUNT) {
+      aqShowToast('水槽に' + TEN_PULL_COUNT + '匹分の空きが必要（化石にして空けよう）');
+      return;
+    }
+    if (aqGetPeas() < TEN_PULL_COST) {
+      aqShowToast('🌱が足りません（' + TEN_PULL_COST + '個 必要）');
+      return;
+    }
+    if (!aqSpendPeas(TEN_PULL_COST)) { aqShowToast('🌱が足りません'); return; }
+    aqGachaBusy = true;
+    const results = [];
+    for (let i = 0; i < TEN_PULL_COUNT; i++) results.push(aqPick(FISH_POOL));
+    aqShow10PullResult(results, () => {
+      const s2 = aqLoad();
+      const now = Date.now();
+      for (const r of results) s2.fishes.push({ id: s2.nextId++, type: r.type, fed: 0, lastFed: now });
+      aqSave(s2);
+      aqGachaBusy = false;
+      renderAquarium();
+    });
+  }
+
+  function aqShow10PullResult(results, done) {
+    document.getElementById('aq-gacha-overlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'aq-gacha-overlay';
+    ov.className = 'aq-gacha-overlay';
+    const cells = results.map((r, i) =>
+      `<div class="aq-pull-cell" style="animation-delay:${i * 0.08}s">
+         <div class="aq-pull-em">${r.em}</div>
+         <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
+       </div>`).join('');
+    ov.innerHTML = `
+      <div class="aq-gacha-box" style="max-width:340px;">
+        <div class="aq-gacha-label" style="margin:0 0 0.6rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}匹ゲット！</div>
+        <div class="aq-pull-grid">${cells}</div>
+        <button class="aq-size-close" id="aq-pull-ok">水槽に入れる</button>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+    ov.querySelector('#aq-pull-ok').addEventListener('click', () => { ov.remove(); done && done(); });
+  }
+
+  // ===== 化石化（いらない魚を化石にして水槽の空きを増やす） =====
+  let aqFossilMode = false;
+  function aqToggleFossilMode() {
+    aqFossilMode = !aqFossilMode;
+    const tank = document.getElementById('aq-tank');
+    const btn = document.getElementById('aq-fossil-toggle');
+    if (tank) tank.classList.toggle('aq-fossil-active', aqFossilMode);
+    if (btn) {
+      btn.classList.toggle('active', aqFossilMode);
+      btn.textContent = aqFossilMode ? '🦴 化石モード中（魚をタップ）' : '🦴 化石にする';
+    }
+    aqShowToast(aqFossilMode ? '化石にしたい魚をタップ' : '化石モードを解除しました');
+  }
+  function aqConfirmFossilize(fishId) {
+    const s = aqLoad();
+    const f = s.fishes.find(x => x.id === fishId);
+    if (!f) return;
+    const def = fishDef(f.type);
+    document.getElementById('aq-fossil-overlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'aq-fossil-overlay';
+    ov.className = 'aq-gacha-overlay';
+    ov.innerHTML = `
+      <div class="aq-gacha-box">
+        <div style="font-size:46px;line-height:1;">${def.em}➡️🦴</div>
+        <div class="aq-gacha-label">${def.nm} を化石にする？</div>
+        <p style="font-size:0.8rem;color:#667;margin:0.3rem 0 0.8rem;">水槽から出して化石コレクションへ。<br>空いた分だけ新しい魚を入れられます。</p>
+        <div class="aq-size-btns">
+          <button class="aq-size-btn" id="aq-fossil-yes">化石にする</button>
+          <button class="aq-size-close" id="aq-fossil-no">やめる</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+    ov.querySelector('#aq-fossil-yes').addEventListener('click', () => {
+      const s2 = aqLoad();
+      const idx = s2.fishes.findIndex(x => x.id === fishId);
+      if (idx >= 0) {
+        const removed = s2.fishes.splice(idx, 1)[0];
+        s2.fossils.push({ type: removed.type });
+        aqSave(s2);
+      }
+      ov.remove();
+      renderAquarium();
+    });
+    ov.querySelector('#aq-fossil-no').addEventListener('click', () => ov.remove());
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
   // ===== ガチャ演出 =====
@@ -320,6 +420,8 @@
     try { d.el.releasePointerCapture(d.pointerId); } catch (ex) {}
     if (d.moved) {
       d.rt.dragging = false; // その場から遊泳再開
+    } else if (aqFossilMode) {
+      aqConfirmFossilize(d.id); // 化石モード：タップで化石化の確認
     } else {
       // タップ：最大まで育っていたら大きさ選択、まだなら餌やり
       const sf = aqLoad().fishes.find(x => x.id === d.id);
@@ -408,14 +510,15 @@
           <div class="aq-stats">
             <span class="aq-stat">🌱 <strong id="aq-pea-count">${peas}</strong></span>
             <span class="aq-stat">🐟 <strong>${fishCount}</strong>/${AQ_MAX_FISH}</span>
+            <span class="aq-stat">🦴 <strong>${s.fossils.length}</strong></span>
           </div>
         </div>
 
-        <div class="aq-tank" id="aq-tank">
+        <div class="aq-tank${aqFossilMode ? ' aq-fossil-active' : ''}" id="aq-tank">
           <div class="aq-tank-floor"></div>
         </div>
 
-        <div class="aq-hint">👆 魚をタップで餌やり ／ 装飾はドラッグで移動</div>
+        <div class="aq-hint">👆 魚をタップで餌やり ／ 魚も装飾もドラッグで移動</div>
 
         <div class="aq-gacha-area">
           <button class="aq-gacha-btn aq-gacha-fish" onclick="aqRollGacha('fish')">
@@ -430,11 +533,22 @@
           </button>
         </div>
 
+        <button class="aq-gacha-btn aq-gacha-ten" style="width:100%;margin-bottom:1rem;flex-direction:row;gap:10px;" onclick="aqRollGacha10()">
+          <span class="aq-gacha-em">🎰✨</span>
+          <span class="aq-gacha-name">10連ガチャ（魚${TEN_PULL_COUNT}匹）</span>
+          <span class="aq-gacha-cost">🌱${TEN_PULL_COST}</span>
+        </button>
+
+        <button class="aq-fossil-toggle${aqFossilMode ? ' active' : ''}" id="aq-fossil-toggle" onclick="aqToggleFossilMode()">
+          ${aqFossilMode ? '🦴 化石モード中（魚をタップ）' : '🦴 化石にする'}
+        </button>
+
         <div class="aq-prob-area">${fishProb}${decoProb}</div>
 
         <div class="aq-note">
           魚は小さく生まれ、餌（🌱×${FEED_COST}）をあげるたびに成長（餌${GROW_MAX}回で最大）。<br>
-          最大まで育った魚はタップで「好きな大きさ」を選べます。餌をあげなくても魚は元気なまま！
+          最大まで育った魚はタップで「好きな大きさ」を選べます。<br>
+          水槽がいっぱいになったら、いらない魚を🦴<b>化石</b>にして空きを増やそう！
         </div>
       </div>`;
 
@@ -617,5 +731,7 @@
   // グローバル公開
   window.renderAquarium = renderAquarium;
   window.aqRollGacha = aqRollGacha;
+  window.aqRollGacha10 = aqRollGacha10;
+  window.aqToggleFossilMode = aqToggleFossilMode;
   window.aqStopAnim = aqStopAnim;
 })();

@@ -2446,6 +2446,25 @@ body {
 .aq-gacha-btn:active { transform: scale(0.97); }
 .aq-gacha-fish { background: linear-gradient(135deg, #1D9E75, #0f6e56); box-shadow: 0 4px 12px rgba(15,110,86,0.4); }
 .aq-gacha-deco { background: linear-gradient(135deg, #BA7517, #854f0b); box-shadow: 0 4px 12px rgba(133,79,11,0.4); }
+.aq-gacha-ten  { background: linear-gradient(135deg, #d4537e, #7a2348); box-shadow: 0 4px 12px rgba(122,35,72,0.45); align-items: center; }
+
+/* 化石モード切替ボタン */
+.aq-fossil-toggle {
+  width: 100%; margin-bottom: 1rem;
+  border: 2px solid #888780; background: #f1efe8; color: #444441;
+  border-radius: 12px; padding: 0.7rem; font-size: 0.95rem; font-weight: 800;
+  font-family: inherit; cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.aq-fossil-toggle:active { transform: scale(0.98); }
+.aq-fossil-toggle.active { background: #5f5e5a; color: #fff; border-color: #2c2c2a; }
+.aq-tank.aq-fossil-active { box-shadow: inset 0 0 0 3px #d4537e, inset 0 0 30px rgba(0,0,0,0.4); }
+.aq-tank.aq-fossil-active .aq-fish { cursor: cell; }
+
+/* 10連ガチャ結果 */
+.aq-pull-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0.4rem 0 0.8rem; }
+.aq-pull-cell { background: #eaf7ff; border-radius: 10px; padding: 6px 2px; text-align: center; animation: aqPop 0.4s backwards; }
+.aq-pull-em { font-size: 26px; line-height: 1; }
+.aq-pull-star { font-size: 10px; color: #d4537e; font-weight: 800; }
 .aq-gacha-em { font-size: 1.8rem; }
 .aq-gacha-name { font-size: 1rem; }
 .aq-gacha-cost { font-size: 0.85rem; background: rgba(255,255,255,0.22); padding: 2px 12px; border-radius: 999px; }
