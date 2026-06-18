@@ -243,7 +243,7 @@
     if (tank) tank.classList.toggle('aq-fossil-active', aqFossilMode);
     if (btn) {
       btn.classList.toggle('active', aqFossilMode);
-      btn.textContent = aqFossilMode ? '🦴 化石モード中' : '🦴 化石にする';
+      btn.textContent = aqFossilMode ? '🦴 化石中' : '🦴 化石にする';
     }
     aqShowToast(aqFossilMode ? '化石にしたい魚をタップ' : '化石モードを解除しました');
   }
@@ -340,6 +340,69 @@
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
     ov.querySelector('#aq-dex-close').addEventListener('click', () => ov.remove());
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  }
+
+  // ===== 水槽の魚一覧（複数選択で化石化） =====
+  function aqOpenFishList() {
+    document.getElementById('aq-fishlist-overlay')?.remove();
+    const selected = new Set();
+    const ov = document.createElement('div');
+    ov.id = 'aq-fishlist-overlay';
+    ov.className = 'aq-gacha-overlay';
+    document.body.appendChild(ov);
+
+    function draw() {
+      const s = aqLoad();
+      const fishes = s.fishes;
+      const cells = fishes.length === 0
+        ? `<div class="aq-dex-empty">水槽に魚がいません</div>`
+        : fishes.map(f => {
+            const def = fishDef(f.type);
+            const fed = Math.min(f.fed || 0, GROW_MAX);
+            const grow = aqIsMaxed(f) ? '最大' : `餌${fed}/${GROW_MAX}`;
+            const sel = selected.has(f.id) ? ' aq-fl-selected' : '';
+            return `<div class="aq-fl-cell${sel}" data-fid="${f.id}">
+                <div class="aq-fl-check">✓</div>
+                <div class="aq-dex-em">${def.em}</div>
+                <div class="aq-dex-nm">${def.nm}</div>
+                <div class="aq-fl-grow">${grow}</div>
+              </div>`;
+          }).join('');
+      const n = selected.size;
+      ov.innerHTML = `
+        <div class="aq-dex-box">
+          <div class="aq-dex-title">🐟 水槽の魚（${fishes.length}匹）</div>
+          <p style="font-size:0.8rem;color:#667;margin:0 0 0.6rem;text-align:center;">化石にしたい魚をタップで選んでね</p>
+          <div class="aq-fl-grid">${cells}</div>
+          <button class="aq-fl-fossil-btn" id="aq-fl-fossil"${n === 0 ? ' disabled' : ''}>🦴 選んだ ${n} 匹を化石にする</button>
+          <button class="aq-size-close" id="aq-fl-close">とじる</button>
+        </div>`;
+      ov.querySelectorAll('.aq-fl-cell').forEach(c => {
+        c.addEventListener('click', () => {
+          const fid = parseInt(c.dataset.fid);
+          if (selected.has(fid)) selected.delete(fid); else selected.add(fid);
+          draw();
+        });
+      });
+      const fb = ov.querySelector('#aq-fl-fossil');
+      if (fb) fb.addEventListener('click', () => {
+        if (selected.size === 0) return;
+        const cnt = selected.size;
+        const s2 = aqLoad();
+        s2.fishes = s2.fishes.filter(f => {
+          if (selected.has(f.id)) { s2.fossils.push({ type: f.type }); return false; }
+          return true;
+        });
+        aqSave(s2);
+        ov.remove();
+        renderAquarium();
+        aqShowToast(cnt + '匹を化石にしました');
+      });
+      ov.querySelector('#aq-fl-close').addEventListener('click', () => ov.remove());
+    }
+    draw();
+    requestAnimationFrame(() => ov.classList.add('show'));
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
@@ -621,10 +684,11 @@
           </button>
         </div>
 
-        <div class="aq-tool-row">
+        <div class="aq-tool-row aq-tool-row-3">
           <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
+          <button class="aq-tool-btn aq-list-btn" onclick="aqOpenFishList()">🐟 魚一覧</button>
           <button class="aq-tool-btn aq-fossil-toggle${aqFossilMode ? ' active' : ''}" id="aq-fossil-toggle" onclick="aqToggleFossilMode()">
-            ${aqFossilMode ? '🦴 化石モード中' : '🦴 化石にする'}
+            ${aqFossilMode ? '🦴 化石中' : '🦴 化石にする'}
           </button>
         </div>
 
@@ -819,5 +883,6 @@
   window.aqRollGacha10 = aqRollGacha10;
   window.aqToggleFossilMode = aqToggleFossilMode;
   window.aqOpenDex = aqOpenDex;
+  window.aqOpenFishList = aqOpenFishList;
   window.aqStopAnim = aqStopAnim;
 })();

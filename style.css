@@ -2451,16 +2451,38 @@ body {
 .aq-gacha-ten  { background: linear-gradient(135deg, #d4537e, #7a2348); box-shadow: 0 4px 12px rgba(122,35,72,0.45); }
 .aq-gacha-ten-deco { background: linear-gradient(135deg, #BA7517, #633806); box-shadow: 0 4px 12px rgba(99,56,6,0.45); }
 
-/* ツールボタン行（ずかん・化石） */
+/* ツールボタン行（ずかん・魚一覧・化石） */
 .aq-tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+.aq-tool-row-3 { grid-template-columns: repeat(3, 1fr); }
 .aq-tool-btn {
   border: 2px solid #888780; background: #f1efe8; color: #444441;
-  border-radius: 12px; padding: 0.7rem; font-size: 0.95rem; font-weight: 800;
+  border-radius: 12px; padding: 0.7rem 0.4rem; font-size: 0.92rem; font-weight: 800;
   font-family: inherit; cursor: pointer; transition: background 0.15s, transform 0.1s;
 }
 .aq-tool-btn:active { transform: scale(0.98); }
 .aq-dex-btn { border-color: #378ADD; background: #E6F1FB; color: #0C447C; }
+.aq-list-btn { border-color: #1D9E75; background: #E1F5EE; color: #0F6E56; }
 .aq-fossil-toggle.active { background: #5f5e5a; color: #fff; border-color: #2c2c2a; }
+
+/* 魚一覧（複数選択で化石化） */
+.aq-fl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0.8rem; }
+.aq-fl-cell {
+  position: relative; border-radius: 10px; padding: 8px 2px; text-align: center;
+  background: #eaf7ff; border: 2px solid transparent; cursor: pointer;
+}
+.aq-fl-cell.aq-fl-selected { border-color: #5f5e5a; background: #e9e7df; }
+.aq-fl-check {
+  position: absolute; top: 2px; right: 4px; font-size: 13px; font-weight: 900;
+  color: #5f5e5a; opacity: 0;
+}
+.aq-fl-cell.aq-fl-selected .aq-fl-check { opacity: 1; }
+.aq-fl-grow { font-size: 10px; color: #1f7bb0; font-weight: 700; }
+.aq-fl-fossil-btn {
+  width: 100%; border: none; border-radius: 12px; padding: 0.8rem;
+  background: linear-gradient(135deg, #5f5e5a, #2c2c2a); color: #fff;
+  font-size: 1rem; font-weight: 800; font-family: inherit; cursor: pointer; margin-bottom: 0.5rem;
+}
+.aq-fl-fossil-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* 図鑑 */
 .aq-dex-box {
