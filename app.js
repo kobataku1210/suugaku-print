@@ -927,15 +927,15 @@ function renderHome() {
       <div class="sg-home-banner-arrow">›</div>
     </div>`;
 
-  // ===== 水族館バナー（プレビューモード限定・本番非公開） =====
+  // ===== 水族館バナー（生徒用画面に公開） =====
   let aquariumBanner = '';
-  if (PREVIEW_MODE && typeof aqHomeBannerSub === 'function') {
+  if (typeof aqHomeBannerSub === 'function') {
     aquariumBanner = `
       <div class="aq-home-banner" onclick="navigate('aquarium')">
         <div class="aq-home-banner-left">
           <span class="aq-home-banner-icon">🐠</span>
           <div class="aq-home-banner-text">
-            <div class="aq-home-banner-title">グリンピース水族館 <span class="game-new-badge">試作</span></div>
+            <div class="aq-home-banner-title">グリンピース水族館 <span class="game-new-badge">NEW!</span></div>
             <div class="aq-home-banner-sub">${aqHomeBannerSub()}</div>
           </div>
         </div>
