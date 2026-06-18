@@ -14,6 +14,7 @@
   const AQ_MAX_FISH = 50;
   const FISH_COST = 100;
   const DECO_COST = 50;
+  const FEED_COST = 3;                            // 餌やり1回で🌱3個消費
   const GROW_MAX = 5;                            // 餌5回で最大サイズ
 
   // ===== ガチャ排出テーブル =====
@@ -58,6 +59,11 @@
   }
   // 表示用（無限なら ∞）
   function aqPeasLabel() { return aqPreview() ? '∞' : String(aqGetPeas()); }
+  // ヘッダーの🌱残高表示を更新（再描画せず数値だけ差し替え）
+  function aqRefreshPeaDisplay() {
+    const el = document.getElementById('aq-pea-count');
+    if (el) el.textContent = aqPeasLabel();
+  }
   function aqSpendPeas(n) {
     if (aqPreview()) return true; // プレビューは消費しない（無限）
     try {
@@ -184,10 +190,17 @@
   }
 
   // ===== 餌やり =====
-  // タップした魚に🌱を3粒落とす → 止まって食べる → 成長＆空腹回復 → 再開
+  // タップした魚に🌱を3粒落とす → 止まって食べる → 成長 → 再開（🌱を FEED_COST 個消費）
   function aqFeed(fishId) {
     const rt = aqFishRT.find(r => r.id === fishId);
     if (!rt || rt.feeding) return;
+    // 🌱を消費（不足なら餌やり不可）
+    if (aqGetPeas() < FEED_COST) {
+      aqShowToast('🌱が足りません（餌やりに' + FEED_COST + '個 必要）');
+      return;
+    }
+    if (!aqSpendPeas(FEED_COST)) { aqShowToast('🌱が足りません'); return; }
+    aqRefreshPeaDisplay();
     rt.feeding = true;
     rt.glow = 20;
     const tank = document.getElementById('aq-tank');
@@ -334,7 +347,7 @@
         <div class="aq-header">
           <div class="aq-title">🐠 グリンピース水族館</div>
           <div class="aq-stats">
-            <span class="aq-stat">🌱 <strong>${peas}</strong></span>
+            <span class="aq-stat">🌱 <strong id="aq-pea-count">${peas}</strong></span>
             <span class="aq-stat">🐟 <strong>${fishCount}</strong>/${AQ_MAX_FISH}</span>
           </div>
         </div>
@@ -361,7 +374,7 @@
         <div class="aq-prob-area">${fishProb}${decoProb}</div>
 
         <div class="aq-note">
-          魚は小さく生まれ、餌を食べるたびに成長（餌${GROW_MAX}回で最大）。<br>
+          魚は小さく生まれ、餌（🌱×${FEED_COST}）をあげるたびに成長（餌${GROW_MAX}回で最大）。<br>
           餌をあげなくても魚は元気なまま。じっくりコレクションを増やそう！
         </div>
       </div>`;
