@@ -11,7 +11,7 @@
   'use strict';
 
   const AQ_KEY = 'aquarium_v1';
-  const AQ_MAX_FISH = 30;
+  const AQ_MAX_FISH = 50;
   const FISH_COST = 100;
   const DECO_COST = 50;
   const GROW_MAX = 5;                            // 餌5回で最大サイズ
