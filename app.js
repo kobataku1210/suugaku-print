@@ -5,8 +5,11 @@
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
 
-// URL に ?preview=draft が付いていればプレビューモード（draft 章 & 全レベル開放）
-const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === 'draft';
+// プレビューモードは先生パスワードで保護。
+// URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
+// 生徒が URL を打っても認証できないため通常モードのまま。
+const _wantsPreview = new URLSearchParams(window.location.search).get('preview') === 'draft';
+const PREVIEW_MODE = _wantsPreview && localStorage.getItem('mathPreviewUnlocked') === '1';
 
 // ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
 (function() {
@@ -17,6 +20,19 @@ const PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') 
     return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
   }
   function _ih(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
+
+  // プレビュー解除：先生パスワードが正しければこの端末で有効化
+  window.submitPreviewUnlock = async function() {
+    const pw  = document.getElementById('preview-unlock-pw').value;
+    const err = document.getElementById('preview-unlock-error');
+    if (await _h(pw) !== H) {
+      err.textContent = 'パスワードが違います';
+      err.style.display = 'block';
+      return;
+    }
+    localStorage.setItem('mathPreviewUnlocked', '1');
+    window.location.reload();
+  };
 
   window.submitTeacherPeas = async function() {
     const pw    = document.getElementById('teacher-pw').value;
@@ -3715,15 +3731,47 @@ function render() {
   }
 }
 
+// プレビュー解除モーダル（先生パスワード入力）
+function showPreviewUnlockModal() {
+  if (document.getElementById('preview-unlock-overlay')) return;
+  const ov = document.createElement('div');
+  ov.id = 'preview-unlock-overlay';
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-lock">🔒</div>
+      <div class="modal-level">プレビューモード</div>
+      <p class="modal-desc">先生用パスワードを入力してください<br><small>（このモードは先生専用です）</small></p>
+      <input type="password" id="preview-unlock-pw" class="modal-input" placeholder="パスワード" autocomplete="off">
+      <div id="preview-unlock-error" class="modal-error"></div>
+      <div class="modal-btns">
+        <button class="modal-btn-cancel" onclick="window.location.search=''">通常モードへ</button>
+        <button class="modal-btn-submit" onclick="submitPreviewUnlock()">開く</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('show'));
+  const inp = document.getElementById('preview-unlock-pw');
+  if (inp) {
+    inp.focus();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitPreviewUnlock(); });
+  }
+}
+
 // ===== 初期化 =====
 initMathBackground();
 createBowlWidget();
+
+// ?preview=draft だが未認証 → 先生パスワードを要求（生徒はここで止まる）
+if (_wantsPreview && !PREVIEW_MODE) {
+  showPreviewUnlockModal();
+}
 
 // プレビューモードバナーを表示
 if (PREVIEW_MODE) {
   const banner = document.createElement('div');
   banner.id = 'preview-banner';
-  banner.innerHTML = '👁 プレビューモード（下書き章も表示中）<button onclick="window.location.search=\'\'">通常モードに戻る</button>';
+  banner.innerHTML = '👁 プレビューモード（下書き章も表示中）<button onclick="localStorage.removeItem(\'mathPreviewUnlocked\'); window.location.search=\'\'">通常モードに戻る</button>';
   banner.style.cssText = `
     position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
     background: linear-gradient(135deg, #f7971e, #ffd200);
