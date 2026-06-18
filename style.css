@@ -2413,7 +2413,9 @@ body {
 .aq-home-banner-sub { font-size: 0.82rem; color: #bfe6ff; margin-top: 0.15rem; }
 .aq-home-banner-arrow { font-size: 2rem; color: #eaf7ff; opacity: 0.8; }
 
-.aq-wrap { max-width: 780px; margin: 0 auto; padding: 0 0.5rem; }
+.aq-wrap { max-width: 1200px; margin: 0 auto; padding: 0 0.5rem; }
+/* 水族館は横いっぱいに（.main の 1100px 制限を解除） */
+.aq-mode .main { max-width: 100% !important; padding: 0 1rem 3rem !important; }
 .aq-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
 .aq-title { font-size: 1.4rem; font-weight: 900; color: var(--text, #1a2b3c); }
 .aq-stats { display: flex; gap: 0.8rem; }
@@ -3439,7 +3441,9 @@ body {
 .cm-mode #bowl-widget,
 .cm-mode #completed-bowls-panel,
 .shooting-mode #bowl-widget,
-.shooting-mode #completed-bowls-panel {
+.shooting-mode #completed-bowls-panel,
+.aq-mode #bowl-widget,
+.aq-mode #completed-bowls-panel {
   display: none !important;
 }
 

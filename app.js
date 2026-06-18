@@ -3643,9 +3643,9 @@ function render() {
     return;
   }
   if (state.view === 'aquarium') {
+    document.body.classList.add('aq-mode');
     document.body.classList.remove('sg-mode', 'shooting-mode');
     if (typeof renderAquarium === 'function') renderAquarium();
-    updateBowlWidget(false);
     return;
   }
   if (state.view === 'shooting') {
@@ -3662,7 +3662,7 @@ function render() {
     updateBowlWidget(false);
     return;
   }
-  document.body.classList.remove('sg-mode', 'shooting-mode');   // ① お椀を戻す
+  document.body.classList.remove('sg-mode', 'shooting-mode', 'aq-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
   if (state.view === 'home')      initBattleBanner();
