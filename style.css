@@ -2514,7 +2514,10 @@ body {
 
 /* 10連ガチャ結果 */
 .aq-pull-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0.4rem 0 0.8rem; }
-.aq-pull-cell { background: #eaf7ff; border-radius: 10px; padding: 6px 2px; text-align: center; animation: aqPop 0.4s backwards; }
+.aq-pull-cell { position: relative; background: #eaf7ff; border-radius: 10px; padding: 6px 2px; text-align: center; animation: aqPop 0.4s backwards; cursor: pointer; border: 2px solid transparent; }
+.aq-pull-cell.aq-pull-fossil { background: #e9e7df; border-color: #5f5e5a; }
+.aq-pull-fossil-mark { position: absolute; top: 1px; right: 3px; font-size: 12px; opacity: 0; }
+.aq-pull-cell.aq-pull-fossil .aq-pull-fossil-mark { opacity: 1; }
 .aq-pull-em { font-size: 26px; line-height: 1; }
 .aq-pull-star { font-size: 10px; color: #d4537e; font-weight: 800; }
 .aq-gacha-em { font-size: 1.8rem; }

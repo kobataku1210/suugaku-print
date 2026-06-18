@@ -183,11 +183,12 @@
     if (!aqSpendPeas(cost)) { aqShowToast('🌱が足りません'); return; }
     aqGachaBusy = true;
     const result = aqPick(kind === 'fish' ? FISH_POOL : DECO_POOL);
-    aqShowGachaAnim(kind, result, () => {
+    aqShowGachaAnim(kind, result, (choice) => {
       const s2 = aqLoad();
       const now = Date.now();
       if (kind === 'fish') {
-        s2.fishes.push({ id: s2.nextId++, type: result.type, fed: 0, lastFed: now });
+        if (choice === 'fossil') s2.fossils.push({ type: result.type });   // 化石コレクションへ
+        else s2.fishes.push({ id: s2.nextId++, type: result.type, fed: 0, lastFed: now });
       } else {
         s2.decos.push({ id: s2.nextId++, type: result.type, x: 0.2 + Math.random() * 0.6, y: 0.78 });
       }
@@ -219,11 +220,14 @@
     const pool = isFish ? FISH_POOL : DECO_POOL;
     const results = [];
     for (let i = 0; i < TEN_PULL_COUNT; i++) results.push(aqPick(pool));
-    aqShow10PullResult(results, isFish, () => {
+    aqShow10PullResult(results, isFish, (fossilSet) => {
       const s2 = aqLoad();
       const now = Date.now();
       if (isFish) {
-        for (const r of results) s2.fishes.push({ id: s2.nextId++, type: r.type, fed: 0, lastFed: now });
+        results.forEach((r, i) => {
+          if (fossilSet && fossilSet.has(i)) s2.fossils.push({ type: r.type });   // 化石へ
+          else s2.fishes.push({ id: s2.nextId++, type: r.type, fed: 0, lastFed: now });
+        });
       } else {
         for (const r of results) s2.decos.push({ id: s2.nextId++, type: r.type, x: 0.1 + Math.random() * 0.8, y: 0.6 + Math.random() * 0.32 });
       }
@@ -235,24 +239,42 @@
 
   function aqShow10PullResult(results, isFish, done) {
     document.getElementById('aq-gacha-overlay')?.remove();
+    const fossilSet = new Set(); // 化石にする魚のindex（魚のみ）
     const ov = document.createElement('div');
     ov.id = 'aq-gacha-overlay';
     ov.className = 'aq-gacha-overlay';
-    const cells = results.map((r, i) =>
-      `<div class="aq-pull-cell" style="animation-delay:${i * 0.08}s">
-         <div class="aq-pull-em">${r.em}</div>
-         <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
-       </div>`).join('');
     const unit = isFish ? '匹' : '個';
-    ov.innerHTML = `
-      <div class="aq-gacha-box" style="max-width:340px;">
-        <div class="aq-gacha-label" style="margin:0 0 0.6rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}${unit}ゲット！</div>
-        <div class="aq-pull-grid">${cells}</div>
-        <button class="aq-size-close" id="aq-pull-ok">${isFish ? '水槽に入れる' : '水槽に飾る'}</button>
-      </div>`;
+    function draw() {
+      const cells = results.map((r, i) => {
+        const sel = fossilSet.has(i) ? ' aq-pull-fossil' : '';
+        return `<div class="aq-pull-cell${sel}" data-idx="${i}" style="animation-delay:${i * 0.05}s">
+           <div class="aq-pull-fossil-mark">🦴</div>
+           <div class="aq-pull-em">${r.em}</div>
+           <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
+         </div>`;
+      }).join('');
+      const nFossil = fossilSet.size;
+      ov.innerHTML = `
+        <div class="aq-gacha-box" style="max-width:360px;">
+          <div class="aq-gacha-label" style="margin:0 0 0.4rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}${unit}ゲット！</div>
+          ${isFish ? '<p style="font-size:0.78rem;color:#667;margin:0 0 0.5rem;">化石にしたい魚をタップ（🦴印）。残りは水槽へ。</p>' : ''}
+          <div class="aq-pull-grid">${cells}</div>
+          <button class="aq-size-close" id="aq-pull-ok">${isFish ? (nFossil > 0 ? `決定（🦴${nFossil} / 水槽${TEN_PULL_COUNT - nFossil}）` : '水槽に入れる') : '水槽に飾る'}</button>
+        </div>`;
+      if (isFish) {
+        ov.querySelectorAll('.aq-pull-cell').forEach(c => {
+          c.addEventListener('click', () => {
+            const idx = parseInt(c.dataset.idx);
+            if (fossilSet.has(idx)) fossilSet.delete(idx); else fossilSet.add(idx);
+            draw();
+          });
+        });
+      }
+      ov.querySelector('#aq-pull-ok').addEventListener('click', () => { ov.remove(); done && done(fossilSet); });
+    }
     document.body.appendChild(ov);
+    draw();
     requestAnimationFrame(() => ov.classList.add('show'));
-    ov.querySelector('#aq-pull-ok').addEventListener('click', () => { ov.remove(); done && done(); });
   }
 
   // ===== 化石化（いらない魚を化石にして水槽の空きを増やす） =====
@@ -447,7 +469,20 @@
       cap.textContent = result.em;
       cap.style.animation = 'aqPop 0.5s';
       ov.querySelector('#aq-gacha-label').innerHTML = `${result.star} <b>${result.nm}</b> をゲット！`;
-      setTimeout(() => { ov.remove(); done && done(); }, 1400);
+      if (kind === 'fish') {
+        // 魚は「水槽に入れる／化石にする」を選択
+        const box = ov.querySelector('.aq-gacha-box');
+        const btns = document.createElement('div');
+        btns.className = 'aq-size-btns';
+        btns.innerHTML = `
+          <button class="aq-size-btn" id="aq-g-tank">🌊 水槽に入れる</button>
+          <button class="aq-size-btn" id="aq-g-fossil">🦴 化石にする</button>`;
+        box.appendChild(btns);
+        box.querySelector('#aq-g-tank').addEventListener('click', () => { ov.remove(); done && done('tank'); });
+        box.querySelector('#aq-g-fossil').addEventListener('click', () => { ov.remove(); done && done('fossil'); });
+      } else {
+        setTimeout(() => { ov.remove(); done && done('tank'); }, 1400);
+      }
     }, 1300);
   }
 
