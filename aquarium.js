@@ -631,7 +631,7 @@
         <div class="aq-prob-row"><span>★★★ レア</span><span>10%</span></div>
         <div class="aq-prob-row"><span>★★★★ 超レア</span><span>4%</span></div>
         <div class="aq-prob-row"><span>★★★★★ 伝説</span><span>1%</span></div>
-        <div class="aq-prob-row"><span>🧜‍♀️ 人魚 最高レア</span><span>0.1%</span></div>
+        <div class="aq-prob-row"><span>★★★★★★ ？？？（最高レア）</span><span>0.1%</span></div>
       </div>`;
     const decoProb = `
       <div class="aq-prob">
