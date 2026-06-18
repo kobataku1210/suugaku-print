@@ -42,6 +42,7 @@
     { type:'shark',   em:'🦈', nm:'サメ',       star:'★★★★',     w:1.5,max:46 },
     { type:'dolphin', em:'🐬', nm:'イルカ',     star:'★★★★',     w:1,  max:44 },
     { type:'whale',   em:'🐋', nm:'クジラ',     star:'★★★★★ 伝説',w:1,  max:54 },
+    { type:'mermaid', em:'🧜‍♀️', nm:'人魚',     star:'★★★★★★ 最高レア', w:0.1, max:56 },
   ];
   const DECO_POOL = [
     { type:'seaweed', em:'🌿', nm:'水草',     star:'★',    w:22, size:30 },
@@ -630,6 +631,7 @@
         <div class="aq-prob-row"><span>★★★ レア</span><span>10%</span></div>
         <div class="aq-prob-row"><span>★★★★ 超レア</span><span>4%</span></div>
         <div class="aq-prob-row"><span>★★★★★ 伝説</span><span>1%</span></div>
+        <div class="aq-prob-row"><span>🧜‍♀️ 人魚 最高レア</span><span>0.1%</span></div>
       </div>`;
     const decoProb = `
       <div class="aq-prob">
