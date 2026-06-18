@@ -2465,6 +2465,15 @@ body {
 .aq-gacha-box { background: #fff; border-radius: 20px; padding: 2rem 2.5rem; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
 .aq-capsule { font-size: 70px; line-height: 1; }
 .aq-gacha-label { margin-top: 1rem; font-size: 1.1rem; font-weight: 800; color: #1a2b3c; }
+.aq-size-btns { display: flex; gap: 8px; justify-content: center; margin: 1rem 0 0.6rem; flex-wrap: wrap; }
+.aq-size-btn {
+  border: 2px solid #1f7bb0; background: #eaf7ff; color: #0a3a5c;
+  border-radius: 10px; padding: 0.5rem 0.9rem; font-size: 1rem; font-weight: 800;
+  font-family: inherit; cursor: pointer; transition: transform 0.1s, background 0.15s;
+}
+.aq-size-btn:active { transform: scale(0.95); }
+.aq-size-btn.active { background: #1f7bb0; color: #fff; }
+.aq-size-close { margin-top: 0.4rem; border: none; background: rgba(0,0,0,0.08); color: #555; border-radius: 999px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-family: inherit; cursor: pointer; }
 @keyframes aqShake { 0%,100%{transform:rotate(0);} 25%{transform:rotate(-10deg);} 75%{transform:rotate(10deg);} }
 @keyframes aqPop { 0%{transform:scale(0.2);opacity:0;} 60%{transform:scale(1.2);} 100%{transform:scale(1);opacity:1;} }
 

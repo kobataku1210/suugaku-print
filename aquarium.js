@@ -15,7 +15,14 @@
   const FISH_COST = 100;
   const DECO_COST = 50;
   const FEED_COST = 3;                            // 餌やり1回で🌱3個消費
-  const GROW_MAX = 5;                            // 餌5回で最大サイズ
+  const GROW_MAX = 10;                           // 餌10回で最大サイズ（以降は餌やり不可）
+  // 最大サイズ到達後に選べる「理想の大きさ」（最大サイズに対する倍率）
+  const AQ_SIZE_PRESETS = [
+    { label: '小',   scale: 0.55 },
+    { label: '中',   scale: 0.75 },
+    { label: '大',   scale: 1.0 },
+    { label: '特大', scale: 1.3 },
+  ];
 
   // ===== ガチャ排出テーブル =====
   // max: 最大サイズ(px) / star: レア表示 / w: 重み
@@ -105,13 +112,20 @@
   function aqProcessTime(s, now) { return s; }
   // ひん死は常になし
   function aqIsDying(f, now) { return false; }
-  // 成長係数（小さく生まれ、餌5回で最大）
+  // 最大まで育ったか（餌やり不可・サイズ選択可）
+  function aqIsMaxed(f) { return (f.fed || 0) >= GROW_MAX; }
+  // 成長係数（小さく生まれ、餌GROW_MAX回で最大）
   function aqSizeFactor(f) {
     const fed = Math.min(f.fed || 0, GROW_MAX);
-    return 0.5 + 0.5 * (fed / GROW_MAX); // 50%→100%
+    return 0.45 + 0.55 * (fed / GROW_MAX); // 45%→100%
   }
   function aqFishSize(f) {
-    return Math.round(fishDef(f.type).max * aqSizeFactor(f));
+    const def = fishDef(f.type);
+    // 最大まで育ち、理想サイズが選ばれていればその倍率を使う
+    if (aqIsMaxed(f) && typeof f.prefScale === 'number') {
+      return Math.round(def.max * f.prefScale);
+    }
+    return Math.round(def.max * aqSizeFactor(f));
   }
 
   // ===== 重み付き抽選 =====
@@ -194,6 +208,9 @@
   function aqFeed(fishId) {
     const rt = aqFishRT.find(r => r.id === fishId);
     if (!rt || rt.feeding) return;
+    // 最大まで育っていたら餌やり不可
+    const sf = aqLoad().fishes.find(x => x.id === fishId);
+    if (sf && aqIsMaxed(sf)) { aqShowToast('もう最大まで育ったよ！'); return; }
     // 🌱を消費（不足なら餌やり不可）
     if (aqGetPeas() < FEED_COST) {
       aqShowToast('🌱が足りません（餌やりに' + FEED_COST + '個 必要）');
@@ -304,9 +321,51 @@
     if (d.moved) {
       d.rt.dragging = false; // その場から遊泳再開
     } else {
-      aqFeed(d.id);          // 動いていなければタップ＝餌やり
+      // タップ：最大まで育っていたら大きさ選択、まだなら餌やり
+      const sf = aqLoad().fishes.find(x => x.id === d.id);
+      if (sf && aqIsMaxed(sf)) aqOpenSizePicker(d.id);
+      else aqFeed(d.id);
     }
     aqFishDrag = null;
+  }
+
+  // ===== 理想の大きさ選択（最大まで育った魚のみ） =====
+  function aqOpenSizePicker(fishId) {
+    document.getElementById('aq-size-overlay')?.remove();
+    const s = aqLoad();
+    const f = s.fishes.find(x => x.id === fishId);
+    if (!f) return;
+    const def = fishDef(f.type);
+    const cur = (typeof f.prefScale === 'number') ? f.prefScale : 1.0;
+    const ov = document.createElement('div');
+    ov.id = 'aq-size-overlay';
+    ov.className = 'aq-gacha-overlay';
+    ov.innerHTML = `
+      <div class="aq-gacha-box">
+        <div style="font-size:46px;line-height:1;">${def.em}</div>
+        <div class="aq-gacha-label">${def.nm} の大きさを選ぶ</div>
+        <div class="aq-size-btns"></div>
+        <button class="aq-size-close">とじる</button>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+    const wrap = ov.querySelector('.aq-size-btns');
+    AQ_SIZE_PRESETS.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'aq-size-btn' + (Math.abs(cur - p.scale) < 0.001 ? ' active' : '');
+      b.textContent = p.label;
+      b.addEventListener('click', () => {
+        const s2 = aqLoad();
+        const f2 = s2.fishes.find(x => x.id === fishId);
+        if (f2) { f2.prefScale = p.scale; aqSave(s2); }
+        const rt = aqFishRT.find(r => r.id === fishId);
+        if (rt && f2) { rt.size = aqFishSize(f2); rt.el.style.fontSize = rt.size + 'px'; }
+        ov.remove();
+      });
+      wrap.appendChild(b);
+    });
+    ov.querySelector('.aq-size-close').addEventListener('click', () => ov.remove());
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
   // ===== 描画 =====
@@ -375,7 +434,7 @@
 
         <div class="aq-note">
           魚は小さく生まれ、餌（🌱×${FEED_COST}）をあげるたびに成長（餌${GROW_MAX}回で最大）。<br>
-          餌をあげなくても魚は元気なまま。じっくりコレクションを増やそう！
+          最大まで育った魚はタップで「好きな大きさ」を選べます。餌をあげなくても魚は元気なまま！
         </div>
       </div>`;
 
