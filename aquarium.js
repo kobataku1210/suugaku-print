@@ -11,7 +11,9 @@
   'use strict';
 
   const AQ_KEY = 'aquarium_v1';
-  const AQ_MAX_FISH = 50;
+  const AQ_MAX_FISH = 50;          // 基本の水槽容量
+  const EXPAND_COST = 500;         // 拡張1回の価格
+  const EXPAND_AMOUNT = 50;        // 拡張1回で増える容量
   const FISH_COST = 100;
   const DECO_COST = 50;
   const TEN_PULL_COST = 1000;                     // 魚10連ガチャの価格
@@ -104,6 +106,7 @@
     if (!Array.isArray(s.discovered)) s.discovered = [];        // 図鑑：獲得済みの魚type
     if (!Array.isArray(s.discoveredDeco)) s.discoveredDeco = []; // 図鑑：獲得済みの装飾type
     if (typeof s.spent !== 'number') s.spent = 0;               // 水族館で使った🌱の累計
+    if (typeof s.capBonus !== 'number') s.capBonus = 0;         // 水槽の拡張分（+50ずつ）
     if (typeof s.nextId !== 'number') s.nextId = 1;
     // 既存の所持（水槽・化石・装飾）からも図鑑を補完
     const fset = new Set(s.discovered);
@@ -116,6 +119,23 @@
     return s;
   }
   function aqSave(s) { localStorage.setItem(AQ_KEY, JSON.stringify(s)); }
+
+  // 現在の水槽容量（基本 + 拡張分）
+  function aqMaxFish(s) { return AQ_MAX_FISH + ((s || aqLoad()).capBonus || 0); }
+
+  // 🌱を払って水槽を拡大
+  function aqExpandTank() {
+    if (aqGetPeas() < EXPAND_COST) {
+      aqShowToast('🌱が足りません（拡大に' + EXPAND_COST + '個 必要）');
+      return;
+    }
+    if (!aqSpendPeas(EXPAND_COST)) { aqShowToast('🌱が足りません'); return; }
+    const s = aqLoad();
+    s.capBonus = (s.capBonus || 0) + EXPAND_AMOUNT;
+    aqSave(s);
+    renderAquarium();
+    aqShowToast('水槽を' + EXPAND_AMOUNT + '拡大しました！（最大' + aqMaxFish(s) + '匹）');
+  }
 
   // 空腹/弱り要素は廃止：魚は減らさない（そのまま返す）
   function aqProcessTime(s, now) { return s; }
@@ -152,8 +172,8 @@
     if (aqGachaBusy) return;
     const cost = kind === 'fish' ? FISH_COST : DECO_COST;
     const s = aqLoad();
-    if (kind === 'fish' && s.fishes.length >= AQ_MAX_FISH) {
-      aqShowToast('水槽がいっぱいです（最大' + AQ_MAX_FISH + '匹）');
+    if (kind === 'fish' && s.fishes.length >= aqMaxFish(s)) {
+      aqShowToast('水槽がいっぱいです（最大' + aqMaxFish(s) + '匹）');
       return;
     }
     if (aqGetPeas() < cost) {
@@ -184,7 +204,7 @@
     const cost = isFish ? TEN_PULL_COST : DECO_TEN_PULL_COST;
     const s = aqLoad();
     if (isFish) {
-      const room = AQ_MAX_FISH - s.fishes.length;
+      const room = aqMaxFish(s) - s.fishes.length;
       if (room < TEN_PULL_COUNT) {
         aqShowToast('水槽に' + TEN_PULL_COUNT + '匹分の空きが必要（化石にして空けよう）');
         return;
@@ -649,7 +669,7 @@
           <div class="aq-title">🐠 グリンピース水族館</div>
           <div class="aq-stats">
             <span class="aq-stat">🌱 <strong id="aq-pea-count">${peas}</strong></span>
-            <span class="aq-stat">🐟 <strong>${fishCount}</strong>/${AQ_MAX_FISH}</span>
+            <span class="aq-stat">🐟 <strong>${fishCount}</strong>/${aqMaxFish(s)}</span>
             <span class="aq-stat">🦴 <strong>${s.fossils.length}</strong></span>
           </div>
         </div>
@@ -690,6 +710,10 @@
           <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
           <button class="aq-tool-btn aq-list-btn" onclick="aqOpenFishList()">🐟 魚一覧・化石にする</button>
         </div>
+
+        <button class="aq-expand-btn" onclick="aqExpandTank()">
+          🔧 水槽を拡大（+${EXPAND_AMOUNT}匹）　🌱${EXPAND_COST}
+        </button>
 
         <div class="aq-prob-area">${fishProb}${decoProb}</div>
 
@@ -873,7 +897,7 @@
   // ===== ホームバナー用テキスト（app.js から参照） =====
   window.aqHomeBannerSub = function () {
     const s = aqProcessTime(aqLoad(), Date.now());
-    return `🐟 ${s.fishes.length}/${AQ_MAX_FISH}匹　🌱${aqPeasLabel()}`;
+    return `🐟 ${s.fishes.length}/${aqMaxFish(s)}匹　🌱${aqPeasLabel()}`;
   };
 
   // グローバル公開
@@ -883,5 +907,6 @@
   window.aqToggleFossilMode = aqToggleFossilMode;
   window.aqOpenDex = aqOpenDex;
   window.aqOpenFishList = aqOpenFishList;
+  window.aqExpandTank = aqExpandTank;
   window.aqStopAnim = aqStopAnim;
 })();

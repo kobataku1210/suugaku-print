@@ -2462,6 +2462,13 @@ body {
 .aq-tool-btn:active { transform: scale(0.98); }
 .aq-dex-btn { border-color: #378ADD; background: #E6F1FB; color: #0C447C; }
 .aq-list-btn { border-color: #1D9E75; background: #E1F5EE; color: #0F6E56; }
+.aq-expand-btn {
+  width: 100%; margin-bottom: 1rem; border: none; border-radius: 12px; padding: 0.8rem;
+  background: linear-gradient(135deg, #378ADD, #185FA5); color: #fff;
+  font-size: 0.98rem; font-weight: 800; font-family: inherit; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(24,95,165,0.4); transition: transform 0.1s;
+}
+.aq-expand-btn:active { transform: scale(0.98); }
 .aq-fossil-toggle.active { background: #5f5e5a; color: #fff; border-color: #2c2c2a; }
 
 /* 魚一覧（複数選択で化石化） */
