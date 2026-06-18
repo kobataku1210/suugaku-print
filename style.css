@@ -2421,7 +2421,7 @@ body {
 .aq-stat strong { font-size: 1.1rem; }
 
 .aq-tank {
-  position: relative; width: 100%; height: 300px;
+  position: relative; width: 100%; height: clamp(380px, 70vh, 720px);
   background: linear-gradient(180deg, #0d4d77 0%, #062f4a 100%);
   border-radius: 16px; overflow: hidden;
   box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
@@ -2526,7 +2526,7 @@ body {
 .aq-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 @media (max-width: 600px) {
-  .aq-tank { height: 240px; }
+  .aq-tank { height: clamp(340px, 68vh, 600px); }
   .aq-home-banner { padding: 0.8rem 0.9rem; }
   .aq-home-banner-icon { font-size: 1.8rem; }
 }
