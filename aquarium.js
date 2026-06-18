@@ -242,8 +242,62 @@
     aqDrag = null;
   }
 
+  // ===== 魚ドラッグ（移動）＆タップ（餌やり）判別 =====
+  let aqFishDrag = null;
+  const AQ_DRAG_THRESHOLD = 6; // この距離を超えたらドラッグ扱い
+  function aqFishPointerDown(e) {
+    const el = e.currentTarget;
+    const id = parseInt(el.dataset.fishId);
+    const rt = aqFishRT.find(r => r.id === id);
+    if (!rt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const tank = document.getElementById('aq-tank');
+    const rect = tank.getBoundingClientRect();
+    aqFishDrag = { id, rt, el, rect, startX: e.clientX, startY: e.clientY, moved: false, pointerId: e.pointerId };
+    try { el.setPointerCapture(e.pointerId); } catch (ex) {}
+    el.addEventListener('pointermove', aqFishPointerMove);
+    el.addEventListener('pointerup', aqFishPointerUp);
+    el.addEventListener('pointercancel', aqFishPointerUp);
+  }
+  function aqFishPointerMove(e) {
+    if (!aqFishDrag) return;
+    const d = aqFishDrag;
+    const dist = Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY);
+    if (!d.moved && dist > AQ_DRAG_THRESHOLD) {
+      d.moved = true;
+      d.rt.dragging = true;
+      d.rt.feedX = null; // 餌やり追従はキャンセル
+      d.el.classList.add('aq-fish-dragging');
+    }
+    if (d.moved) {
+      const r = d.rect;
+      let x = e.clientX - r.left - d.rt.size / 2;
+      let y = e.clientY - r.top  - d.rt.size / 2;
+      x = Math.max(0, Math.min(r.width  - d.rt.size, x));
+      y = Math.max(0, Math.min(r.height - d.rt.size - 24, y));
+      d.rt.x = x; d.rt.y = y;
+      d.el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scaleX(' + d.rt.face.toFixed(3) + ')';
+    }
+  }
+  function aqFishPointerUp(e) {
+    if (!aqFishDrag) return;
+    const d = aqFishDrag;
+    d.el.classList.remove('aq-fish-dragging');
+    d.el.removeEventListener('pointermove', aqFishPointerMove);
+    d.el.removeEventListener('pointerup', aqFishPointerUp);
+    d.el.removeEventListener('pointercancel', aqFishPointerUp);
+    try { d.el.releasePointerCapture(d.pointerId); } catch (ex) {}
+    if (d.moved) {
+      d.rt.dragging = false; // その場から遊泳再開
+    } else {
+      aqFeed(d.id);          // 動いていなければタップ＝餌やり
+    }
+    aqFishDrag = null;
+  }
+
   // ===== 描画 =====
-  let aqFishRT = []; // ランタイム魚 [{id,type,em,size,x,y,vx,face,target,phase,eating,glow,feedX,el}]
+  let aqFishRT = []; // ランタイム魚 [{id,type,em,size,x,y,vx,face,target,phase,eating,glow,feedX,dragging,el}]
   let aqPeasRT = [];
   let aqRaf = null;
 
@@ -351,12 +405,11 @@
       el.textContent = def.em;
       el.style.fontSize = size + 'px';
       el.dataset.fishId = f.id;
-      el.addEventListener('click', ev => { ev.stopPropagation(); aqFeed(f.id); });
+      el.addEventListener('pointerdown', aqFishPointerDown);
       tank.appendChild(el);
 
       const dir = (i % 2 === 0) ? 1 : -1;
       const speed = 0.5 + Math.random() * 0.6;
-      const dying = aqIsDying(f, now);
       aqFishRT.push({
         id: f.id, type: f.type, em: def.em, size,
         x: Math.random() * Math.max(1, W - size),
@@ -366,10 +419,9 @@
         face: dir > 0 ? -1 : 1,
         target: dir > 0 ? -1 : 1,
         phase: Math.random() * 6.28,
-        eating: 0, glow: 0, feedX: null,
-        el, dying,
+        eating: 0, glow: 0, feedX: null, dragging: false,
+        el,
       });
-      if (dying) el.classList.add('aq-fish-dying');
     });
   }
 
@@ -394,6 +446,7 @@
     const W = tank.clientWidth, H = tank.clientHeight;
 
     for (const f of aqFishRT) {
+      if (f.dragging) continue; // ドラッグ中は手で位置を制御
       if (f.eating > 0) {
         f.eating--;
       } else {
