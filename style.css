@@ -2538,6 +2538,14 @@ body {
 .aq-gacha-overlay.show { opacity: 1; }
 .aq-gacha-box { background: #fff; border-radius: 20px; padding: 2rem 2.5rem; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
 .aq-capsule { font-size: 70px; line-height: 1; }
+.aq-capsule.aq-legendary { animation: aqPop 0.5s, aqRainbow 1.2s linear infinite !important; border-radius: 50%; }
+@keyframes aqRainbow {
+  0%   { filter: drop-shadow(0 0 10px #ff0055) drop-shadow(0 0 18px #ffcc00); }
+  33%  { filter: drop-shadow(0 0 10px #00d2ff) drop-shadow(0 0 18px #44ff88); }
+  66%  { filter: drop-shadow(0 0 10px #c44aff) drop-shadow(0 0 18px #ff77cc); }
+  100% { filter: drop-shadow(0 0 10px #ff0055) drop-shadow(0 0 18px #ffcc00); }
+}
+.aq-gacha-box.aq-legendary-box { box-shadow: 0 0 0 3px #ffd700, 0 10px 50px rgba(255,170,0,0.6); }
 .aq-gacha-label { margin-top: 1rem; font-size: 1.1rem; font-weight: 800; color: #1a2b3c; }
 .aq-size-btns { display: flex; gap: 8px; justify-content: center; margin: 1rem 0 0.6rem; flex-wrap: wrap; }
 .aq-size-btn {

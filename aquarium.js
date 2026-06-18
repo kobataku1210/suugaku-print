@@ -45,7 +45,10 @@
     { type:'dolphin', em:'🐬', nm:'イルカ',     star:'★★★★',     w:1,  max:44 },
     { type:'whale',   em:'🐋', nm:'クジラ',     star:'★★★★★ 伝説',w:1,  max:54 },
     { type:'mermaid', em:'🧜‍♀️', nm:'人魚',     star:'★★★★★★ 最高レア', w:0.1, max:56 },
+    { type:'dragon',  em:'🐉', nm:'海龍',     star:'★★★★★★★ 超激レア', w:0.02, max:62 },
   ];
+  // 引いたとき虹色＆紙吹雪の特別演出をする魚
+  const AQ_LEGENDARY = ['mermaid', 'dragon'];
   const DECO_POOL = [
     { type:'seaweed', em:'🌿', nm:'水草',     star:'★',    w:22, size:30 },
     { type:'rock',    em:'🪨', nm:'岩',       star:'★',    w:20, size:30 },
@@ -469,6 +472,12 @@
       cap.textContent = result.em;
       cap.style.animation = 'aqPop 0.5s';
       ov.querySelector('#aq-gacha-label').innerHTML = `${result.star} <b>${result.nm}</b> をゲット！`;
+      // 超激レア演出（虹色＋紙吹雪）
+      if (AQ_LEGENDARY.includes(result.type)) {
+        cap.classList.add('aq-legendary');
+        ov.querySelector('.aq-gacha-box').classList.add('aq-legendary-box');
+        if (typeof showConfetti === 'function') { try { showConfetti(); } catch (e) {} }
+      }
       if (kind === 'fish') {
         // 魚は「水槽に入れる／化石にする」を選択
         const box = ov.querySelector('.aq-gacha-box');
@@ -687,6 +696,7 @@
         <div class="aq-prob-row"><span>★★★★ 超レア</span><span>4%</span></div>
         <div class="aq-prob-row"><span>★★★★★ 伝説</span><span>1%</span></div>
         <div class="aq-prob-row"><span>★★★★★★ ？？？（最高レア）</span><span>0.1%</span></div>
+        <div class="aq-prob-row"><span>★★★★★★★ ？？？（超激レア）</span><span>0.02%</span></div>
       </div>`;
     const decoProb = `
       <div class="aq-prob">
