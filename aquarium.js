@@ -87,17 +87,33 @@
     return Math.max(0, aqEarnedTotal() + aqBonusTotal() - aqSpentTotal());
   }
   // 化石をグリンピースに交換（レア度＝★の数 個もらえる）
+  // その種類の化石を「全部」まとめて交換
   function aqExchangeFossil(type) {
     const s = aqLoad();
-    const idx = s.fossils.findIndex(f => f.type === type);
-    if (idx < 0) return;
+    const matching = s.fossils.filter(f => f.type === type);
+    if (matching.length === 0) return;
     const stars = aqStarCount(type);
-    s.fossils.splice(idx, 1);
-    s.bonus = (s.bonus || 0) + stars;
+    const gain = stars * matching.length;
+    s.fossils = s.fossils.filter(f => f.type !== type);
+    s.bonus = (s.bonus || 0) + gain;
     aqSave(s);
     aqRefreshPeaDisplay();
-    aqShowToast('🦴 ' + fishDef(type).nm + ' を 🌱×' + stars + ' に交換！');
-    aqOpenDex(); // 図鑑を再描画して反映
+    aqShowToast('🦴 ' + fishDef(type).nm + ' ×' + matching.length + ' を 🌱×' + gain + ' に交換！');
+    aqOpenDex();
+  }
+  // 化石を「ぜんぶ」まとめて交換
+  function aqExchangeAllFossils() {
+    const s = aqLoad();
+    if (s.fossils.length === 0) return;
+    const cnt = s.fossils.length;
+    let gain = 0;
+    s.fossils.forEach(f => { gain += aqStarCount(f.type); });
+    s.fossils = [];
+    s.bonus = (s.bonus || 0) + gain;
+    aqSave(s);
+    aqRefreshPeaDisplay();
+    aqShowToast('🦴 化石' + cnt + '体を 🌱×' + gain + ' に交換！');
+    aqOpenDex();
   }
   // 表示用（無限なら ∞）
   function aqPeasLabel() { return aqPreview() ? '∞' : String(aqGetPeas()); }
@@ -377,18 +393,23 @@
     s.fossils.forEach(f => { fossilCount[f.type] = (fossilCount[f.type] || 0) + 1; });
     const fossilTypes = Object.keys(fossilCount);
     const fossilTotal = s.fossils.length;
+    let fossilGainTotal = 0;
+    s.fossils.forEach(f => { fossilGainTotal += aqStarCount(f.type); });
     const fossilCells = fossilTypes.length === 0
       ? `<div class="aq-dex-empty">まだ化石はありません</div>`
       : fossilTypes.map(t => {
           const def = fishDef(t);
           const stars = aqStarCount(t);
+          const cnt = fossilCount[t];
           return `<div class="aq-dex-cell aq-dex-got">
             <div class="aq-dex-em">🦴${def.em}</div>
             <div class="aq-dex-nm">${def.nm}</div>
-            <div class="aq-dex-star">×${fossilCount[t]}</div>
-            <button class="aq-fossil-ex-btn" onclick="aqExchangeFossil('${t}')">🌱×${stars}に交換</button>
+            <div class="aq-dex-star">×${cnt}</div>
+            <button class="aq-fossil-ex-btn" onclick="aqExchangeFossil('${t}')">🌱×${stars * cnt}に交換</button>
           </div>`;
         }).join('');
+    const exchangeAllBtn = fossilTypes.length === 0 ? ''
+      : `<button class="aq-fossil-exall-btn" onclick="aqExchangeAllFossils()">🦴 化石をぜんぶ交換（🌱×${fossilGainTotal}）</button>`;
 
     const ov = document.createElement('div');
     ov.id = 'aq-dex-overlay';
@@ -402,6 +423,7 @@
         <div class="aq-dex-grid">${decoCells}</div>
         <div class="aq-dex-section">🦴 化石コレクション（${fossilTotal} 体）<small style="font-weight:400;color:#888;">　レア度の数だけ🌱と交換</small></div>
         <div class="aq-dex-grid">${fossilCells}</div>
+        ${exchangeAllBtn}
         <button class="aq-size-close" id="aq-dex-close">とじる</button>
       </div>`;
     document.body.appendChild(ov);
@@ -975,6 +997,7 @@
   window.aqToggleFossilMode = aqToggleFossilMode;
   window.aqOpenDex = aqOpenDex;
   window.aqExchangeFossil = aqExchangeFossil;
+  window.aqExchangeAllFossils = aqExchangeAllFossils;
   window.aqOpenFishList = aqOpenFishList;
   window.aqExpandTank = aqExpandTank;
   window.aqStopAnim = aqStopAnim;
