@@ -282,37 +282,35 @@
     ov.id = 'aq-gacha-overlay';
     ov.className = 'aq-gacha-overlay';
     const unit = isFish ? '匹' : '個';
-    function draw() {
-      const cells = results.map((r, i) => {
-        const sel = fossilSet.has(i) ? ' aq-pull-fossil' : '';
-        return `<div class="aq-pull-cell${sel}" data-idx="${i}" style="animation-delay:${i * 0.05}s">
-           <div class="aq-pull-fossil-mark">🦴</div>
-           <div class="aq-pull-em">${r.em}</div>
-           <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
-         </div>`;
-      }).join('');
-      const nFossil = fossilSet.size;
-      ov.innerHTML = `
-        <div class="aq-gacha-box" style="max-width:360px;">
-          <div class="aq-gacha-label" style="margin:0 0 0.4rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}${unit}ゲット！</div>
-          ${isFish ? '<p style="font-size:0.78rem;color:#667;margin:0 0 0.5rem;">化石にしたい魚をタップ（🦴印）。残りは水槽へ。</p>' : ''}
-          <div class="aq-pull-grid">${cells}</div>
-          <button class="aq-size-close" id="aq-pull-ok">${isFish ? (nFossil > 0 ? `決定（🦴${nFossil} / 水槽${TEN_PULL_COUNT - nFossil}）` : '水槽に入れる') : '水槽に飾る'}</button>
-        </div>`;
-      if (isFish) {
-        ov.querySelectorAll('.aq-pull-cell').forEach(c => {
-          c.addEventListener('click', () => {
-            const idx = parseInt(c.dataset.idx);
-            if (fossilSet.has(idx)) fossilSet.delete(idx); else fossilSet.add(idx);
-            draw();
-          });
-        });
-      }
-      ov.querySelector('#aq-pull-ok').addEventListener('click', () => { ov.remove(); done && done(fossilSet); });
-    }
+    const cells = results.map((r, i) =>
+      `<div class="aq-pull-cell" data-idx="${i}" style="animation-delay:${i * 0.05}s">
+         <div class="aq-pull-fossil-mark">🦴</div>
+         <div class="aq-pull-em">${r.em}</div>
+         <div class="aq-pull-star">${r.star.split(' ')[0]}</div>
+       </div>`).join('');
+    ov.innerHTML = `
+      <div class="aq-gacha-box" style="max-width:360px;">
+        <div class="aq-gacha-label" style="margin:0 0 0.4rem;">🎉 10連ガチャ！${TEN_PULL_COUNT}${unit}ゲット！</div>
+        ${isFish ? '<p style="font-size:0.78rem;color:#667;margin:0 0 0.5rem;">化石にしたい魚をタップ（🦴印）。残りは水槽へ。</p>' : ''}
+        <div class="aq-pull-grid">${cells}</div>
+        <button class="aq-size-close" id="aq-pull-ok">${isFish ? '水槽に入れる' : '水槽に飾る'}</button>
+      </div>`;
     document.body.appendChild(ov);
-    draw();
     requestAnimationFrame(() => ov.classList.add('show'));
+    const okBtn = ov.querySelector('#aq-pull-ok');
+    // 選択はクラスの付け替えのみ（再描画しないのでスクロール位置が保たれる）
+    if (isFish) {
+      ov.querySelectorAll('.aq-pull-cell').forEach(c => {
+        c.addEventListener('click', () => {
+          const idx = parseInt(c.dataset.idx);
+          if (fossilSet.has(idx)) { fossilSet.delete(idx); c.classList.remove('aq-pull-fossil'); }
+          else { fossilSet.add(idx); c.classList.add('aq-pull-fossil'); }
+          const n = fossilSet.size;
+          okBtn.textContent = n > 0 ? `決定（🦴${n} / 水槽${TEN_PULL_COUNT - n}）` : '水槽に入れる';
+        });
+      });
+    }
+    okBtn.addEventListener('click', () => { ov.remove(); done && done(fossilSet); });
   }
 
   // ===== 化石化（いらない魚を化石にして水槽の空きを増やす） =====
@@ -436,62 +434,65 @@
   function aqOpenFishList() {
     document.getElementById('aq-fishlist-overlay')?.remove();
     const selected = new Set();
+    const s = aqLoad();
+    const fishes = s.fishes;
     const ov = document.createElement('div');
     ov.id = 'aq-fishlist-overlay';
     ov.className = 'aq-gacha-overlay';
-    document.body.appendChild(ov);
 
-    function draw() {
-      const s = aqLoad();
-      const fishes = s.fishes;
-      const cells = fishes.length === 0
-        ? `<div class="aq-dex-empty">水槽に魚がいません</div>`
-        : fishes.map(f => {
-            const def = fishDef(f.type);
-            const fed = Math.min(f.fed || 0, GROW_MAX);
-            const grow = aqIsMaxed(f) ? '最大' : `餌${fed}/${GROW_MAX}`;
-            const sel = selected.has(f.id) ? ' aq-fl-selected' : '';
-            return `<div class="aq-fl-cell${sel}" data-fid="${f.id}">
-                <div class="aq-fl-check">✓</div>
-                <div class="aq-dex-em">${def.em}</div>
-                <div class="aq-dex-nm">${def.nm}</div>
-                <div class="aq-fl-grow">${grow}</div>
-              </div>`;
-          }).join('');
-      const n = selected.size;
-      ov.innerHTML = `
-        <div class="aq-dex-box">
-          <div class="aq-dex-title">🐟 水槽の魚（${fishes.length}匹）</div>
-          <p style="font-size:0.8rem;color:#667;margin:0 0 0.6rem;text-align:center;">化石にしたい魚をタップで選んでね</p>
-          <div class="aq-fl-grid">${cells}</div>
-          <button class="aq-fl-fossil-btn" id="aq-fl-fossil"${n === 0 ? ' disabled' : ''}>🦴 選んだ ${n} 匹を化石にする</button>
-          <button class="aq-size-close" id="aq-fl-close">とじる</button>
-        </div>`;
-      ov.querySelectorAll('.aq-fl-cell').forEach(c => {
-        c.addEventListener('click', () => {
-          const fid = parseInt(c.dataset.fid);
-          if (selected.has(fid)) selected.delete(fid); else selected.add(fid);
-          draw();
-        });
-      });
-      const fb = ov.querySelector('#aq-fl-fossil');
-      if (fb) fb.addEventListener('click', () => {
-        if (selected.size === 0) return;
-        const cnt = selected.size;
-        const s2 = aqLoad();
-        s2.fishes = s2.fishes.filter(f => {
-          if (selected.has(f.id)) { s2.fossils.push({ type: f.type }); return false; }
-          return true;
-        });
-        aqSave(s2);
-        ov.remove();
-        renderAquarium();
-        aqShowToast(cnt + '匹を化石にしました');
-      });
-      ov.querySelector('#aq-fl-close').addEventListener('click', () => ov.remove());
-    }
-    draw();
+    const cells = fishes.length === 0
+      ? `<div class="aq-dex-empty">水槽に魚がいません</div>`
+      : fishes.map(f => {
+          const def = fishDef(f.type);
+          const fed = Math.min(f.fed || 0, GROW_MAX);
+          const grow = aqIsMaxed(f) ? '最大' : `餌${fed}/${GROW_MAX}`;
+          return `<div class="aq-fl-cell" data-fid="${f.id}">
+              <div class="aq-fl-check">✓</div>
+              <div class="aq-dex-em">${def.em}</div>
+              <div class="aq-dex-nm">${def.nm}</div>
+              <div class="aq-fl-grow">${grow}</div>
+            </div>`;
+        }).join('');
+    ov.innerHTML = `
+      <div class="aq-dex-box">
+        <div class="aq-dex-title">🐟 水槽の魚（${fishes.length}匹）</div>
+        <p style="font-size:0.8rem;color:#667;margin:0 0 0.6rem;text-align:center;">化石にしたい魚をタップで選んでね</p>
+        <div class="aq-fl-grid">${cells}</div>
+        <button class="aq-fl-fossil-btn" id="aq-fl-fossil" disabled>🦴 選んだ 0 匹を化石にする</button>
+        <button class="aq-size-close" id="aq-fl-close">とじる</button>
+      </div>`;
+    document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
+
+    const fb = ov.querySelector('#aq-fl-fossil');
+    function updateBtn() {
+      const n = selected.size;
+      fb.disabled = (n === 0);
+      fb.textContent = `🦴 選んだ ${n} 匹を化石にする`;
+    }
+    // 選択はクラスの付け替えのみ（再描画しないのでスクロール位置が保たれる）
+    ov.querySelectorAll('.aq-fl-cell').forEach(c => {
+      c.addEventListener('click', () => {
+        const fid = parseInt(c.dataset.fid);
+        if (selected.has(fid)) { selected.delete(fid); c.classList.remove('aq-fl-selected'); }
+        else { selected.add(fid); c.classList.add('aq-fl-selected'); }
+        updateBtn();
+      });
+    });
+    fb.addEventListener('click', () => {
+      if (selected.size === 0) return;
+      const cnt = selected.size;
+      const s2 = aqLoad();
+      s2.fishes = s2.fishes.filter(f => {
+        if (selected.has(f.id)) { s2.fossils.push({ type: f.type }); return false; }
+        return true;
+      });
+      aqSave(s2);
+      ov.remove();
+      renderAquarium();
+      aqShowToast(cnt + '匹を化石にしました');
+    });
+    ov.querySelector('#aq-fl-close').addEventListener('click', () => ov.remove());
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
