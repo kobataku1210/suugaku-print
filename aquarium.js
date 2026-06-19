@@ -72,14 +72,32 @@
       return (p.peaCupCount || 0) * 45 + (p.peaCount || 0);
     } catch (e) { return 0; }
   }
-  // 水族館で使った累計（aquarium_v1.spent に記録。お椀は減らさない）
+  // 水族館で使った累計 / 化石交換などのボーナス（aquarium_v1 に記録。お椀は減らさない）
   function aqSpentTotal() {
     try { return JSON.parse(localStorage.getItem(AQ_KEY) || '{}').spent || 0; } catch (e) { return 0; }
   }
-  // ===== 🌱の使える残高 ＝ 累計 − 水族館使用分 =====
+  function aqBonusTotal() {
+    try { return JSON.parse(localStorage.getItem(AQ_KEY) || '{}').bonus || 0; } catch (e) { return 0; }
+  }
+  // レア度（★の数）
+  function aqStarCount(type) { return (fishDef(type).star.match(/★/g) || []).length; }
+  // ===== 🌱の使える残高 ＝ 学習累計 ＋ 化石ボーナス − 水族館使用分 =====
   function aqGetPeas() {
     if (aqPreview()) return Infinity; // プレビューは無限
-    return Math.max(0, aqEarnedTotal() - aqSpentTotal());
+    return Math.max(0, aqEarnedTotal() + aqBonusTotal() - aqSpentTotal());
+  }
+  // 化石をグリンピースに交換（レア度＝★の数 個もらえる）
+  function aqExchangeFossil(type) {
+    const s = aqLoad();
+    const idx = s.fossils.findIndex(f => f.type === type);
+    if (idx < 0) return;
+    const stars = aqStarCount(type);
+    s.fossils.splice(idx, 1);
+    s.bonus = (s.bonus || 0) + stars;
+    aqSave(s);
+    aqRefreshPeaDisplay();
+    aqShowToast('🦴 ' + fishDef(type).nm + ' を 🌱×' + stars + ' に交換！');
+    aqOpenDex(); // 図鑑を再描画して反映
   }
   // 表示用（無限なら ∞）
   function aqPeasLabel() { return aqPreview() ? '∞' : String(aqGetPeas()); }
@@ -109,6 +127,7 @@
     if (!Array.isArray(s.discovered)) s.discovered = [];        // 図鑑：獲得済みの魚type
     if (!Array.isArray(s.discoveredDeco)) s.discoveredDeco = []; // 図鑑：獲得済みの装飾type
     if (typeof s.spent !== 'number') s.spent = 0;               // 水族館で使った🌱の累計
+    if (typeof s.bonus !== 'number') s.bonus = 0;               // 化石交換などで得た🌱
     if (typeof s.capBonus !== 'number') s.capBonus = 0;         // 水槽の拡張分（+50ずつ）
     if (typeof s.nextId !== 'number') s.nextId = 1;
     // 既存の所持（水槽・化石・装飾）からも図鑑を補完
@@ -362,10 +381,12 @@
       ? `<div class="aq-dex-empty">まだ化石はありません</div>`
       : fossilTypes.map(t => {
           const def = fishDef(t);
+          const stars = aqStarCount(t);
           return `<div class="aq-dex-cell aq-dex-got">
             <div class="aq-dex-em">🦴${def.em}</div>
             <div class="aq-dex-nm">${def.nm}</div>
             <div class="aq-dex-star">×${fossilCount[t]}</div>
+            <button class="aq-fossil-ex-btn" onclick="aqExchangeFossil('${t}')">🌱×${stars}に交換</button>
           </div>`;
         }).join('');
 
@@ -379,7 +400,7 @@
         <div class="aq-dex-grid">${fishCells}</div>
         <div class="aq-dex-section">🪸 装飾（${decoGot} / ${DECO_POOL.length} 種）</div>
         <div class="aq-dex-grid">${decoCells}</div>
-        <div class="aq-dex-section">🦴 化石コレクション（${fossilTotal} 体）</div>
+        <div class="aq-dex-section">🦴 化石コレクション（${fossilTotal} 体）<small style="font-weight:400;color:#888;">　レア度の数だけ🌱と交換</small></div>
         <div class="aq-dex-grid">${fossilCells}</div>
         <button class="aq-size-close" id="aq-dex-close">とじる</button>
       </div>`;
@@ -953,6 +974,7 @@
   window.aqRollGacha10 = aqRollGacha10;
   window.aqToggleFossilMode = aqToggleFossilMode;
   window.aqOpenDex = aqOpenDex;
+  window.aqExchangeFossil = aqExchangeFossil;
   window.aqOpenFishList = aqOpenFishList;
   window.aqExpandTank = aqExpandTank;
   window.aqStopAnim = aqStopAnim;

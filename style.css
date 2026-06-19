@@ -2509,6 +2509,12 @@ body {
 .aq-dex-locked .aq-dex-nm { color: #999; }
 .aq-dex-star { font-size: 10px; color: #d4537e; font-weight: 800; }
 .aq-dex-empty { grid-column: 1 / -1; font-size: 0.82rem; color: #999; text-align: center; padding: 0.8rem 0; }
+.aq-fossil-ex-btn {
+  margin-top: 4px; width: 100%; border: none; border-radius: 7px; padding: 3px 2px;
+  background: #1D9E75; color: #fff; font-size: 10px; font-weight: 800;
+  font-family: inherit; cursor: pointer;
+}
+.aq-fossil-ex-btn:active { transform: scale(0.95); }
 .aq-tank.aq-fossil-active { box-shadow: inset 0 0 0 3px #d4537e, inset 0 0 30px rgba(0,0,0,0.4); }
 .aq-tank.aq-fossil-active .aq-fish { cursor: cell; }
 
