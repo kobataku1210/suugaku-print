@@ -506,9 +506,9 @@ const PROGRESS = {
 };
 
 const REWARDS = {
-  firstClear: 30,
+  firstClear: 25,
   thresholds: [60, 90, 120],
-  amounts:    [60, 40, 20],
+  amounts:    [30, 20, 10],
   timeBonus(sec) {
     for (let i = 0; i < this.thresholds.length; i++) {
       if (sec <= this.thresholds[i]) return this.amounts[i];

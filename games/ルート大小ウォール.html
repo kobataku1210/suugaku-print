@@ -244,9 +244,9 @@
           <tr><th></th><th>初回クリア</th><th>速い</th><th>普通</th><th>ゆっくり</th></tr>
         </thead>
         <tbody>
-          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×10</span></td><td><span class="pea">20秒↓<br>🌱×30</span></td><td><span class="pea">30秒↓<br>🌱×20</span></td><td><span class="pea">40秒↓<br>🌱×10</span></td></tr>
-          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×20</span></td><td><span class="pea">25秒↓<br>🌱×45</span></td><td><span class="pea">35秒↓<br>🌱×30</span></td><td><span class="pea">45秒↓<br>🌱×15</span></td></tr>
-          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×30</span></td><td><span class="pea">30秒↓<br>🌱×60</span></td><td><span class="pea">40秒↓<br>🌱×40</span></td><td><span class="pea">50秒↓<br>🌱×20</span></td></tr>
+          <tr><td class="lv">Lv.1</td><td><span class="pea">🌱×15</span></td><td><span class="pea">20秒↓<br>🌱×20</span></td><td><span class="pea">30秒↓<br>🌱×14</span></td><td><span class="pea">40秒↓<br>🌱×8</span></td></tr>
+          <tr><td class="lv">Lv.2</td><td><span class="pea">🌱×25</span></td><td><span class="pea">25秒↓<br>🌱×28</span></td><td><span class="pea">35秒↓<br>🌱×20</span></td><td><span class="pea">45秒↓<br>🌱×12</span></td></tr>
+          <tr><td class="lv">Lv.3</td><td><span class="pea">🌱×35</span></td><td><span class="pea">30秒↓<br>🌱×35</span></td><td><span class="pea">40秒↓<br>🌱×25</span></td><td><span class="pea">50秒↓<br>🌱×15</span></td></tr>
         </tbody>
       </table>
       <div style="margin-top:4px;font-size:10.5px;color:#888;">※ 時間ボーナスは何度プレイしてももらえます</div>
@@ -308,16 +308,15 @@ const PROGRESS = {
 };
 
 const REWARDS = {
-  firstClear(lv) { return lv === 1 ? 10 : (lv === 2 ? 20 : 30); },
+  firstClear(lv) { return lv === 1 ? 15 : (lv === 2 ? 25 : 35); },
   thresholds: { 1: [20, 30, 40], 2: [25, 35, 45], 3: [30, 40, 50] },
-  multiplier(lv) { return lv === 1 ? 1 : (lv === 2 ? 1.5 : 2); },
+  amounts: { 1: [20, 14, 8], 2: [28, 20, 12], 3: [35, 25, 15] },
   timeBonus(lv, sec) {
     const t = this.thresholds[lv] || this.thresholds[1];
-    const baseAmounts = [30, 20, 10];
-    const mult = this.multiplier(lv);
-    if (sec <= t[0]) return Math.floor(baseAmounts[0] * mult);
-    if (sec <= t[1]) return Math.floor(baseAmounts[1] * mult);
-    if (sec <= t[2]) return Math.floor(baseAmounts[2] * mult);
+    const a = this.amounts[lv] || this.amounts[1];
+    if (sec <= t[0]) return a[0];
+    if (sec <= t[1]) return a[1];
+    if (sec <= t[2]) return a[2];
     return 0;
   },
   maxThreshold(lv) { const t = this.thresholds[lv] || this.thresholds[1]; return t[2]; }

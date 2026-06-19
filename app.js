@@ -94,9 +94,9 @@ const PREVIEW_MODE = _wantsPreview && localStorage.getItem('mathPreviewUnlocked'
 
 // レベル設定
 const LEVELS = [
-  { key: 'basic',    label: '基礎レベル', stars: '★',   color: '#4ecdc4', peas: 1, desc: '基本的な問題で<br>しっかり理解しよう！' },
-  { key: 'standard', label: '標準レベル', stars: '★★',  color: '#f7971e', peas: 2, desc: '少し難しい問題に<br>チャレンジしよう！' },
-  { key: 'advanced', label: '応用レベル', stars: '★★★', color: '#f5576c', peas: 3, desc: '難問で実力を<br>グンと伸ばそう！' },
+  { key: 'basic',    label: '基礎レベル', stars: '★',   color: '#4ecdc4', peas: 10, desc: '基本的な問題で<br>しっかり理解しよう！' },
+  { key: 'standard', label: '標準レベル', stars: '★★',  color: '#f7971e', peas: 15, desc: '少し難しい問題に<br>チャレンジしよう！' },
+  { key: 'advanced', label: '応用レベル', stars: '★★★', color: '#f5576c', peas: 20, desc: '難問で実力を<br>グンと伸ばそう！' },
 ];
 
 // グリンピースの位置（山の形・底から積み上がる順、px）
@@ -338,7 +338,7 @@ function completeMiniTest(chIdx, secIdx) {
   if (!p.done[key]) {
     p.done[key] = true;
     saveProgress(p);
-    addPeas(1);
+    addPeas(15);
     return true; // 初クリア
   }
   return false;
@@ -1249,7 +1249,7 @@ function renderGamesPage() {
       const parts = [];
       if (factorBestStr) parts.push(`🏅 自己ベスト：${factorBestStr}`);
       if (cmStudentBestTime != null && cmStudentBestName) {
-        parts.push(`🏆 ${cmStudentBestName}：${cmFmtTime(cmStudentBestTime)} 🌱×50`);
+        parts.push(`🏆 ${cmStudentBestName}：${cmFmtTime(cmStudentBestTime)} 🌱×30`);
       }
       if (parts.length) subText = `<div class="game-card-best">${parts.join('　')}</div>`;
     } else if (g.onclick && g.onclick.includes("cmVariant='sqrt'")) {
@@ -1588,7 +1588,7 @@ function renderDifficulty() {
     const done     = isLevelDone(state.chapterIdx, state.sectionIdx, li);
     const unlocked = isLevelUnlocked(state.chapterIdx, state.sectionIdx, li);
     const delay    = `animation-delay:${displayIdx * 0.08}s`;
-    const peasStr  = '🌱'.repeat(lv.peas);
+    const peasStr  = `🌱×${lv.peas}`;
 
     if (!unlocked) {
       return `
@@ -1597,7 +1597,7 @@ function renderDifficulty() {
           <div class="lock-icon">🔒</div>
           <div class="diff-label diff-label-locked">${lv.label}</div>
           <div class="diff-desc diff-desc-locked">前のレベルをクリアしてね！</div>
-          <div class="diff-pea-hint">${peasStr} クリアで${lv.peas}個</div>
+          <div class="diff-pea-hint">クリアで ${peasStr} 個</div>
         </div>`;
     }
     if (done) {
@@ -1618,7 +1618,7 @@ function renderDifficulty() {
         <span class="diff-stars">${lv.stars}</span>
         <div class="diff-label">${lv.label}</div>
         <div class="diff-desc">${lv.desc}</div>
-        <div class="diff-pea-hint">${peasStr} クリアで${lv.peas}個</div>
+        <div class="diff-pea-hint">クリアで ${peasStr} 個</div>
         <button class="diff-btn diff-btn-lv${li}">10問に挑戦！</button>
       </div>`;
   }).join('');
@@ -1676,14 +1676,14 @@ function renderDifficulty() {
   const taTeacherBadge = taTeacherTime !== null
     ? isTeacherBeaten(taData, taTeacherTime)
       ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">👑 小林T撃破済み！</span>`
-      : `<span class="ta-tier-badge-sm ta-teacher-badge">👑 小林T ${taTeacherTime.toFixed(1)}秒 🌱×10</span>`
+      : `<span class="ta-tier-badge-sm ta-teacher-badge">👑 小林T ${taTeacherTime.toFixed(1)}秒 🌱×15</span>`
     : '';
   const taStudentBestTime = taSecData.studentBestTime || null;
   const taStudentBestName = taSecData.studentBestName || '生徒';
   const taStudentBestBadge = taStudentBestTime !== null
     ? isStudentBestBeaten(taData, taStudentBestTime)
       ? `<span class="ta-tier-badge-sm ta-tier-badge-earned">🏅 ${taStudentBestName}撃破済み！</span>`
-      : `<span class="ta-tier-badge-sm ta-student-badge">🏅 ${taStudentBestName} ${taStudentBestTime.toFixed(1)}秒 🌱×50</span>`
+      : `<span class="ta-tier-badge-sm ta-student-badge">🏅 ${taStudentBestName} ${taStudentBestTime.toFixed(1)}秒 🌱×30</span>`
     : '';
   // 上位3名（2位・3位がいれば）を追加バッジで表示
   const taTop3List = Array.isArray(taSecData.studentBestList) ? taSecData.studentBestList : [];
@@ -2084,7 +2084,7 @@ function showLevelComplete() {
   const peasToShow = isSingleLevel ? 10 : lv.peas;
   // 報酬を表示するか（singleLevel は毎回、それ以外は初回のみ）
   const showReward = isSingleLevel || isNew;
-  const peasStr = '🌱'.repeat(Math.min(peasToShow, 10));
+  const peasStr = '🌱×' + peasToShow;
 
   const card = document.getElementById('quiz-card');
   card.classList.add('quiz-success');
@@ -2092,7 +2092,7 @@ function showLevelComplete() {
     <div class="quiz-success-icon">🎉</div>
     <div class="quiz-success-text">レベルクリア！！</div>
     <div class="quiz-success-level">${isSingleLevel ? '★ 10問チャレンジ' : lv.stars + ' ' + lv.label}</div>
-    <div class="quiz-success-peas">${showReward ? peasStr + ' ×' + peasToShow + '個ゲット！' : 'クリア済みです！'}</div>
+    <div class="quiz-success-peas">${showReward ? peasStr + ' 個ゲット！' : 'クリア済みです！'}</div>
   `;
   if (showReward) {
     setTimeout(() => {
@@ -2510,9 +2510,9 @@ function submitPracticeAnswers() {
 
 // ティア定義（30秒/40秒/50秒）
 const TA_TIERS = [
-  { sec: 30, peas: 3, label: '30秒以内', color: '#00d2ff', medal: '🥇' },
-  { sec: 40, peas: 2, label: '40秒以内', color: '#9ded62', medal: '🥈' },
-  { sec: 50, peas: 1, label: '50秒以内', color: '#f7971e', medal: '🥉' },
+  { sec: 30, peas: 5, label: '30秒以内', color: '#00d2ff', medal: '🥇' },
+  { sec: 40, peas: 3, label: '40秒以内', color: '#9ded62', medal: '🥈' },
+  { sec: 50, peas: 2, label: '50秒以内', color: '#f7971e', medal: '🥉' },
 ];
 
 // ----- localStorage -----
@@ -2603,12 +2603,12 @@ function renderTimeAttack() {
     const studentBestName = sec.studentBestName || '生徒';
     const taCurrentData = getTimeAttackData(state.chapterIdx, state.sectionIdx);
     const targetHtml = teacherTime !== null && !isTeacherBeaten(taCurrentData, teacherTime)
-      ? `<div class="ta-teacher-target">👑 小林T のタイム：<span>${teacherTime.toFixed(1)}秒</span>を超えれば 🌱×10個！</div>`
+      ? `<div class="ta-teacher-target">👑 小林T のタイム：<span>${teacherTime.toFixed(1)}秒</span>を超えれば 🌱×15個！</div>`
       : teacherTime !== null && isTeacherBeaten(taCurrentData, teacherTime)
       ? `<div class="ta-teacher-target ta-teacher-beaten-msg">👑 小林T 撃破済み！（${teacherTime.toFixed(1)}秒）</div>`
       : '';
     const studentTargetHtml = studentBestTime !== null && !isStudentBestBeaten(taCurrentData, studentBestTime)
-      ? `<div class="ta-teacher-target ta-student-target">🏅 ${studentBestName} のタイム：<span>${studentBestTime.toFixed(1)}秒</span>を超えれば 🌱×50個！</div>`
+      ? `<div class="ta-teacher-target ta-student-target">🏅 ${studentBestName} のタイム：<span>${studentBestTime.toFixed(1)}秒</span>を超えれば 🌱×30個！</div>`
       : studentBestTime !== null && isStudentBestBeaten(taCurrentData, studentBestTime)
       ? `<div class="ta-teacher-target ta-teacher-beaten-msg">🏅 ${studentBestName} 撃破済み！（${studentBestTime.toFixed(1)}秒）</div>`
       : '';
@@ -2755,8 +2755,8 @@ function renderTimeAttackResult(sec) {
         <div class="ta-result-time" style="color:${timeColor}">${elapsed.toFixed(1)}秒</div>
         ${isFirstClear ? '<div class="ta-new-record">🎉 初クリア！</div>' : ''}
         ${isNewBest    ? '<div class="ta-new-record">🏆 新記録！</div>' : ''}
-        ${state.timeAttackTeacherBeaten ? '<div class="ta-teacher-beaten">👑 小林T を倒した！ 🌱×10個ゲット！</div>' : ''}
-        ${state.timeAttackStudentBeaten ? `<div class="ta-teacher-beaten ta-student-beaten">🏅 ${sec.studentBestName || '生徒'}のベストを破った！ 🌱×50個ゲット！</div>` : ''}
+        ${state.timeAttackTeacherBeaten ? '<div class="ta-teacher-beaten">👑 小林T を倒した！ 🌱×15個ゲット！</div>' : ''}
+        ${state.timeAttackStudentBeaten ? `<div class="ta-teacher-beaten ta-student-beaten">🏅 ${sec.studentBestName || '生徒'}のベストを破った！ 🌱×30個ゲット！</div>` : ''}
         ${newPeasThisTime > 0 ? `<div class="ta-peas-earned">🌱 ×${newPeasThisTime}個 ゲット！</div>` : ''}
         ${!isFirstClear && !isNewBest && taData.bestTime !== null
           ? `<div class="ta-best-display">🏆 最速記録：${taData.bestTime.toFixed(1)}秒</div>` : ''}
@@ -2832,7 +2832,7 @@ function submitTimeAttackAnswers() {
     if (teacherTime !== null && elapsed < teacherTime && !isTeacherBeaten(taData, teacherTime)) {
       taData.teacherBeaten = true;
       taData.teacherTimeWhenBeaten = teacherTime;  // 倒したときの先生タイムを記録
-      newPeas += 10;
+      newPeas += 15;
       state.timeAttackTeacherBeaten = true;  // 今回初めて先生を倒した
     }
 
@@ -2842,7 +2842,7 @@ function submitTimeAttackAnswers() {
     if (studentBestTime !== null && elapsed < studentBestTime && !isStudentBestBeaten(taData, studentBestTime)) {
       taData.studentBestBeaten = true;
       taData.studentBestTimeWhenBeaten = studentBestTime;
-      newPeas += 50;
+      newPeas += 30;
       state.timeAttackStudentBeaten = true;
     }
 
@@ -3201,11 +3201,11 @@ function cmRenderGrid() {
 }
 
 function cmTimePeas(sec) {
-  if (sec <= 20) return 5;
-  if (sec <= 30) return 4;
-  if (sec <= 40) return 3;
-  if (sec <= 50) return 2;
-  if (sec <= 60) return 1;
+  if (sec <= 20) return 25;
+  if (sec <= 30) return 20;
+  if (sec <= 40) return 15;
+  if (sec <= 50) return 10;
+  if (sec <= 60) return 5;
   return 0;
 }
 
@@ -3226,11 +3226,11 @@ function cmComplete() {
   const sbn = cmGetStudentBestName();
   // 小林Tタイム超えボーナス（別途+10）
   const beatTeacher = tt != null && cmSeconds < tt;
-  if (beatTeacher) addPeas(10);
+  if (beatTeacher) addPeas(15);
 
-  // 生徒ベストタイム超えボーナス（+50）
+  // 生徒ベストタイム超えボーナス（+30）
   const beatStudentBest = sbt != null && cmSeconds < sbt;
-  if (beatStudentBest) addPeas(50);
+  if (beatStudentBest) addPeas(30);
 
   const overlay = document.getElementById('cm-overlay');
   if (!overlay) return;
@@ -3240,8 +3240,8 @@ function cmComplete() {
       <div class="cm-result-title">${beatTeacher ? '小林T超え！' : beatStudentBest ? `${sbn}超え！` : 'クリア！'}</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
-      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(tt)})を超えた！<br>🌱 ×10 ボーナス！</div>` : ''}
-      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${sbn}(${cmFmtTime(sbt)})を超えた！<br>🌱 ×50 ボーナス！</div>` : ''}
+      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(tt)})を超えた！<br>🌱 ×15 ボーナス！</div>` : ''}
+      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${sbn}(${cmFmtTime(sbt)})を超えた！<br>🌱 ×30 ボーナス！</div>` : ''}
       ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
@@ -3484,11 +3484,11 @@ function cmStartGroup() {
 // ---- 報酬一覧HTML生成 ----
 function cmRewardTableHtml() {
   const tiers = [
-    { sec: 20, peas: 5 },
-    { sec: 30, peas: 4 },
-    { sec: 40, peas: 3 },
-    { sec: 50, peas: 2 },
-    { sec: 60, peas: 1 },
+    { sec: 20, peas: 25 },
+    { sec: 30, peas: 20 },
+    { sec: 40, peas: 15 },
+    { sec: 50, peas: 10 },
+    { sec: 60, peas: 5 },
   ];
   const rows = tiers.map(t => `
     <div class="cmr-row">
@@ -3501,12 +3501,12 @@ function cmRewardTableHtml() {
   const teacherRow = tt != null ? `
     <div class="cmr-row cmr-teacher">
       <span class="cmr-time">👑小林T(${cmFmtTime(tt)})超え</span>
-      <span class="cmr-peas">🌱×10</span>
+      <span class="cmr-peas">🌱×15</span>
     </div>` : '';
   const studentRow = sbt != null && sbn ? `
     <div class="cmr-row" style="background:rgba(157,237,98,0.08);border-color:rgba(157,237,98,0.25);">
       <span class="cmr-time" style="color:#9ded62;">🏅${sbn}(${cmFmtTime(sbt)})超え</span>
-      <span class="cmr-peas">🌱×50</span>
+      <span class="cmr-peas">🌱×30</span>
     </div>` : '';
   return `<div class="cmr-table">${teacherRow}${studentRow}${rows}</div>`;
 }
@@ -3604,17 +3604,17 @@ function renderCmSolo() {
         </div>
       </div>
       <div class="cm-reward-bar">
-        <span class="cmrb-item">🌱×5&nbsp;<span class="cmrb-t">0:20</span></span>
+        <span class="cmrb-item">🌱×25&nbsp;<span class="cmrb-t">0:20</span></span>
         <span class="cmrb-sep">|</span>
-        <span class="cmrb-item">×4&nbsp;<span class="cmrb-t">0:30</span></span>
+        <span class="cmrb-item">×20&nbsp;<span class="cmrb-t">0:30</span></span>
         <span class="cmrb-sep">|</span>
-        <span class="cmrb-item">×3&nbsp;<span class="cmrb-t">0:40</span></span>
+        <span class="cmrb-item">×15&nbsp;<span class="cmrb-t">0:40</span></span>
         <span class="cmrb-sep">|</span>
-        <span class="cmrb-item">×2&nbsp;<span class="cmrb-t">0:50</span></span>
+        <span class="cmrb-item">×10&nbsp;<span class="cmrb-t">0:50</span></span>
         <span class="cmrb-sep">|</span>
-        <span class="cmrb-item">×1&nbsp;<span class="cmrb-t">1:00</span></span>
-        ${cmTeacherTime != null ? `<span class="cmrb-sep">|</span><span class="cmrb-item cmrb-teacher">👑×10&nbsp;<span class="cmrb-t">${cmFmtTime(cmTeacherTime)}超</span></span>` : ''}
-        ${cmStudentBestTime != null && cmStudentBestName ? `<span class="cmrb-sep">|</span><span class="cmrb-item" style="color:#9ded62;">🏅×50&nbsp;<span class="cmrb-t">${cmFmtTime(cmStudentBestTime)}超</span></span>` : ''}
+        <span class="cmrb-item">×5&nbsp;<span class="cmrb-t">1:00</span></span>
+        ${cmTeacherTime != null ? `<span class="cmrb-sep">|</span><span class="cmrb-item cmrb-teacher">👑×15&nbsp;<span class="cmrb-t">${cmFmtTime(cmTeacherTime)}超</span></span>` : ''}
+        ${cmStudentBestTime != null && cmStudentBestName ? `<span class="cmrb-sep">|</span><span class="cmrb-item" style="color:#9ded62;">🏅×30&nbsp;<span class="cmrb-t">${cmFmtTime(cmStudentBestTime)}超</span></span>` : ''}
       </div>
       <div id="cm-grid" class="cm-grid"></div>
       <div id="cm-overlay" class="cm-overlay"></div>
