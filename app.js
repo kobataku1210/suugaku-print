@@ -5,6 +5,10 @@
 // ===== 定数 =====
 const STORAGE_KEY = 'mathPrint_v2';
 
+// 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
+// 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
+const APP_VERSION = '2026-06-21a';
+
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
 // 生徒が URL を打っても認証できないため通常モードのまま。
@@ -1090,7 +1094,7 @@ const GAME_ITEMS = [
     title: '共通因数ウォール',
     desc: '共通因数をくくり出してウォールを崩せ！',
     icon: '🧱',
-    onclick: "window.location.href='games/共通因数ウォール.html'",
+    onclick: "window.location.href='games/共通因数ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
     isNew: true,
     category: 'factor',
@@ -1099,7 +1103,7 @@ const GAME_ITEMS = [
     title: 'ルート大小ウォール',
     desc: '√や整数の大小で大きい方の壁をタップ！',
     icon: '📏',
-    onclick: "window.location.href='games/ルート大小ウォール.html'",
+    onclick: "window.location.href='games/ルート大小ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #4a90e2, #6c5ce7)',
     isNew: true,
     draftKey: 'rootBreak',
@@ -1109,7 +1113,7 @@ const GAME_ITEMS = [
     title: '数の分類ウォール',
     desc: '有理数/無理数 → 整数/非整数 → 自然数/非自然数 を仕分けよう',
     icon: '📦',
-    onclick: "window.location.href='games/数の分類ウォール.html'",
+    onclick: "window.location.href='games/数の分類ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
     isNew: true,
     draftKey: 'numSort',
@@ -1119,7 +1123,7 @@ const GAME_ITEMS = [
     title: '計算バトル',
     desc: '1台で2人対戦！因数分解で計算を一気に終わらせて相手のHPを削れ',
     icon: '⚔️',
-    onclick: "window.location.href='games/計算バトル.html'",
+    onclick: "window.location.href='games/計算バトル.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #3a8aff, #ff3a6a)',
     isNew: true,
     category: 'factor',
@@ -1128,7 +1132,7 @@ const GAME_ITEMS = [
     title: '平方根神経衰弱',
     desc: '√4 と 2、√9 と 3…ルートを外した数をペアで揃えるメモリーゲーム!',
     icon: '🃏',
-    onclick: "window.location.href='games/平方根神経衰弱.html'",
+    onclick: "window.location.href='games/平方根神経衰弱.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #2196f3, #0d47a1)',
     isNew: true,
     category: 'sqrt',
@@ -1137,7 +1141,7 @@ const GAME_ITEMS = [
     title: 'ルートの宝石',
     desc: '√n の中に隠れた平方数を見つけて宝石を発見！簡約のしくみを体感',
     icon: '💎',
-    onclick: "window.location.href='games/ルートの宝石.html'",
+    onclick: "window.location.href='games/ルートの宝石.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #cc66ff, #4477ff)',
     isNew: true,
     category: 'sqrt',
@@ -3671,7 +3675,7 @@ function render() {
       <div class="shooting-wrap">
         <button class="shooting-back-btn" onclick="navigate('games')">← ゲーム一覧</button>
         <iframe class="shooting-iframe"
-                src="games/因数分解シューティング.html"
+                src="games/因数分解シューティング.html?_v=${APP_VERSION}"
                 title="因数分解シューティング"
                 allow="autoplay"></iframe>
       </div>`;
@@ -3758,6 +3762,23 @@ function showPreviewUnlockModal() {
   }
 }
 
+// ===== 最新版チェック（古いキャッシュで遊び続けるのを防ぐ） =====
+// version.json を常に最新で取得し、公開バージョンが変わっていたら
+// キャッシュを回避するURL(?_v=...)で読み込み直す。
+(function checkAppVersion() {
+  fetch('version.json?_t=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (!j || !j.version) return;
+      const params = new URLSearchParams(window.location.search);
+      if (j.version !== APP_VERSION && params.get('_v') !== j.version) {
+        params.set('_v', j.version);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+      }
+    })
+    .catch(() => {});
+})();
+
 // ===== 初期化 =====
 initMathBackground();
 createBowlWidget();
@@ -3789,9 +3810,9 @@ if (PREVIEW_MODE) {
   document.body.style.paddingTop = '46px';
 }
 
-// 問題データを読み込む
+// 問題データを読み込む（キャッシュを使わず常に最新を取得）
 // ローカルサーバー・GitHub Pages どちらでも questions.json を直接参照
-fetch('./questions.json')
+fetch('./questions.json?_t=' + Date.now(), { cache: 'no-store' })
   .then(r => r.json())
   .then(data => {
     migrateRankings(data);
