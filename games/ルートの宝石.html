@@ -909,6 +909,7 @@
   <button class="retry-btn" onclick="returnToTitle()">もう一度やる</button>
 </div>
 
+<script src="../student-guard.js?v=2"></script>
 <script>
 // ===== レアリティ定義 =====
 const TIER_DEFS = [
@@ -1470,8 +1471,15 @@ function showResultScreen() {
     breakdown.style.display = 'none';
   }
 
-  // 数学HPの localStorage(mathPrint_v2)に獲得ピースを加算
-  if (peas > 0) addPeasToHP(peas);
+  // 数学HPの localStorage(mathPrint_v2)に獲得ピースを加算（1日5回まで）
+  let rewardCapped = false;
+  if (peas > 0) {
+    if (typeof rewardAllowed === 'function' && !rewardAllowed('rootgem')) {
+      peas = 0; rewardCapped = true;
+    } else {
+      addPeasToHP(peas);
+    }
+  }
   document.getElementById('resultTitle').textContent = isTA ? '🏁 ALL CLEAR!' : '🌱 おつかれさま！';
   const timeBlock = document.getElementById('rsTimeBlock');
   const bestEl    = document.getElementById('rsBest');

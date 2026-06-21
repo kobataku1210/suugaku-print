@@ -605,7 +605,7 @@
 
 </div>
 
-<script src="../student-guard.js"></script>
+<script src="../student-guard.js?v=2"></script>
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
@@ -1565,14 +1565,20 @@ function showClearResult() {
   const isFirstClear = !WALL_PROGRESS.hasFirstReward(lv);
   const firstRew = isFirstClear ? REWARDS.firstClear(lv) : 0;
   const timeRew = REWARDS.timeBonus(lv, elapsed);
-  const total = firstRew + timeRew;
+  let total = firstRew + timeRew;
 
-  // クリア状態を保存
+  // クリア状態は記録
   WALL_PROGRESS.setCleared(lv);
-  if (isFirstClear) WALL_PROGRESS.setFirstReward(lv);
 
-  // お椀ウィジェット & すごろくの両方に加算
-  addEarnedPeas(total);
+  // 1日の報酬回数上限チェック（上限時は付与せず初回フラグも立てない＝後日もらえる）
+  let rewardCapped = false;
+  if (total > 0 && typeof rewardAllowed === 'function' && !rewardAllowed('commonfactor')) {
+    total = 0;
+    rewardCapped = true;
+  } else {
+    if (isFirstClear) WALL_PROGRESS.setFirstReward(lv);
+    addEarnedPeas(total); // お椀ウィジェット & すごろくの両方に加算
+  }
 
   // ベストタイム保存
   const bestKey = `wallbreak_best_clear_${lv}`;
@@ -1589,14 +1595,18 @@ function showClearResult() {
   // 報酬の内訳表示
   const rewardsDiv = document.getElementById('result-rewards');
   let html = '';
-  if (firstRew > 0) {
-    html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
-  }
-  if (timeRew > 0) {
-    const sec = Math.floor(elapsed);
-    html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+  if (rewardCapped) {
+    html += `<div class="reward-row" style="color:#f7971e"><span>本日の🌱はここまで（1日${(window.REWARD_MAX_PER_GAME||5)}回まで）</span><span>また明日！</span></div>`;
   } else {
-    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
+    if (firstRew > 0) {
+      html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
+    }
+    if (timeRew > 0) {
+      const sec = Math.floor(elapsed);
+      html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+    } else {
+      html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
+    }
   }
   rewardsDiv.innerHTML = html;
 

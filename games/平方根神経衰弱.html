@@ -410,6 +410,7 @@
 
 </div>
 
+<script src="../student-guard.js?v=2"></script>
 <script>
 // ========== 画面遷移 ==========
 function showScreen(id) {
@@ -695,11 +696,15 @@ function endGame() {
       bestRow.style.animation = 'none';
     }
 
-    // グリンピース獲得 + HP の localStorage に加算
-    const peaReward = PRACTICE_REWARDS[STATE.totalPairs] || 2;
-    addPeasToHP(peaReward);
+    // グリンピース獲得 + HP の localStorage に加算（1日5回まで）
+    let peaReward = PRACTICE_REWARDS[STATE.totalPairs] || 2;
+    if (typeof rewardAllowed === 'function' && !rewardAllowed('shinkei')) {
+      peaReward = 0;
+    } else {
+      addPeasToHP(peaReward);
+    }
     peasRow.style.display = 'inline-block';
-    document.getElementById('r-peas').textContent = peaReward;
+    document.getElementById('r-peas').textContent = peaReward > 0 ? peaReward : '0（本日上限）';
   } else {
     // 神経衰弱モード: タイム・ピース非表示
     timeRow.style.display = 'none';

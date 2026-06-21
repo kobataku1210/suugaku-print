@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21a';
+const APP_VERSION = '2026-06-21b';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -3222,19 +3222,25 @@ function cmComplete() {
   if (isNewBest) d.best = cmSeconds;
   cmSave(d);
 
-  const peas = cmTimePeas(cmSeconds);
-  if (peas > 0) addPeas(peas);
-
   const tt = cmGetTeacherTime();
   const sbt = cmGetStudentBestTime();
   const sbn = cmGetStudentBestName();
-  // 小林Tタイム超えボーナス（別途+10）
   const beatTeacher = tt != null && cmSeconds < tt;
-  if (beatTeacher) addPeas(15);
-
-  // 生徒ベストタイム超えボーナス（+30）
   const beatStudentBest = sbt != null && cmSeconds < sbt;
-  if (beatStudentBest) addPeas(30);
+
+  // 1日の報酬回数上限チェック（カードマッチは variant ごとに5回まで）
+  // 付与がある場合だけ1回分を消費する
+  const cmPotential = cmTimePeas(cmSeconds) + (beatTeacher ? 15 : 0) + (beatStudentBest ? 30 : 0);
+  let cmRewardOK = true;
+  if (cmPotential > 0 && typeof rewardAllowed === 'function') {
+    cmRewardOK = rewardAllowed('cardmatch_' + cmVariant);
+  }
+  const cmCapped = !cmRewardOK;
+
+  const peas = cmRewardOK ? cmTimePeas(cmSeconds) : 0;
+  if (peas > 0) addPeas(peas);
+  if (beatTeacher && cmRewardOK) addPeas(15);       // 小林T超えボーナス +15
+  if (beatStudentBest && cmRewardOK) addPeas(30);   // 生徒ベスト超えボーナス +30
 
   const overlay = document.getElementById('cm-overlay');
   if (!overlay) return;
@@ -3244,9 +3250,9 @@ function cmComplete() {
       <div class="cm-result-title">${beatTeacher ? '小林T超え！' : beatStudentBest ? `${sbn}超え！` : 'クリア！'}</div>
       <div class="cm-result-time">${cmFmtTime(cmSeconds)}</div>
       ${isNewBest ? '<div class="cm-result-badge">🏅 自己ベスト更新！</div>' : ''}
-      ${beatTeacher ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(tt)})を超えた！<br>🌱 ×15 ボーナス！</div>` : ''}
-      ${beatStudentBest ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${sbn}(${cmFmtTime(sbt)})を超えた！<br>🌱 ×30 ボーナス！</div>` : ''}
-      ${peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>'}
+      ${(beatTeacher && cmRewardOK) ? `<div class="cm-result-teacher-beat">👑 小林T(${cmFmtTime(tt)})を超えた！<br>🌱 ×15 ボーナス！</div>` : ''}
+      ${(beatStudentBest && cmRewardOK) ? `<div class="cm-result-teacher-beat" style="color:#9ded62;border-color:rgba(157,237,98,0.3);">🏅 ${sbn}(${cmFmtTime(sbt)})を超えた！<br>🌱 ×30 ボーナス！</div>` : ''}
+      ${cmCapped ? `<div class="cm-result-nopea">本日の🌱はここまで（1日${(window.REWARD_MAX_PER_GAME||5)}回まで）また明日！</div>` : (peas > 0 ? `<div class="cm-result-pea">🌱 ×${peas} もらった！</div>` : '<div class="cm-result-nopea">60秒超 → 報酬なし</div>')}
       <div class="cm-result-btns">
         <button class="cm-btn cm-btn-primary" onclick="cmStartSolo()">もう一度</button>
         <button class="cm-btn cm-btn-ghost"   onclick="cmBackToMenu()">メニューへ</button>

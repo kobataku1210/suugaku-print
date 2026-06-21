@@ -290,7 +290,7 @@
 
 </div>
 
-<script src="../student-guard.js"></script>
+<script src="../student-guard.js?v=2"></script>
 <script>
 'use strict';
 
@@ -563,10 +563,17 @@ function showClearResult() {
   const isFirstClear = !PROGRESS.hasFirstReward(lv);
   const firstRew = isFirstClear ? REWARDS.firstClear(lv) : 0;
   const timeRew = REWARDS.timeBonus(lv, elapsed);
-  const total = firstRew + timeRew;
+  let total = firstRew + timeRew;
   PROGRESS.setCleared(lv);
-  if (isFirstClear) PROGRESS.setFirstReward(lv);
-  addEarnedPeas(total);
+  // 1日の報酬回数上限チェック
+  let rewardCapped = false;
+  if (total > 0 && typeof rewardAllowed === 'function' && !rewardAllowed('rootbreak')) {
+    total = 0;
+    rewardCapped = true;
+  } else {
+    if (isFirstClear) PROGRESS.setFirstReward(lv);
+    addEarnedPeas(total);
+  }
 
   const bestKey = `rootbreak_best_clear_${lv}`;
   const prev = parseFloat(localStorage.getItem(bestKey) || '999999');
@@ -581,12 +588,16 @@ function showClearResult() {
 
   const rewardsDiv = document.getElementById('result-rewards');
   let html = '';
-  if (firstRew > 0) html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
-  if (timeRew > 0) {
-    const sec = Math.floor(elapsed);
-    html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+  if (rewardCapped) {
+    html += `<div class="reward-row" style="color:#f7971e"><span>本日の🌱はここまで（1日${(window.REWARD_MAX_PER_GAME||5)}回まで）</span><span>また明日！</span></div>`;
   } else {
-    html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
+    if (firstRew > 0) html += `<div class="reward-row"><span>🏆 初回クリア報酬</span><strong>🌱×${firstRew}</strong></div>`;
+    if (timeRew > 0) {
+      const sec = Math.floor(elapsed);
+      html += `<div class="reward-row"><span>⏱ 時間ボーナス（${sec}秒）</span><strong>🌱×${timeRew}</strong></div>`;
+    } else {
+      html += `<div class="reward-row" style="color:#888"><span>⏱ 時間ボーナス（${REWARDS.maxThreshold(lv)}秒超）</span><span>—</span></div>`;
+    }
   }
   rewardsDiv.innerHTML = html;
 

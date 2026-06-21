@@ -581,7 +581,7 @@
   .mb-row.mvp { background: linear-gradient(135deg, #fff, #ffeaa7); }
   .mb-row.mvp .mb-name::after { content: ' 🏆'; }
 </style>
-<script src="../student-guard.js"></script>
+<script src="../student-guard.js?v=2"></script>
 </head>
 <body>
 <div id="game">
@@ -1469,8 +1469,13 @@
     const peaRewardEl = document.getElementById('peaReward');
     peaRewardEl.classList.remove('show');
 
-    // スコアに応じたグリンピース報酬（毎回・クリア不問）
+    // スコアに応じたグリンピース報酬（毎回・クリア不問）。ただし1日5回まで
     earnedPeas = calcPeas(level, state.score);
+    let rewardCapped = false;
+    if (earnedPeas > 0 && typeof rewardAllowed === 'function' && !rewardAllowed('shooting')) {
+      earnedPeas = 0;
+      rewardCapped = true;
+    }
     if (earnedPeas > 0) {
       try {
         // ① お椀ウィジェット用（mathPrint_v2）
@@ -1506,6 +1511,9 @@
     const peaRate = getPeaRate(level);
     if (earnedPeas > 0) {
       peaRewardEl.textContent = `🌱 グリンピース ${earnedPeas}個 獲得！`;
+      peaRewardEl.classList.add('show');
+    } else if (rewardCapped) {
+      peaRewardEl.textContent = `本日の🌱はここまで（1日${(window.REWARD_MAX_PER_GAME||5)}回まで）また明日！`;
       peaRewardEl.classList.add('show');
     } else {
       peaRewardEl.textContent = `（${peaRate}pt以上でグリンピースがもらえるよ！）`;

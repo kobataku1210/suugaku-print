@@ -45,3 +45,43 @@
     return false;
   });
 })();
+
+// =====================================================
+//   1日あたりの報酬回数制限（同じゲームの稼ぎすぎ対策）
+//   各ゲームは報酬を渡す直前に rewardAllowed('ゲームキー') を呼ぶ。
+//   true のときだけ🌱を付与。1ゲーム1日 REWARD_MAX_PER_GAME 回まで。
+// =====================================================
+(function() {
+  'use strict';
+  const KEY = 'dailyRewardCounts_v1';
+  const MAX_PER_GAME = 5;
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+  function load() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { s = {}; }
+    if (!s || typeof s !== 'object') s = {};
+    if (s.date !== todayStr()) s = { date: todayStr(), counts: {} };
+    if (!s.counts || typeof s.counts !== 'object') s.counts = {};
+    return s;
+  }
+  // 報酬を受け取れるか確認し、OKなら回数を1つ消費して true を返す
+  window.rewardAllowed = function(gameKey, max) {
+    max = max || MAX_PER_GAME;
+    const s = load();
+    const n = s.counts[gameKey] || 0;
+    if (n >= max) { localStorage.setItem(KEY, JSON.stringify(s)); return false; }
+    s.counts[gameKey] = n + 1;
+    localStorage.setItem(KEY, JSON.stringify(s));
+    return true;
+  };
+  // 今日あと何回もらえるか（消費しない）
+  window.rewardLeft = function(gameKey, max) {
+    max = max || MAX_PER_GAME;
+    const s = load();
+    return Math.max(0, max - (s.counts[gameKey] || 0));
+  };
+  window.REWARD_MAX_PER_GAME = MAX_PER_GAME;
+})();
