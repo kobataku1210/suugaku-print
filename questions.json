@@ -5156,8 +5156,7 @@
           "miniTestPassword": "8747",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
+          "studentBestList": []
         },
         {
           "title": "ルートをふくむ式の展開",
@@ -5501,8 +5500,7 @@
           "miniTestPassword": "1867",
           "studentBestName": null,
           "studentBestTime": null,
-          "studentBestList": [],
-          "draft": true
+          "studentBestList": []
         },
         {
           "title": "平方根の利用",
