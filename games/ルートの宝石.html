@@ -1111,9 +1111,8 @@ function pickStratified(pool, targetCount) {
       }
     }
   }
-  // 最終並び: 隠れた平方数 昇順(= 易しい順)
-  selected.sort((a, b) => a.hiddenSquare - b.hiddenSquare);
-  return selected;
+  // 出題順はシャッフル（毎回ランダム）
+  return shuffleArr(selected);
 }
 
 // ===== タイマー(タイムアタック: カウントアップ) =====

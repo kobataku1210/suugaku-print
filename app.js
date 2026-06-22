@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21c';
+const APP_VERSION = '2026-06-21d';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
