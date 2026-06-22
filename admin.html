@@ -973,6 +973,23 @@
         </div>
       </div>
 
+      <!-- 丸太から大きな四角形 -->
+      <div class="game-pane" style="display:block;border-top:1px dashed rgba(255,255,255,0.15);margin-top:1.5rem">
+        <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+          <a href="tools/丸太から大きな四角形を切り出そう/index.html" target="_blank" rel="noopener"
+             class="preview-game-btn">🪵 丸太から大きな四角形を試す（新しいタブで開く）</a>
+          <div id="log-carpenter-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+        </div>
+        <div style="padding:1rem 2rem;color:rgba(255,255,255,0.65);font-size:0.88rem;line-height:1.6;">
+          <p><b>丸太から大きな四角形</b> は、平方根の利用の単元で「直径から内接正方形の1辺」を考える教材です。</p>
+          <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+            <li>直径(半径)をスライダーで変更可能</li>
+            <li>大工さんアニメーション付き</li>
+            <li>使用素材: <code>daiku.png</code></li>
+          </ul>
+        </div>
+      </div>
+
       <!-- 因数分解アシスタント -->
       <div class="game-pane" style="display:block;border-top:1px dashed rgba(255,255,255,0.15);margin-top:1.5rem">
         <div style="padding:0.8rem 2rem 0;">
@@ -1345,6 +1362,7 @@ async function loadQuestions() {
   renderRootBreakPublishBar();
   renderNumSortPublishBar();
   renderPrimeFactorPublishBar();
+  renderLogCarpenterPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1742,6 +1760,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'rootBreak')     renderRootBreakPublishBar();
   if (gameKey === 'numSort')       renderNumSortPublishBar();
   if (gameKey === 'primeFactor')   renderPrimeFactorPublishBar();
+  if (gameKey === 'logCarpenter')  renderLogCarpenterPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1755,6 +1774,10 @@ function renderNumSortPublishBar() {
 
 function renderPrimeFactorPublishBar() {
   renderGamePublishBar('primeFactor', '素因数分解ヘルパー', 'prime-factor-publish-bar');
+}
+
+function renderLogCarpenterPublishBar() {
+  renderGamePublishBar('logCarpenter', '丸太から大きな四角形', 'log-carpenter-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画

@@ -1431,6 +1431,15 @@ const TOOL_ITEMS = [
     isNew: true,
     draftKey: 'primeFactor', // questions.json の gameDrafts で公開制御
   },
+  {
+    title: '丸太から大きな四角形',
+    desc: '直径20cmの丸太から、できるだけ大きな正方形を切り出そう! 平方根の利用',
+    icon: '🪵',
+    onclick: "window.location.href='tools/丸太から大きな四角形を切り出そう/index.html'",
+    gradient: 'linear-gradient(135deg, #b08a5a, #6e4a2a)',
+    isNew: true,
+    draftKey: 'logCarpenter',
+  },
 ];
 function renderToolsPage() {
   // draftKey が指定されたツールは gameDrafts で非公開なら隠す(プレビュー時は表示)

@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>丸太から大きな四角形を切り出そう</title>
+<style>
+  :root {
+    --bg: #f4ede0;
+    --paper: #fbf5e8;
+    --ink: #2d2418;
+    --wood-light: #d9b88a;
+    --wood-mid: #b08a5a;
+    --wood-dark: #6e4a2a;
+    --accent: #c8472f;
+    --accent2: #2e6e5e;
+    --gold: #c69a3f;
+    --shadow: rgba(45, 36, 24, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: "游ゴシック", "Yu Gothic", YuGothic, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(198, 154, 63, 0.08) 0, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(46, 110, 94, 0.06) 0, transparent 40%);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  header {
+    text-align: center;
+    padding: 12px 0 16px;
+    position: relative;
+  }
+
+  header::before, header::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 40px;
+    height: 2px;
+    background: var(--wood-dark);
+    opacity: 0.3;
+  }
+  header::before { left: 10%; }
+  header::after { right: 10%; }
+
+  h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--wood-dark);
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--ink);
+    opacity: 0.6;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  @media (min-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr 320px;
+    }
+  }
+
+  .canvas-card {
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px var(--shadow), inset 0 0 0 1px rgba(110, 74, 42, 0.1);
+    position: relative;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 600px;
+    margin: 0 auto;
+    background: radial-gradient(circle, #fdfaf0 0%, #f4ede0 100%);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hint {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--wood-dark);
+    min-height: 20px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    transition: opacity 0.3s;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .info-card {
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px var(--shadow), inset 0 0 0 1px rgba(110, 74, 42, 0.1);
+  }
+
+  .info-card h2 {
+    font-size: 14px;
+    color: var(--wood-dark);
+    border-bottom: 1px solid rgba(110, 74, 42, 0.2);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 14px;
+  }
+
+  .stat-label {
+    color: var(--ink);
+    opacity: 0.7;
+  }
+
+  .stat-value {
+    font-weight: 700;
+    color: var(--wood-dark);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value.area {
+    color: var(--accent);
+    font-size: 22px;
+  }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  button:active {
+    transform: scale(0.96);
+  }
+
+  .btn-primary {
+    background: var(--accent2);
+    color: var(--paper);
+    box-shadow: 0 2px 6px rgba(46, 110, 94, 0.3);
+  }
+
+  .btn-primary:hover { background: #265c4f; }
+
+  .btn-secondary {
+    background: var(--wood-light);
+    color: var(--wood-dark);
+  }
+
+  .btn-secondary:hover { background: #c9a779; }
+
+  .btn-danger {
+    background: var(--paper);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  .btn-danger:hover { background: #fbe9e3; }
+
+  .btn-full {
+    grid-column: 1 / -1;
+  }
+
+
+
+  .point-pulse {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    border: 3px solid var(--accent);
+    animation: pulse 0.6s ease-out;
+  }
+
+  @keyframes pulse {
+    from { width: 0; height: 0; opacity: 1; transform: translate(-50%, -50%); }
+    to { width: 60px; height: 60px; opacity: 0; transform: translate(-50%, -50%); }
+  }
+
+  .celebrate {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 60px;
+    pointer-events: none;
+    animation: celebrate 1.5s ease-out forwards;
+    z-index: 50;
+  }
+
+  @keyframes celebrate {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -130%) scale(1); }
+  }
+
+  /* 大工さん */
+  #carpenter {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: auto;
+    height: auto;
+    max-width: 80px;
+    max-height: 96px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.25s;
+    z-index: 10;
+    filter: drop-shadow(2px 4px 5px rgba(45, 36, 24, 0.4));
+  }
+
+  /* のこぎり */
+  .saw {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 32px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.2s;
+    z-index: 11;
+    filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.3));
+    user-select: none;
+  }
+
+  /* 切る！ボタン */
+  .btn-cut {
+    background: var(--accent);
+    color: var(--paper);
+    box-shadow: 0 2px 8px rgba(200, 71, 47, 0.35);
+    font-size: 16px;
+    animation: cut-pulse 1.4s ease-in-out infinite;
+  }
+  .btn-cut:hover { background: #b13e29; animation: none; }
+
+  @keyframes cut-pulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(200, 71, 47, 0.35); transform: scale(1); }
+    50% { box-shadow: 0 4px 16px rgba(200, 71, 47, 0.6); transform: scale(1.03); }
+  }
+
+  button:disabled { opacity: 0.5; cursor: not-allowed; animation: none; }
+
+  /* 完成エリア */
+  .completed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    min-height: 90px;
+    padding: 8px;
+    background: rgba(110, 74, 42, 0.06);
+    border-radius: 8px;
+    border: 2px dashed rgba(110, 74, 42, 0.25);
+  }
+
+  .completed-slot {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: var(--paper);
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(45, 36, 24, 0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: opacity 0.3s;
+  }
+
+  .completed-slot img {
+    max-width: 86%;
+    max-height: 64%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .completed-slot .area-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--wood-dark);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  .completed-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink);
+    opacity: 0.45;
+    align-self: center;
+    padding: 14px 0;
+  }
+
+  /* 飛んでいくカット片 */
+  .flying-piece {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  /* おがくず */
+  .sawdust {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #c69a3f;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9;
+    will-change: transform, opacity;
+  }
+
+  /* 評価カード */
+  .eval-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    background: var(--paper);
+    border: 4px solid;
+    border-radius: 18px;
+    padding: 16px 28px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(45, 36, 24, 0.35);
+    z-index: 30;
+    pointer-events: none;
+    min-width: 220px;
+    max-width: 80%;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+  }
+  .eval-card.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  .eval-card.hide { opacity: 0; transform: translate(-50%, -58%) scale(0.95); }
+
+  .eval-emoji {
+    font-size: 56px;
+    line-height: 1;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2));
+  }
+  .eval-stars {
+    font-size: 22px;
+    margin: 4px 0 2px;
+    letter-spacing: 0.1em;
+  }
+  .eval-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    margin: 4px 0;
+  }
+  .eval-message {
+    font-size: 13px;
+    color: var(--ink);
+    opacity: 0.7;
+    margin-bottom: 10px;
+  }
+  .eval-area {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px dashed rgba(110, 74, 42, 0.3);
+    padding-top: 8px;
+  }
+
+  /* 一流の場合のキラキラ */
+  .eval-card.gold .eval-emoji { animation: gold-bounce 0.6s ease-out 0.3s 2; }
+  @keyframes gold-bounce {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-8px) rotate(8deg); }
+  }
+
+  /* 直径スライダー */
+  .diameter-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #diameterSlider {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--wood-dark);
+  }
+  .diameter-value {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--wood-dark);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .diameter-value .unit {
+    font-size: 14px;
+    margin-left: 2px;
+    font-weight: 700;
+  }
+  .diameter-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink);
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    margin-top: -4px;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
+  }
+  .diameter-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink);
+    opacity: 0.5;
+    padding: 0 2px;
+  }
+
+  /* 完成スロットのランクバッジ */
+  .completed-slot {
+    overflow: hidden;
+  }
+  .completed-slot .rank-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    font-size: 14px;
+    line-height: 1;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1.5px solid;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🪵 丸太から大きな四角形を切り出そう</h1>
+    <div class="subtitle">直径20cm の丸太の切り口に、できるだけ大きな四角形をかいてみよう</div>
+  </header>
+
+  <div class="layout">
+    <div class="canvas-card">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="logCanvas"></canvas>
+        <canvas id="drawCanvas"></canvas>
+        <img id="carpenter" src="daiku.png" alt="">
+        <div id="saw" class="saw">🪚</div>
+      </div>
+      <div class="hint" id="hint">えんの中を 4回 タップして 四角形を かこう（1点目）</div>
+    </div>
+
+    <div class="controls">
+      <div class="info-card">
+        <h2>🪵 丸太の半径</h2>
+        <div class="diameter-control">
+          <div class="diameter-value"><span id="diameterVal">10</span><span class="unit">cm</span></div>
+          <div class="diameter-sub">直径 <span id="diameterSubVal">20</span>cm</div>
+          <input type="range" id="diameterSlider" min="5" max="15" step="1" value="10">
+          <div class="diameter-range"><span>5cm</span><span>15cm</span></div>
+        </div>
+      </div>
+      <div class="info-card">
+        <h2>📐 いまの四角形</h2>
+        <div class="stat">
+          <span class="stat-label">面積</span>
+          <span class="stat-value area" id="areaVal">— cm²</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">辺の長さ</span>
+          <span class="stat-value" id="sidesVal">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">対角線</span>
+          <span class="stat-value" id="diagVal">—</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn-cut btn-full" id="cutBtn" style="display:none;">🪚 切る！</button>
+          <button class="btn-danger btn-full" id="resetBtn">かきなおし</button>
+        </div>
+      </div>
+      <div class="info-card">
+        <h2>🎉 完成品</h2>
+        <div id="completedList" class="completed-grid">
+          <div class="completed-empty">まだありません</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 設定 =====
+let REAL_DIAMETER_CM = 20; // 実物の直径 (cm) — スライダーで変更可
+const MAX_DIAMETER_CM = 30; // この直径のときに丸太がキャンバスいっぱいになる（スライダー最大値と一致）
+
+// ===== Canvas セットアップ =====
+const wrap = document.getElementById('canvasWrap');
+const logCanvas = document.getElementById('logCanvas');
+const drawCanvas = document.getElementById('drawCanvas');
+const logCtx = logCanvas.getContext('2d');
+const drawCtx = drawCanvas.getContext('2d');
+
+let cssSize = 600;
+let dpr = window.devicePixelRatio || 1;
+let center = { x: 0, y: 0 };
+let radius = 0; // pixels
+let pxPerCm = 0;
+
+// ===== 状態管理 =====
+let state = 'drawing'; // 'drawing' | 'ready' | 'cutting'
+const cutBtn = document.getElementById('cutBtn');
+const carpenter = document.getElementById('carpenter');
+const sawEl = document.getElementById('saw');
+const completedList = document.getElementById('completedList');
+const resetBtn = document.getElementById('resetBtn');
+const diameterSlider = document.getElementById('diameterSlider');
+const diameterValEl = document.getElementById('diameterVal');
+const diameterSubValEl = document.getElementById('diameterSubVal');
+
+function setState(s) {
+  state = s;
+  cutBtn.style.display = (s === 'ready') ? '' : 'none';
+  resetBtn.disabled = (s === 'cutting');
+  diameterSlider.disabled = (s === 'cutting');
+}
+
+diameterSlider.addEventListener('input', () => {
+  // スライダーの値は半径 (cm)。内部では直径として保持
+  const realRadiusCm = parseInt(diameterSlider.value, 10);
+  REAL_DIAMETER_CM = realRadiusCm * 2;
+  diameterValEl.textContent = realRadiusCm;
+  diameterSubValEl.textContent = REAL_DIAMETER_CM;
+  // pxPerCm は固定。半径だけが直径に応じて変わる → 丸太の絵自体が拡縮
+  radius = realRadiusCm * pxPerCm;
+  // 円が小さくなったら、はみ出る点を円の縁にクランプ
+  points = points.map(p => clampToCircle(p));
+  drawLog();
+  redrawShape();
+  updateStats();
+});
+
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  cssSize = rect.width;
+  dpr = window.devicePixelRatio || 1;
+  [logCanvas, drawCanvas].forEach(c => {
+    c.width = cssSize * dpr;
+    c.height = cssSize * dpr;
+    c.style.width = cssSize + 'px';
+    c.style.height = cssSize + 'px';
+    c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+  center = { x: cssSize / 2, y: cssSize / 2 };
+  // 最大直径 (40cm) のときに キャンバスの 84% を占めるよう pxPerCm を固定
+  const maxRadiusPx = cssSize * 0.42;
+  pxPerCm = (maxRadiusPx * 2) / MAX_DIAMETER_CM;
+  // 現在の直径に応じて半径を決める（直径が小さいと丸太も小さい）
+  radius = (REAL_DIAMETER_CM / 2) * pxPerCm;
+  drawLog();
+  redrawShape();
+}
+
+// ===== 丸太を描く =====
+function drawLog() {
+  logCtx.clearRect(0, 0, cssSize, cssSize);
+
+  // 影
+  logCtx.beginPath();
+  logCtx.arc(center.x + 4, center.y + 6, radius, 0, Math.PI * 2);
+  logCtx.fillStyle = 'rgba(45, 36, 24, 0.15)';
+  logCtx.fill();
+
+  // 樹皮（外周）
+  const barkGrad = logCtx.createRadialGradient(center.x, center.y, radius * 0.95, center.x, center.y, radius);
+  barkGrad.addColorStop(0, '#b08a5a');
+  barkGrad.addColorStop(1, '#6e4a2a');
+  logCtx.beginPath();
+  logCtx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+  logCtx.fillStyle = barkGrad;
+  logCtx.fill();
+
+  // 木の断面
+  const woodGrad = logCtx.createRadialGradient(center.x - radius*0.2, center.y - radius*0.2, 0, center.x, center.y, radius * 0.95);
+  woodGrad.addColorStop(0, '#f0d4a8');
+  woodGrad.addColorStop(0.7, '#d9b88a');
+  woodGrad.addColorStop(1, '#b8966a');
+  logCtx.beginPath();
+  logCtx.arc(center.x, center.y, radius * 0.95, 0, Math.PI * 2);
+  logCtx.fillStyle = woodGrad;
+  logCtx.fill();
+
+  // 年輪
+  logCtx.strokeStyle = 'rgba(110, 74, 42, 0.25)';
+  logCtx.lineWidth = 0.8;
+  for (let i = 0; i < 12; i++) {
+    const r = radius * 0.95 * (0.15 + i * 0.075);
+    const wobble = Math.sin(i * 1.7) * radius * 0.015;
+    logCtx.beginPath();
+    logCtx.arc(center.x + wobble, center.y + wobble * 0.5, r, 0, Math.PI * 2);
+    logCtx.stroke();
+  }
+
+  // 中心点
+  logCtx.beginPath();
+  logCtx.arc(center.x, center.y, 3, 0, Math.PI * 2);
+  logCtx.fillStyle = '#6e4a2a';
+  logCtx.fill();
+
+  // 直径ラベル
+  logCtx.fillStyle = '#6e4a2a';
+  logCtx.font = '600 11px "游ゴシック", sans-serif';
+  logCtx.textAlign = 'center';
+  logCtx.fillText(`半径 ${REAL_DIAMETER_CM / 2}cm`, center.x, center.y + radius + 18);
+}
+
+// ===== 入力処理 =====
+let points = []; // CSS座標
+let draggingIndex = -1; // ドラッグ中の頂点番号（-1ならドラッグしていない）
+const HIT_RADIUS = 22; // タッチでつかみやすいよう少し大きめ
+
+function getEventPos(e) {
+  const rect = wrap.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return {
+    x: t.clientX - rect.left,
+    y: t.clientY - rect.top
+  };
+}
+
+function isInsideCircle(p) {
+  const dx = p.x - center.x;
+  const dy = p.y - center.y;
+  return dx * dx + dy * dy <= radius * radius;
+}
+
+// 円の中に収める（円の外に出そうになったら円周上にクランプ）
+function clampToCircle(p) {
+  const dx = p.x - center.x;
+  const dy = p.y - center.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist <= radius) return p;
+  return {
+    x: center.x + (dx / dist) * radius,
+    y: center.y + (dy / dist) * radius
+  };
+}
+
+function findPointAt(pos) {
+  for (let i = 0; i < points.length; i++) {
+    const dx = points[i].x - pos.x;
+    const dy = points[i].y - pos.y;
+    if (dx * dx + dy * dy <= HIT_RADIUS * HIT_RADIUS) return i;
+  }
+  return -1;
+}
+
+function showPulse(p) {
+  const pulse = document.createElement('div');
+  pulse.className = 'point-pulse';
+  pulse.style.left = p.x + 'px';
+  pulse.style.top = p.y + 'px';
+  wrap.appendChild(pulse);
+  setTimeout(() => pulse.remove(), 600);
+}
+
+function celebrate() {
+  const e = document.createElement('div');
+  e.className = 'celebrate';
+  e.textContent = '✨';
+  wrap.appendChild(e);
+  setTimeout(() => e.remove(), 1500);
+}
+
+// ===== ポインタ操作（タッチ・マウス兼用） =====
+function handlePointerDown(e) {
+  if (state === 'cutting') return;
+  if (e.cancelable) e.preventDefault();
+  const p = getEventPos(e);
+
+  // 4点完成済み → 既存の点をつかむか判定
+  if (points.length === 4) {
+    const idx = findPointAt(p);
+    if (idx !== -1) {
+      draggingIndex = idx;
+      drawCanvas.style.cursor = 'grabbing';
+    }
+    return;
+  }
+
+  // まだ4点未満 → 新しい点を追加
+  if (!isInsideCircle(p)) {
+    flashHint('円の中をタップしてね！');
+    return;
+  }
+  points.push(p);
+  showPulse(p);
+  redrawShape();
+  updateHint();
+  if (points.length === 4) {
+    updateStats();
+    celebrate();
+    setState('ready');
+  }
+}
+
+function handlePointerMove(e) {
+  if (state === 'cutting') return;
+  // ドラッグ中の頂点を動かす
+  if (draggingIndex !== -1) {
+    if (e.cancelable) e.preventDefault();
+    const p = clampToCircle(getEventPos(e));
+    points[draggingIndex] = p;
+    redrawShape();
+    updateStats();
+    return;
+  }
+
+  // ドラッグしていないとき、頂点の上にカーソルがあれば手のひらに
+  if (points.length === 4 && !('ontouchstart' in window)) {
+    const p = getEventPos(e);
+    drawCanvas.style.cursor = findPointAt(p) !== -1 ? 'grab' : 'crosshair';
+  }
+}
+
+function handlePointerUp(e) {
+  if (draggingIndex !== -1) {
+    draggingIndex = -1;
+    drawCanvas.style.cursor = 'crosshair';
+  }
+}
+
+// マウス
+drawCanvas.addEventListener('mousedown', handlePointerDown);
+window.addEventListener('mousemove', handlePointerMove);
+window.addEventListener('mouseup', handlePointerUp);
+
+// タッチ
+drawCanvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+window.addEventListener('touchmove', handlePointerMove, { passive: false });
+window.addEventListener('touchend', handlePointerUp);
+window.addEventListener('touchcancel', handlePointerUp);
+
+// ===== 図形の描画 =====
+function redrawShape() {
+  drawCtx.clearRect(0, 0, cssSize, cssSize);
+
+  if (points.length === 0) return;
+
+  // 線
+  if (points.length >= 2) {
+    drawCtx.beginPath();
+    drawCtx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      drawCtx.lineTo(points[i].x, points[i].y);
+    }
+    if (points.length === 4) drawCtx.closePath();
+
+    if (points.length === 4) {
+      // 塗りつぶし
+      const grad = drawCtx.createLinearGradient(0, 0, cssSize, cssSize);
+      grad.addColorStop(0, 'rgba(200, 71, 47, 0.25)');
+      grad.addColorStop(1, 'rgba(46, 110, 94, 0.25)');
+      drawCtx.fillStyle = grad;
+      drawCtx.fill();
+    }
+
+    drawCtx.strokeStyle = '#c8472f';
+    drawCtx.lineWidth = 3;
+    drawCtx.lineJoin = 'round';
+    drawCtx.stroke();
+  }
+
+  // 頂点
+  points.forEach((p, i) => {
+    const isComplete = points.length === 4;
+    const r = isComplete ? 11 : 8;
+
+    // ドラッグ可能を示す薄い外輪（4点完成時のみ）
+    if (isComplete) {
+      drawCtx.beginPath();
+      drawCtx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
+      drawCtx.fillStyle = 'rgba(200, 71, 47, 0.12)';
+      drawCtx.fill();
+    }
+
+    drawCtx.beginPath();
+    drawCtx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    drawCtx.fillStyle = '#fbf5e8';
+    drawCtx.fill();
+    drawCtx.strokeStyle = '#c8472f';
+    drawCtx.lineWidth = 2.5;
+    drawCtx.stroke();
+
+    drawCtx.fillStyle = '#c8472f';
+    drawCtx.font = '700 12px "游ゴシック", sans-serif';
+    drawCtx.textAlign = 'center';
+    drawCtx.textBaseline = 'middle';
+    drawCtx.fillText(String(i + 1), p.x, p.y);
+  });
+}
+
+// ===== 計算 =====
+function pxToCm(px) { return px / pxPerCm; }
+
+function calcArea(pts) {
+  // シューレース公式
+  let s = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    s += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+  }
+  return Math.abs(s) / 2 / (pxPerCm * pxPerCm);
+}
+
+function calcSides(pts) {
+  const sides = [];
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    const dx = pts[i].x - pts[j].x;
+    const dy = pts[i].y - pts[j].y;
+    sides.push(pxToCm(Math.sqrt(dx * dx + dy * dy)));
+  }
+  return sides;
+}
+
+function calcDiagonals(pts) {
+  const d1x = pts[0].x - pts[2].x;
+  const d1y = pts[0].y - pts[2].y;
+  const d2x = pts[1].x - pts[3].x;
+  const d2y = pts[1].y - pts[3].y;
+  return [
+    pxToCm(Math.sqrt(d1x * d1x + d1y * d1y)),
+    pxToCm(Math.sqrt(d2x * d2x + d2y * d2y))
+  ];
+}
+
+function updateStats() {
+  if (points.length !== 4) {
+    document.getElementById('areaVal').textContent = '— cm²';
+    document.getElementById('sidesVal').textContent = '—';
+    document.getElementById('diagVal').textContent = '—';
+    document.getElementById('areaVal').style.color = '';
+    return;
+  }
+  const area = calcArea(points);
+  const sides = calcSides(points);
+  const diags = calcDiagonals(points);
+
+  // 最大値（直径²/2 cm²）への近さで色を変える：探究のヒント
+  const maxArea = REAL_DIAMETER_CM * REAL_DIAMETER_CM / 2;
+  const ratio = Math.min(area / maxArea, 1);
+
+  // 一流（最大値の99.9%以上）なら面積・辺・対角線を理論値にスナップ
+  const isPerfect = ratio >= 0.999;
+  const perfectSide = Math.sqrt(maxArea);          // = (直径)/√2
+  const perfectDiag = REAL_DIAMETER_CM;             // = 直径
+  const dispArea  = isPerfect ? maxArea : area;
+  const dispSides = isPerfect ? [perfectSide, perfectSide, perfectSide, perfectSide] : sides;
+  const dispDiags = isPerfect ? [perfectDiag, perfectDiag] : diags;
+
+  document.getElementById('areaVal').textContent  = dispArea.toFixed(1) + ' cm²';
+  document.getElementById('sidesVal').textContent = dispSides.map(s => s.toFixed(1)).join(', ') + ' cm';
+  document.getElementById('diagVal').textContent  = dispDiags.map(d => d.toFixed(1)).join(', ') + ' cm';
+  const areaEl = document.getElementById('areaVal');
+  if (ratio > 0.97) {
+    areaEl.style.color = '#c69a3f'; // 金色：ほぼ最大
+  } else if (ratio > 0.85) {
+    areaEl.style.color = '#2e6e5e'; // 緑：かなり大きい
+  } else {
+    areaEl.style.color = '#c8472f'; // 赤：通常
+  }
+}
+
+// ===== ヒント表示 =====
+const hintEl = document.getElementById('hint');
+function updateHint() {
+  const remain = 4 - points.length;
+  if (remain === 0) {
+    hintEl.textContent = '✨ 完成！点をドラッグして動かせるよ。面積もリアルタイムで変わります';
+  } else {
+    const ord = ['1', '2', '3', '4'][points.length];
+    hintEl.textContent = `円の中をタップ（${ord}点目 / あと${remain}回）`;
+  }
+}
+
+let flashTimer = null;
+function flashHint(msg) {
+  hintEl.style.color = '#c8472f';
+  hintEl.textContent = msg;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => {
+    hintEl.style.color = '';
+    updateHint();
+  }, 1500);
+}
+
+// ===== ボタン =====
+resetBtn.addEventListener('click', () => {
+  if (state === 'cutting') return;
+  points = [];
+  setState('drawing');
+  redrawShape();
+  updateStats();
+  updateHint();
+});
+
+cutBtn.addEventListener('click', startCut);
+
+// ===== 効果音（ノコギリ） =====
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function startSawSound() {
+  ensureAudio();
+  const ctx = audioCtx;
+
+  // ホワイトノイズ
+  const bufSize = 2 * ctx.sampleRate;
+  const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  noise.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1400;
+  filter.Q.value = 1.2;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.10;
+
+  // ギコギコのうねり (LFO ~5Hz)
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 5;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 0.07;
+  lfo.connect(lfoGain).connect(gain.gain);
+
+  noise.connect(filter).connect(gain).connect(ctx.destination);
+  noise.start();
+  lfo.start();
+
+  return {
+    stop() {
+      try {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
+        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+        setTimeout(() => { try { noise.stop(); lfo.stop(); } catch(_) {} }, 250);
+      } catch(_) {}
+    }
+  };
+}
+
+// ===== 切るアニメーション本体 =====
+async function startCut() {
+  if (state !== 'ready' || points.length !== 4) return;
+  setState('cutting');
+
+  const quad = points.slice();
+  const area = calcArea(quad);
+
+  hintEl.style.color = '';
+  hintEl.textContent = '🪚 ギコギコ… 大工さんが切っているよ';
+
+  let sound = null;
+  try { sound = startSawSound(); } catch(_) {}
+
+  // 予算: 0.4 入場 + 4×0.8 切る + 0.6 落下 + 1.8 立体 + 0.8 飛ぶ = 6.8s
+  await carpenterEnter(quad[0], 400);
+
+  const cutEdges = [];
+  for (let i = 0; i < 4; i++) {
+    const a = quad[i];
+    const b = quad[(i + 1) % 4];
+    await cutEdge(a, b, 800, i, quad, cutEdges);
+    cutEdges.push(i);
+  }
+
+  carpenter.style.opacity = 0;
+  sawEl.style.opacity = 0;
+
+  if (sound) sound.stop();
+
+  await wasteFall(quad, 600);
+
+  hintEl.textContent = '🪵 切り出した木材を見てみよう！';
+  await show3DPiece(quad, 1800);
+
+  // 評価！
+  const evalData = getEvaluation(area);
+  // 一流のときは表示用面積を最大値ぴったりにスナップ
+  const dispArea = (evalData.level === 4)
+    ? (REAL_DIAMETER_CM * REAL_DIAMETER_CM / 2)
+    : area;
+  hintEl.textContent = '👨‍🔧 大工さんの評価は…';
+  playEvalSound(evalData.level);
+  await showEvaluation(evalData, dispArea, 1700);
+
+  hintEl.textContent = '完成エリアにしまうよ…';
+  await flyPieceToCompleted(quad, dispArea, 800);
+
+  // 次の描画のため初期化
+  points = [];
+  logCanvas.style.transition = '';
+  logCanvas.style.transform = '';
+  logCanvas.style.opacity = '';
+  drawCanvas.style.transition = '';
+  drawCanvas.style.opacity = '';
+  carpenter.style.transform = 'translate(-50%, -50%)';
+  drawLog();
+  redrawShape();
+  setState('drawing');
+  updateStats();
+  updateHint();
+}
+
+function carpenterEnter(target, duration) {
+  return new Promise(resolve => {
+    const startX = -90;
+    carpenter.style.opacity = 1;
+    carpenter.style.transform = 'translate(-50%, -50%)';
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      carpenter.style.left = (startX + (target.x - startX) * ease) + 'px';
+      carpenter.style.top = target.y + 'px';
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function cutEdge(a, b, duration, edgeIndex, quad, doneEdges) {
+  return new Promise(resolve => {
+    sawEl.style.opacity = 1;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const perpX = -dy / len, perpY = dx / len;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
+    const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+
+    const start = performance.now();
+    let lastDust = 0;
+
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const x = a.x + dx * t;
+      const y = a.y + dy * t;
+
+      // ノコギリの位置 + 前後の揺れ
+      const wig = Math.sin(now / 35) * 7;
+      sawEl.style.left = (x + perpX * wig) + 'px';
+      sawEl.style.top  = (y + perpY * wig) + 'px';
+      sawEl.style.transform = `translate(-50%, -50%) rotate(${angle + Math.sin(now/35)*10}deg)`;
+
+      // 大工は四角形の外側に立つ
+      let awayX = x - cx, awayY = y - cy;
+      const al = Math.sqrt(awayX*awayX + awayY*awayY) || 1;
+      awayX /= al; awayY /= al;
+      const carDist = 58;
+      carpenter.style.left = (x + awayX * carDist) + 'px';
+      carpenter.style.top  = (y + awayY * carDist) + 'px';
+      const flip = (awayX < 0) ? ' scaleX(-1)' : '';
+      const bob = Math.sin(now / 80) * 3;
+      carpenter.style.transform = `translate(-50%, calc(-50% + ${bob}px))${flip}`;
+
+      // おがくず
+      if (now - lastDust > 50) {
+        spawnSawdust(x + perpX * wig, y + perpY * wig);
+        lastDust = now;
+      }
+
+      drawCutting(quad, doneEdges, edgeIndex, t);
+
+      if (t < 1) requestAnimationFrame(frame);
+      else { drawCutting(quad, doneEdges.concat([edgeIndex]), -1, 0); resolve(); }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function drawCutting(quad, doneEdges, currentEdge, currentT) {
+  drawCtx.clearRect(0, 0, cssSize, cssSize);
+
+  // 中身は薄く塗る
+  drawCtx.beginPath();
+  drawCtx.moveTo(quad[0].x, quad[0].y);
+  for (let i = 1; i < 4; i++) drawCtx.lineTo(quad[i].x, quad[i].y);
+  drawCtx.closePath();
+  const grad = drawCtx.createLinearGradient(0, 0, cssSize, cssSize);
+  grad.addColorStop(0, 'rgba(200, 71, 47, 0.18)');
+  grad.addColorStop(1, 'rgba(46, 110, 94, 0.18)');
+  drawCtx.fillStyle = grad;
+  drawCtx.fill();
+
+  // 各辺
+  for (let i = 0; i < 4; i++) {
+    const a = quad[i], b = quad[(i + 1) % 4];
+    const isDone = doneEdges.indexOf(i) !== -1;
+    const isCurrent = i === currentEdge;
+
+    if (isCurrent) {
+      const mx = a.x + (b.x - a.x) * currentT;
+      const my = a.y + (b.y - a.y) * currentT;
+      drawCtx.beginPath();
+      drawCtx.moveTo(a.x, a.y);
+      drawCtx.lineTo(mx, my);
+      drawCtx.strokeStyle = '#6e4a2a';
+      drawCtx.lineWidth = 4;
+      drawCtx.lineCap = 'round';
+      drawCtx.stroke();
+
+      drawCtx.beginPath();
+      drawCtx.moveTo(mx, my);
+      drawCtx.lineTo(b.x, b.y);
+      drawCtx.strokeStyle = '#c8472f';
+      drawCtx.lineWidth = 3;
+      drawCtx.stroke();
+    } else {
+      drawCtx.beginPath();
+      drawCtx.moveTo(a.x, a.y);
+      drawCtx.lineTo(b.x, b.y);
+      drawCtx.strokeStyle = isDone ? '#6e4a2a' : '#c8472f';
+      drawCtx.lineWidth = isDone ? 4 : 3;
+      drawCtx.lineCap = 'round';
+      drawCtx.stroke();
+    }
+  }
+}
+
+function spawnSawdust(x, y) {
+  const d = document.createElement('div');
+  d.className = 'sawdust';
+  d.style.left = x + 'px';
+  d.style.top = y + 'px';
+  wrap.appendChild(d);
+
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 30 + Math.random() * 40;
+  const vx = Math.cos(angle) * speed;
+  const vy = -Math.abs(Math.sin(angle) * speed) - 30;
+  const g = 220;
+  const start = performance.now();
+  const dur = 700 + Math.random() * 200;
+
+  function step(now) {
+    const elapsed = (now - start) / 1000;
+    const tNorm = (now - start) / dur;
+    if (tNorm >= 1) { d.remove(); return; }
+    const tx = vx * elapsed;
+    const ty = vy * elapsed + 0.5 * g * elapsed * elapsed;
+    d.style.transform = `translate(${tx}px, ${ty}px)`;
+    d.style.opacity = String(1 - tNorm);
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function wasteFall(quad, duration) {
+  return new Promise(resolve => {
+    // 全画面サイズのオーバーレイ（後で 3D を描けるよう余裕を持たせる）
+    const overlay = document.createElement('div');
+    overlay.className = 'flying-piece';
+    overlay.id = 'cutPieceOverlay';
+    overlay.style.left = '0px';
+    overlay.style.top  = '0px';
+    overlay.style.width = cssSize + 'px';
+    overlay.style.height = cssSize + 'px';
+
+    const c = document.createElement('canvas');
+    c.width = cssSize * dpr;
+    c.height = cssSize * dpr;
+    c.style.width = '100%';
+    c.style.height = '100%';
+    c.style.display = 'block';
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // まずは平面のままカット面を描く
+    drawCrossSection(ctx, quad);
+
+    overlay.appendChild(c);
+    wrap.appendChild(overlay);
+
+    // 周囲（捨てる部分）が落ちる
+    logCanvas.style.transition = `transform ${duration}ms ease-in, opacity ${duration}ms ease-in`;
+    logCanvas.style.transform = `translateY(${cssSize * 0.6}px) rotate(8deg)`;
+    logCanvas.style.opacity = '0';
+
+    drawCanvas.style.transition = `opacity ${duration * 0.6}ms ease-out`;
+    drawCanvas.style.opacity = '0';
+
+    setTimeout(resolve, duration);
+  });
+}
+
+// ===== 立体 (角柱) 表示 =====
+function show3DPiece(quad, duration) {
+  const overlay = document.getElementById('cutPieceOverlay');
+  if (!overlay) return Promise.resolve();
+  const c = overlay.querySelector('canvas');
+  if (!c) return Promise.resolve();
+  const ctx = c.getContext('2d');
+
+  // 奥行き（画面ピクセル）
+  const D = Math.min(radius * 0.55, 75);
+  // 奥方向（画面上ベクトル）の基本角度 — 右上奥に伸ばす
+  const baseAngle = -Math.PI / 4; // -45°
+
+  return new Promise(resolve => {
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+
+      let depth, angle;
+      if (t < 0.18) {
+        // 立ち上がり
+        const k = t / 0.18;
+        depth = D * (1 - Math.pow(1 - k, 2));
+        angle = baseAngle;
+      } else if (t < 0.85) {
+        // ゆっくり左右に揺らして見せる
+        depth = D;
+        const k = (t - 0.18) / 0.67;
+        angle = baseAngle + Math.sin(k * Math.PI * 2) * (Math.PI / 9); // ±20°
+      } else {
+        // 平面に戻す
+        const k = (t - 0.85) / 0.15;
+        depth = D * (1 - k);
+        angle = baseAngle;
+      }
+
+      const offsetX = Math.cos(angle) * depth;
+      const offsetY = Math.sin(angle) * depth;
+
+      ctx.clearRect(0, 0, cssSize, cssSize);
+      drawPrism(ctx, quad, offsetX, offsetY);
+
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function drawPrism(ctx, quad, offsetX, offsetY) {
+  const back = quad.map(p => ({ x: p.x + offsetX, y: p.y + offsetY }));
+  const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
+  const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+
+  // (1) 背面 (奥のカット面)
+  drawBackFace(ctx, back, offsetX, offsetY);
+
+  // (2) 見える側面だけ描く (外向き法線と offset の内積 > 0 が visible)
+  for (let i = 0; i < 4; i++) {
+    const a = quad[i];
+    const b = quad[(i + 1) % 4];
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    let nx = -(b.y - a.y);
+    let ny = b.x - a.x;
+    // 重心と反対側を向くよう揃える
+    if (nx * (mx - cx) + ny * (my - cy) < 0) { nx = -nx; ny = -ny; }
+    if (nx * offsetX + ny * offsetY > 0) {
+      drawSideFace(ctx, a, b, back[(i + 1) % 4], back[i]);
+    }
+  }
+
+  // (3) 前面 (手前のカット面)
+  drawCrossSection(ctx, quad);
+}
+
+function drawBackFace(ctx, back, offsetX, offsetY) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(back[0].x, back[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(back[i].x, back[i].y);
+  ctx.closePath();
+  ctx.clip();
+
+  // 奥の木目はやや暗め
+  const gx = center.x + offsetX, gy = center.y + offsetY;
+  const grad = ctx.createRadialGradient(gx - radius*0.2, gy - radius*0.2, 0, gx, gy, radius * 0.95);
+  grad.addColorStop(0, '#d2b487');
+  grad.addColorStop(0.7, '#b89868');
+  grad.addColorStop(1, '#8e6f48');
+  ctx.fillStyle = grad;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of back) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  ctx.fillRect(minX - 5, minY - 5, (maxX - minX) + 10, (maxY - minY) + 10);
+
+  ctx.strokeStyle = 'rgba(60, 35, 15, 0.3)';
+  ctx.lineWidth = 0.7;
+  for (let i = 0; i < 10; i++) {
+    const r = radius * 0.95 * (0.15 + i * 0.085);
+    ctx.beginPath();
+    ctx.arc(gx, gy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.moveTo(back[0].x, back[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(back[i].x, back[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(60, 35, 15, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function drawSideFace(ctx, a, b, bBack, aBack) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.lineTo(bBack.x, bBack.y);
+  ctx.lineTo(aBack.x, aBack.y);
+  ctx.closePath();
+
+  // 側面（樹皮側）：奥に向けて暗くなるグラデ
+  const grad = ctx.createLinearGradient(
+    (a.x + b.x) / 2, (a.y + b.y) / 2,
+    (aBack.x + bBack.x) / 2, (aBack.y + bBack.y) / 2
+  );
+  grad.addColorStop(0, '#a98558');
+  grad.addColorStop(0.5, '#7e6038');
+  grad.addColorStop(1, '#a07e4f');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 木目（板の長さ方向に走らせる）
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(45, 25, 10, 0.3)';
+  ctx.lineWidth = 0.8;
+  for (let k = 0.05; k <= 0.95; k += 0.07) {
+    const sx = a.x + (b.x - a.x) * k;
+    const sy = a.y + (b.y - a.y) * k;
+    const ex = aBack.x + (bBack.x - aBack.x) * k;
+    const ey = aBack.y + (bBack.y - aBack.y) * k;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 縁
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.lineTo(bBack.x, bBack.y);
+  ctx.lineTo(aBack.x, aBack.y);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(60, 35, 15, 0.7)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
+
+function drawCrossSection(ctx, quad) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(quad[0].x, quad[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(quad[i].x, quad[i].y);
+  ctx.closePath();
+  ctx.clip();
+
+  const grad = ctx.createRadialGradient(
+    center.x - radius * 0.2, center.y - radius * 0.2, 0,
+    center.x, center.y, radius * 0.95
+  );
+  grad.addColorStop(0, '#f0d4a8');
+  grad.addColorStop(0.7, '#d9b88a');
+  grad.addColorStop(1, '#b8966a');
+  ctx.fillStyle = grad;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of quad) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  ctx.fillRect(minX - 5, minY - 5, (maxX - minX) + 10, (maxY - minY) + 10);
+
+  ctx.strokeStyle = 'rgba(110, 74, 42, 0.3)';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 12; i++) {
+    const r = radius * 0.95 * (0.15 + i * 0.075);
+    const wob = Math.sin(i * 1.7) * radius * 0.015;
+    ctx.beginPath();
+    ctx.arc(center.x + wob, center.y + wob * 0.5, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.moveTo(quad[0].x, quad[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(quad[i].x, quad[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = '#6e4a2a';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+function flyPieceToCompleted(quad, area, duration) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('cutPieceOverlay');
+    if (!overlay) { resolve(); return; }
+
+    // 四角形 bbox（オーバーレイ内のローカル座標 = canvas-wrap 座標）
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of quad) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const quadCx = (minX + maxX) / 2;
+    const quadCy = (minY + maxY) / 2;
+    const quadW = maxX - minX;
+    const quadH = maxY - minY;
+
+    // 「まだありません」を消して、新しいスロットを追加
+    const empty = completedList.querySelector('.completed-empty');
+    if (empty) empty.remove();
+
+    const e = getEvaluation(area);
+    const slot = document.createElement('div');
+    slot.className = 'completed-slot';
+    slot.innerHTML = `
+      <div class="rank-badge" title="${e.title}" style="color:${e.color};background:${e.bgColor};border-color:${e.color};">${e.emoji}</div>
+      <img alt="">
+      <div class="area-label" style="color:${e.color}">${area.toFixed(1)} cm²</div>
+    `;
+    slot.style.opacity = '0';
+    completedList.appendChild(slot);
+
+    requestAnimationFrame(() => {
+      const wrapRect = wrap.getBoundingClientRect();
+      const slotRect = slot.getBoundingClientRect();
+
+      // 飛ばす元（画面座標） = 四角形の中心
+      const srcCx = wrapRect.left + quadCx;
+      const srcCy = wrapRect.top  + quadCy;
+      const destCx = slotRect.left + slotRect.width / 2;
+      const destCy = slotRect.top  + slotRect.height / 2;
+
+      const tx = destCx - srcCx;
+      const ty = destCy - srcCy;
+
+      const targetSize = Math.min(slotRect.width, slotRect.height) * 0.72;
+      const sourceSize = Math.max(quadW, quadH) || 1;
+      const scale = targetSize / sourceSize;
+
+      // 縮小・回転の中心は四角形の重心
+      overlay.style.transformOrigin = `${quadCx}px ${quadCy}px`;
+      overlay.style.transition = `transform ${duration}ms cubic-bezier(0.45, 0, 0.55, 1)`;
+      overlay.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}) rotate(360deg)`;
+
+      setTimeout(() => {
+        // サムネイル: 四角形 bbox だけ切り抜いて img に焼き込む
+        const img = slot.querySelector('img');
+        const c = overlay.querySelector('canvas');
+        try {
+          const cropC = document.createElement('canvas');
+          const cw = Math.max(1, Math.round(quadW * dpr));
+          const ch = Math.max(1, Math.round(quadH * dpr));
+          cropC.width = cw;
+          cropC.height = ch;
+          cropC.getContext('2d').drawImage(
+            c,
+            Math.round(minX * dpr), Math.round(minY * dpr),
+            cw, ch,
+            0, 0,
+            cw, ch
+          );
+          img.src = cropC.toDataURL();
+        } catch(_) {
+          try { img.src = c.toDataURL(); } catch(_) {}
+        }
+        slot.style.opacity = '1';
+        overlay.remove();
+        resolve();
+      }, duration);
+    });
+  });
+}
+
+// ===== 評価 =====
+function getEvaluation(area) {
+  // 最大面積 = 直径² / 2 (cm²)。割合で4段階に分ける
+  const max = REAL_DIAMETER_CM * REAL_DIAMETER_CM / 2;
+  const ratio = max > 0 ? area / max : 0;
+  if (ratio >= 0.999) {
+    return { level: 4, title: '一流大工！', emoji: '👑', stars: '⭐⭐⭐',
+             message: 'パーフェクト！最大の四角形だよ', color: '#c69a3f', bgColor: '#fff8e1' };
+  } else if (ratio >= 0.5) {
+    return { level: 3, title: '普通の大工', emoji: '🔨', stars: '⭐⭐',
+             message: 'いい感じ！もう少しで満点', color: '#2e6e5e', bgColor: '#e8f3ef' };
+  } else if (ratio >= 0.25) {
+    return { level: 2, title: '見習い大工', emoji: '🪚', stars: '⭐',
+             message: 'もう少し大きくできるよ', color: '#b07a3e', bgColor: '#fff3e6' };
+  } else {
+    return { level: 1, title: '修行しなおそう！', emoji: '😰', stars: '',
+             message: 'もっと大きな四角形を目指そう', color: '#c8472f', bgColor: '#fbe9e3' };
+  }
+}
+
+function showEvaluation(evalData, area, duration) {
+  return new Promise(resolve => {
+    const card = document.createElement('div');
+    card.className = 'eval-card' + (evalData.level === 4 ? ' gold' : '');
+    card.style.borderColor = evalData.color;
+    card.style.background = evalData.bgColor;
+    card.innerHTML = `
+      <div class="eval-emoji">${evalData.emoji}</div>
+      <div class="eval-stars">${evalData.stars}</div>
+      <div class="eval-title" style="color: ${evalData.color}">${evalData.title}</div>
+      <div class="eval-message">${evalData.message}</div>
+      <div class="eval-area" style="color: ${evalData.color}">${area.toFixed(1)} cm²</div>
+    `;
+    wrap.appendChild(card);
+    requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
+
+    const fadeStart = Math.max(0, duration - 300);
+    setTimeout(() => card.classList.add('hide'), fadeStart);
+    setTimeout(() => { card.remove(); resolve(); }, duration);
+  });
+}
+
+function playEvalSound(level) {
+  try {
+    ensureAudio();
+  } catch(_) { return; }
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+
+  function tone(freq, startOffset, dur, type, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + startOffset);
+    gain.gain.linearRampToValueAtTime(vol || 0.15, now + startOffset + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + startOffset + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + startOffset);
+    osc.stop(now + startOffset + dur + 0.05);
+  }
+
+  if (level === 4) {
+    // ファンファーレ風 (C-E-G-C)
+    tone(523, 0.00, 0.6, 'sine', 0.16);
+    tone(659, 0.10, 0.6, 'sine', 0.14);
+    tone(784, 0.20, 0.7, 'sine', 0.14);
+    tone(1047, 0.30, 0.9, 'sine', 0.16);
+  } else if (level === 3) {
+    tone(523, 0.00, 0.4, 'sine', 0.15);
+    tone(659, 0.12, 0.5, 'sine', 0.13);
+  } else if (level === 2) {
+    tone(440, 0.00, 0.5, 'sine', 0.12);
+  } else {
+    // 下降の悲しい音
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(330, now);
+    osc.frequency.linearRampToValueAtTime(165, now + 0.6);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.7);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.8);
+  }
+}
+
+// ===== 初期化 =====
+window.addEventListener('resize', resize);
+resize();
+updateHint();
+</script>
+
+</body>
+</html>
