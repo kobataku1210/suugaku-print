@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21f';
+const APP_VERSION = '2026-06-21g';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -24,6 +24,11 @@ const PREVIEW_MODE = _wantsPreview && localStorage.getItem('mathPreviewUnlocked'
     return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
   }
   function _ih(v) { return typeof v === 'string' && /^[0-9a-f]{64}$/.test(v); }
+
+  // 先生パスワード照合（ハッシュ比較）。正しければ true
+  window.verifyTeacherPw = async function(pw) {
+    try { return (await _h(pw)) === H; } catch (e) { return false; }
+  };
 
   // プレビュー解除：先生パスワードが正しければこの端末で有効化
   window.submitPreviewUnlock = async function() {
@@ -452,7 +457,9 @@ function showHiddenPeaAdd() {
     <div class="modal-card" id="hidden-pea-card">
       <div class="modal-lock">🌱</div>
       <div class="modal-level">グリンピースを追加</div>
-      <p class="modal-desc">追加する個数を入力してください</p>
+      <p class="modal-desc">先生用パスワードと追加する個数を入力してください</p>
+      <input type="password" id="hidden-pea-pw" class="modal-input"
+             placeholder="パスワード" autocomplete="off" style="margin-bottom:0.6rem">
       <input type="number" id="hidden-pea-count" class="modal-input"
              placeholder="個数（例：10）" min="1" max="1000" autocomplete="off">
       <div id="hidden-pea-error" class="modal-error"></div>
@@ -464,21 +471,30 @@ function showHiddenPeaAdd() {
   overlay.addEventListener('click', e => { if (e.target === overlay) closeHiddenPeaAdd(); });
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('show'));
-  const inp = document.getElementById('hidden-pea-count');
-  if (inp) {
-    inp.focus();
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHiddenPeaAdd(); });
+  const pwInp = document.getElementById('hidden-pea-pw');
+  if (pwInp) {
+    pwInp.focus();
+    pwInp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHiddenPeaAdd(); });
   }
+  const inp = document.getElementById('hidden-pea-count');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHiddenPeaAdd(); });
 }
 function closeHiddenPeaAdd() {
   const o = document.getElementById('hidden-pea-overlay');
   if (o) { o.classList.remove('show'); setTimeout(() => o.remove(), 250); }
 }
-function submitHiddenPeaAdd() {
+async function submitHiddenPeaAdd() {
+  const pw    = (document.getElementById('hidden-pea-pw') || {}).value || '';
   const count = parseInt((document.getElementById('hidden-pea-count') || {}).value, 10);
   const errEl = document.getElementById('hidden-pea-error');
+  const showErr = (m) => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+  // パスワード照合
+  if (typeof verifyTeacherPw !== 'function' || !(await verifyTeacherPw(pw))) {
+    showErr('パスワードが違います');
+    return;
+  }
   if (!count || count < 1 || count > 1000) {
-    if (errEl) { errEl.textContent = '1〜1000の数を入力してください'; errEl.style.display = 'block'; }
+    showErr('1〜1000の数を入力してください');
     return;
   }
   addPeas(count);
