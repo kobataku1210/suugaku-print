@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21e';
+const APP_VERSION = '2026-06-21f';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -426,11 +426,11 @@ function createBowlWidget() {
     w.classList.add('bowl-bounce');
     w.addEventListener('animationend', () => w.classList.remove('bowl-bounce'), { once: true });
   };
-  // 先生用：お椀を長押し(約1.5秒)で「こっそり追加」窓を開く（生徒には見えない隠し操作）
+  // 先生用：お椀を長押し(約3秒)で「こっそり追加」窓を開く（生徒には見えない隠し操作）
   let _bowlHoldTimer = null;
   const startHold = (e) => {
     clearTimeout(_bowlHoldTimer);
-    _bowlHoldTimer = setTimeout(() => { showHiddenPeaAdd(); }, 1500);
+    _bowlHoldTimer = setTimeout(() => { showHiddenPeaAdd(); }, 3000);
   };
   const cancelHold = () => { clearTimeout(_bowlHoldTimer); _bowlHoldTimer = null; };
   w.addEventListener('pointerdown', startHold);
