@@ -1160,6 +1160,8 @@ function pickProblem() {
 
 function showProblem() {
   current = pickProblem();
+  // 念のため：タイムアタックで問題が尽きていたら終了処理へ（クラッシュ防止）
+  if (!current) { if (gameMode === 'timeattack') endTimeAttack(); return; }
   currentTier = getTierForHiddenSquare(current.hiddenSquare);
   radicandEl.textContent = current.n;
   inputEl.value = '';
@@ -1455,7 +1457,7 @@ function showResultScreen() {
       timeBonus = TA_TIME_BONUS_PEAS[selectedDifficulty] || 0;
     }
   }
-  const peas = gemPeas + timeBonus;
+  let peas = gemPeas + timeBonus;
 
   // 時間ボーナスバナー / 内訳表示
   const bonusBanner = document.getElementById('timeBonusBanner');
