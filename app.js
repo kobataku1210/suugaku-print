@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21g';
+const APP_VERSION = '2026-06-21h';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1435,7 +1435,7 @@ const TOOL_ITEMS = [
     title: '丸太から大きな四角形',
     desc: '直径20cmの丸太から、できるだけ大きな正方形を切り出そう! 平方根の利用',
     icon: '🪵',
-    onclick: "window.location.href='tools/丸太から大きな四角形を切り出そう/index.html'",
+    onclick: "window.location.href='tools/丸太から大きな四角形を切り出そう/index.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #b08a5a, #6e4a2a)',
     isNew: true,
     draftKey: 'logCarpenter',

@@ -505,7 +505,7 @@
 
 <div class="container">
   <header>
-    <h1>🪵 丸太から大きな四角形を切り出そう</h1>
+    <h1><span id="logEmoji">🪵</span> 丸太から大きな四角形を切り出そう</h1>
     <div class="subtitle">直径20cm の丸太の切り口に、できるだけ大きな四角形をかいてみよう</div>
   </header>
 
@@ -1663,6 +1663,35 @@ function playEvalSound(level) {
     osc.stop(now + 0.8);
   }
 }
+
+// ===== 先生用：🪵を3秒長押しで「最大の正方形」を自動で描く =====
+// 円(丸太)に内接する最大の正方形＝対角線が直径。頂点を円周の45/135/225/315度に置く。
+function drawMaxSquare() {
+  if (state === 'cutting') return;
+  const r = radius;
+  const angs = [45, 135, 225, 315];
+  points = angs.map(d => {
+    const a = d * Math.PI / 180;
+    return clampToCircle({ x: center.x + r * Math.cos(a), y: center.y + r * Math.sin(a) });
+  });
+  redrawShape();
+  updateStats();
+  setState('ready');
+  hintEl.style.color = '';
+  hintEl.textContent = '✨ 最大の正方形をかいたよ！「切る！」でためそう';
+}
+
+(function () {
+  const logEmoji = document.getElementById('logEmoji');
+  if (!logEmoji) return;
+  let holdTimer = null;
+  const start = (e) => { clearTimeout(holdTimer); holdTimer = setTimeout(drawMaxSquare, 3000); };
+  const cancel = () => { clearTimeout(holdTimer); holdTimer = null; };
+  logEmoji.addEventListener('pointerdown', start);
+  logEmoji.addEventListener('pointerup', cancel);
+  logEmoji.addEventListener('pointerleave', cancel);
+  logEmoji.addEventListener('pointercancel', cancel);
+})();
 
 // ===== 初期化 =====
 window.addEventListener('resize', resize);
