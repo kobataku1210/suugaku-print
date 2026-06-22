@@ -5872,7 +5872,8 @@
     "cardMatchSqrt": false,
     "rootBreak": false,
     "numSort": false,
-    "primeFactor": false
+    "primeFactor": false,
+    "logCarpenter": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [
