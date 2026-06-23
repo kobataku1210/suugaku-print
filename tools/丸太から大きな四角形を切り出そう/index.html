@@ -526,8 +526,8 @@
         <div class="diameter-control">
           <div class="diameter-value"><span id="diameterVal">10</span><span class="unit">cm</span></div>
           <div class="diameter-sub">直径 <span id="diameterSubVal">20</span>cm</div>
-          <input type="range" id="diameterSlider" min="5" max="15" step="1" value="10">
-          <div class="diameter-range"><span>5cm</span><span>15cm</span></div>
+          <input type="range" id="diameterSlider" min="5" max="25" step="1" value="10">
+          <div class="diameter-range"><span>5cm</span><span>25cm</span></div>
         </div>
       </div>
       <div class="info-card">
@@ -562,7 +562,7 @@
 <script>
 // ===== 設定 =====
 let REAL_DIAMETER_CM = 20; // 実物の直径 (cm) — スライダーで変更可
-const MAX_DIAMETER_CM = 30; // この直径のときに丸太がキャンバスいっぱいになる（スライダー最大値と一致）
+const MAX_DIAMETER_CM = 50; // この直径(半径25cm)のときに丸太がキャンバスいっぱいになる（スライダー最大値と一致）
 
 // ===== Canvas セットアップ =====
 const wrap = document.getElementById('canvasWrap');
