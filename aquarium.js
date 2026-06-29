@@ -588,7 +588,7 @@
     e.preventDefault();
     const tank = document.getElementById('aq-tank');
     const r = tank.getBoundingClientRect();
-    aqDrag = { id, el, rect: r };
+    aqDrag = { id, el, rect: r, startX: e.clientX, startY: e.clientY, moved: false, rot: parseFloat(el.dataset.rot || '0') };
     el.classList.add('aq-deco-dragging');
     try { el.setPointerCapture(e.pointerId); } catch (e) {}
     el.addEventListener('pointermove', aqDecoPointerMove);
@@ -597,6 +597,9 @@
   }
   function aqDecoPointerMove(e) {
     if (!aqDrag) return;
+    const dist = Math.abs(e.clientX - aqDrag.startX) + Math.abs(e.clientY - aqDrag.startY);
+    if (dist > 6) aqDrag.moved = true;
+    if (!aqDrag.moved) return;
     const r = aqDrag.rect;
     let fx = (e.clientX - r.left) / r.width;
     let fy = (e.clientY - r.top) / r.height;
@@ -613,10 +616,17 @@
     el.removeEventListener('pointermove', aqDecoPointerMove);
     el.removeEventListener('pointerup', aqDecoPointerUp);
     el.removeEventListener('pointercancel', aqDecoPointerUp);
-    if (aqDrag.fx != null) {
-      const s = aqLoad();
-      const d = s.decos.find(x => x.id === aqDrag.id);
+    const s = aqLoad();
+    const d = s.decos.find(x => x.id === aqDrag.id);
+    if (aqDrag.moved && aqDrag.fx != null) {
+      // ドラッグ：位置を保存
       if (d) { d.x = aqDrag.fx; d.y = aqDrag.fy; aqSave(s); }
+    } else {
+      // タップ：45°回転
+      const newRot = (aqDrag.rot + 45) % 360;
+      if (d) { d.rot = newRot; aqSave(s); }
+      el.dataset.rot = String(newRot);
+      el.style.transform = 'translate(-50%,-50%) rotate(' + newRot + 'deg)';
     }
     aqDrag = null;
   }
@@ -769,7 +779,7 @@
           <div class="aq-tank-floor"></div>
         </div>
 
-        <div class="aq-hint">👆 魚をタップで餌やり ／ 魚も装飾もドラッグで移動</div>
+        <div class="aq-hint">👆 魚をタップで餌やり ／ ドラッグで移動 ／ 装飾はタップで回転</div>
 
         <div class="aq-gacha-area">
           <button class="aq-gacha-btn aq-gacha-fish" onclick="aqRollGacha('fish')">
@@ -839,6 +849,9 @@
       el.style.fontSize = def.size + 'px';
       el.style.left = (d.x * 100) + '%';
       el.style.top  = (d.y * 100) + '%';
+      const rot = d.rot || 0;
+      el.dataset.rot = String(rot);
+      el.style.transform = 'translate(-50%,-50%) rotate(' + rot + 'deg)';
       el.addEventListener('pointerdown', aqDecoPointerDown);
       tank.appendChild(el);
     }
