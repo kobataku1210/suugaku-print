@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ルート計算バトル</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #0e1430; }
+  body { font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif; color: #fff; }
+  #app { position: relative; width: 100%; min-height: 100%; max-width: 720px; margin: 0 auto; }
+
+  .screen { display: none; flex-direction: column; padding: 16px; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* タイトル */
+  #title-screen { align-items: center; justify-content: center; gap: 18px; text-align: center; }
+  .title-logo { font-size: clamp(30px, 7vw, 48px); font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(90deg,#ffd200,#ff5577); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .title-sub { font-size: 14px; color: #bcd; border-top: 2px solid #ff5577; border-bottom: 2px solid #ff5577; padding: 4px 14px; }
+  .title-desc { font-size: 13px; color: #9ab; line-height: 1.8; max-width: 360px; }
+  .btn { border: none; border-radius: 999px; font-weight: 800; cursor: pointer; letter-spacing: 1px;
+    transition: transform .1s; font-family: inherit; }
+  .btn:active { transform: scale(.96); }
+  .btn-start { background: linear-gradient(135deg,#ff5577,#c8265a); color:#fff; font-size: 22px; padding: 16px 56px; box-shadow: 0 6px 18px rgba(200,38,90,.5); }
+  .btn-home { background: #ffffff22; color:#fff; font-size: 13px; padding: 9px 22px; border: 1px solid #ffffff33; }
+
+  /* バトル */
+  #battle-screen { gap: 12px; }
+  .enemy-card { background: linear-gradient(180deg,#16204a,#0d1530); border-radius: 16px; padding: 14px; box-shadow: inset 0 0 0 1px #ffffff14; }
+  .enemy-top { display:flex; justify-content: space-between; align-items: center; font-size: 13px; color:#bcd; font-weight:700; }
+  .hpbar { height: 14px; background:#06112a; border-radius: 999px; overflow:hidden; margin: 6px 0 4px; }
+  .hpbar-fill { height: 100%; background: linear-gradient(90deg,#ff5577,#ffb35c); transition: width .35s; }
+  .enemy-emoji { text-align: center; font-size: 64px; line-height: 1.1; margin: 6px 0; transition: transform .12s; }
+  .enemy-emoji.hit { animation: enemyHit .4s; }
+  @keyframes enemyHit { 0%{transform:translateX(0) scale(1);} 25%{transform:translateX(-10px) scale(1.08); filter:brightness(2);} 75%{transform:translateX(10px);} 100%{transform:translateX(0);} }
+  .enemy-emoji.defeated { animation: enemyDie .6s forwards; }
+  @keyframes enemyDie { to { transform: scale(.2) rotate(40deg); opacity: 0; } }
+
+  .player-row { display:flex; justify-content: space-between; align-items:center; font-size: 13px; }
+  .hearts { font-size: 22px; letter-spacing: 3px; color:#ff5577; }
+  .stage-tag { font-size: 12px; color:#9ab; }
+
+  .q-card { background: #fbf7ec; color:#222; border-radius: 16px; padding: 18px 14px; text-align:center; }
+  .q-type { font-size: 12px; color:#888; font-weight:700; margin-bottom: 6px; }
+  .q-text { font-size: clamp(24px, 6vw, 34px); font-weight: 900; font-family: 'Times New Roman', serif; min-height: 44px; }
+  .q-text .small { font-size: .6em; color:#666; font-weight:700; font-family: 'Hiragino Sans', sans-serif; }
+
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choice {
+    background: #1d2a5e; color:#fff; border: 2px solid #ffffff22; border-radius: 14px;
+    padding: 16px 8px; font-size: 22px; font-weight: 800; font-family: 'Times New Roman', serif;
+    cursor: pointer; transition: transform .08s, background .15s;
+  }
+  .choice:active { transform: scale(.96); }
+  .choice.correct { background: #1d9e75; border-color:#6ee7b7; }
+  .choice.wrong { background: #c8472f; border-color:#ffb4a4; }
+  .choice:disabled { cursor: default; }
+
+  .feedback { text-align:center; font-size: 40px; font-weight:900; min-height: 46px; }
+  .feedback.good { color:#6ee7b7; }
+  .feedback.bad { color:#ff8a7a; }
+  .dmg-pop { position:absolute; font-size: 26px; font-weight: 900; color:#ffd200; pointer-events:none;
+    animation: dmgUp .8s ease-out forwards; text-shadow: 0 2px 4px rgba(0,0,0,.5); }
+  @keyframes dmgUp { from{opacity:1; transform: translateY(0) scale(1);} to{opacity:0; transform: translateY(-50px) scale(1.4);} }
+
+  /* 結果 */
+  #result-screen { align-items:center; justify-content:center; gap: 14px; text-align:center; }
+  .result-title { font-size: 30px; font-weight:900; }
+  .result-title.win { color:#ffd200; }
+  .result-title.lose { color:#ff8a7a; }
+  .result-emoji { font-size: 64px; }
+  .reward-box { background:#16204a; border-radius:14px; padding: 12px 24px; font-size: 18px; font-weight:800; }
+  .reward-box .pea { color:#9ded62; font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="title-screen" class="screen active">
+    <div class="title-logo">ルート計算バトル</div>
+    <div class="title-sub">⚔️ 平方根の総復習</div>
+    <div class="title-desc">問題に正解して モンスターを たおそう！<br>簡約・乗除・加減・有理化・式の値…ぜんぶ出るよ。<br>まちがえると ♥ が へるので 気をつけて！</div>
+    <button class="btn btn-start" id="startBtn">スタート</button>
+    <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+  <div id="battle-screen" class="screen">
+    <div class="enemy-card">
+      <div class="enemy-top">
+        <span id="enemyName">モンスター</span>
+        <span id="enemyHpLabel">HP</span>
+      </div>
+      <div class="hpbar"><div class="hpbar-fill" id="enemyHpFill" style="width:100%"></div></div>
+      <div class="enemy-emoji" id="enemyEmoji">👾</div>
+      <div class="player-row">
+        <span class="stage-tag" id="stageTag">敵 1 / 3</span>
+        <span class="hearts" id="hearts">♥♥♥♥♥</span>
+      </div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-type" id="qType">簡約</div>
+      <div class="q-text" id="qText">√12</div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <div class="result-emoji" id="resultEmoji">🏆</div>
+    <div class="result-title win" id="resultTitle">クリア！</div>
+    <div class="reward-box" id="rewardBox" style="display:none">🌱 <span class="pea" id="rewardNum">0</span> 個 ゲット！</div>
+    <div id="resultSub" style="font-size:14px;color:#9ab;"></div>
+    <button class="btn btn-start" id="retryBtn" style="font-size:18px;padding:14px 44px;">もう一度</button>
+    <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+</div>
+
+<script src="../student-guard.js?v=2"></script>
+<script>
+'use strict';
+
+// ===== 問題バンク（種類別・事前作成で正確さ重視） =====
+// q: 問題文（√や / はそのまま表示） / a: 正解 / choices: 4択
+const BANK = {
+  simplify: [
+    { q:'√8',  a:'2√2', choices:['2√2','4√2','2√4','8'] },
+    { q:'√12', a:'2√3', choices:['2√3','3√2','6','2√6'] },
+    { q:'√18', a:'3√2', choices:['3√2','2√3','9','3√6'] },
+    { q:'√20', a:'2√5', choices:['2√5','5√2','10','4√5'] },
+    { q:'√27', a:'3√3', choices:['3√3','9√3','9','3√9'] },
+    { q:'√32', a:'4√2', choices:['4√2','2√8','16','8√2'] },
+    { q:'√45', a:'3√5', choices:['3√5','5√3','15','9√5'] },
+    { q:'√48', a:'4√3', choices:['4√3','3√4','12','16√3'] },
+    { q:'√50', a:'5√2', choices:['5√2','2√5','25','10√2'] },
+    { q:'√72', a:'6√2', choices:['6√2','2√6','36','8√2'] },
+  ],
+  muldiv: [
+    { q:'√2 × √3',  a:'√6',  choices:['√6','6','√5','2√3'] },
+    { q:'√3 × √5',  a:'√15', choices:['√15','15','√8','√2'] },
+    { q:'√2 × √8',  a:'4',   choices:['4','√16','√10','2'] },
+    { q:'√5 × √7',  a:'√35', choices:['√35','35','√12','√2'] },
+    { q:'√3 × √12', a:'6',   choices:['6','√36','√15','36'] },
+    { q:'√6 ÷ √2',  a:'√3',  choices:['√3','3','√4','√8'] },
+    { q:'√15 ÷ √3', a:'√5',  choices:['√5','5','√12','√45'] },
+    { q:'√48 ÷ √3', a:'4',   choices:['4','√16','√45','16'] },
+    { q:'√24 ÷ √6', a:'2',   choices:['2','√4','√18','4'] },
+    { q:'√10 ÷ √2', a:'√5',  choices:['√5','5','√8','√20'] },
+  ],
+  addsub: [
+    { q:'3√2 + 2√2', a:'5√2', choices:['5√2','5√4','6√2','5'] },
+    { q:'5√3 − 2√3', a:'3√3', choices:['3√3','3','7√3','3√6'] },
+    { q:'4√5 + √5',  a:'5√5', choices:['5√5','4√5','5√10','5'] },
+    { q:'3√2 + √8',  a:'5√2', choices:['5√2','4√2','3√10','5√10'] },
+    { q:'√12 + √27', a:'5√3', choices:['5√3','5√6','2√39','39'] },
+    { q:'√50 − √18', a:'2√2', choices:['2√2','8√2','2√32','32'] },
+    { q:'6√7 − 3√7', a:'3√7', choices:['3√7','3','9√7','3√14'] },
+    { q:'√20 + √45', a:'5√5', choices:['5√5','7√5','√65','65'] },
+    { q:'2√3 + √12', a:'4√3', choices:['4√3','3√3','2√15','4√15'] },
+    { q:'7√2 − √8',  a:'5√2', choices:['5√2','6√2','7√2','5'] },
+  ],
+  rational: [
+    { q:'6 / √2',  a:'3√2', choices:['3√2','6√2','3','√12'] },
+    { q:'6 / √3',  a:'2√3', choices:['2√3','6√3','2','√18'] },
+    { q:'10 / √5', a:'2√5', choices:['2√5','10√5','2','√50'] },
+    { q:'4 / √2',  a:'2√2', choices:['2√2','4√2','2','√8'] },
+    { q:'12 / √3', a:'4√3', choices:['4√3','12√3','4','√48'] },
+    { q:'15 / √5', a:'3√5', choices:['3√5','15√5','3','√75'] },
+    { q:'14 / √7', a:'2√7', choices:['2√7','14√7','2','√98'] },
+    { q:'8 / √2',  a:'4√2', choices:['4√2','8√2','4','√32'] },
+    { q:'9 / √3',  a:'3√3', choices:['3√3','9√3','3','√27'] },
+    { q:'10 / √2', a:'5√2', choices:['5√2','10√2','5','√50'] },
+  ],
+  shiki: [
+    { q:'√2=1.414 のとき<br>√8 = ?',  a:'2.828', choices:['2.828','1.414','5.656','8'] },
+    { q:'√3=1.732 のとき<br>√12 = ?', a:'3.464', choices:['3.464','1.732','6.928','12'] },
+    { q:'√5=2.236 のとき<br>√20 = ?', a:'4.472', choices:['4.472','2.236','8.944','20'] },
+    { q:'√2=1.414 のとき<br>√18 = ?', a:'4.242', choices:['4.242','2.828','1.414','18'] },
+    { q:'√3=1.732 のとき<br>√27 = ?', a:'5.196', choices:['5.196','3.464','1.732','27'] },
+    { q:'√2=1.414 のとき<br>√50 = ?', a:'7.07',  choices:['7.07','2.828','1.414','50'] },
+  ],
+};
+const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', shiki:'⑤ 式の値' };
+
+// ===== 敵 =====
+const ENEMIES = [
+  { name:'コウモリ',   emoji:'🦇', hp:28, types:['simplify','muldiv'] },
+  { name:'オーガ',     emoji:'👹', hp:40, types:['addsub','rational'] },
+  { name:'ドラゴン王', emoji:'🐉', hp:72, types:['simplify','muldiv','addsub','rational','shiki'] },
+];
+const MAX_HEARTS = 5;
+const REWARD_KEY = 'rootbattle';
+
+// ===== 状態 =====
+let enemyIdx = 0, enemyHp = 0, hearts = MAX_HEARTS;
+let current = null, qStart = 0, locked = false, recent = [];
+
+const $ = id => document.getElementById(id);
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function startGame(){
+  enemyIdx = 0; hearts = MAX_HEARTS; recent = [];
+  showScreen('battle-screen');
+  loadEnemy();
+}
+
+function loadEnemy(){
+  const e = ENEMIES[enemyIdx];
+  enemyHp = e.hp;
+  $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
+  $('enemyEmoji').textContent = e.emoji;
+  $('enemyEmoji').className = 'enemy-emoji';
+  $('stageTag').textContent = `敵 ${enemyIdx+1} / ${ENEMIES.length}`;
+  updateEnemyHp();
+  updateHearts();
+  nextProblem();
+}
+
+function updateEnemyHp(){
+  const e = ENEMIES[enemyIdx];
+  const pct = Math.max(0, enemyHp / e.hp * 100);
+  $('enemyHpFill').style.width = pct + '%';
+  $('enemyHpLabel').textContent = `HP ${Math.max(0,Math.round(enemyHp))} / ${e.hp}`;
+}
+function updateHearts(){
+  let s=''; for(let i=0;i<MAX_HEARTS;i++) s += i<hearts ? '♥' : '♡';
+  $('hearts').textContent = s;
+}
+
+function nextProblem(){
+  const e = ENEMIES[enemyIdx];
+  const type = e.types[Math.floor(Math.random()*e.types.length)];
+  const pool = BANK[type];
+  let p, tries=0;
+  do { p = pool[Math.floor(Math.random()*pool.length)]; tries++; } while(recent.includes(p.q) && tries<30);
+  recent.push(p.q); if(recent.length>6) recent.shift();
+  current = { type, q:p.q, a:p.a, choices: shuffle(p.choices) };
+
+  $('qType').textContent = TYPE_LABEL[type];
+  $('qText').innerHTML = current.q;
+  $('feedback').textContent = '';
+  $('feedback').className = 'feedback';
+  const wrap = $('choices');
+  wrap.innerHTML = '';
+  current.choices.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = c;
+    b.onclick = () => answer(b, c);
+    wrap.appendChild(b);
+  });
+  locked = false;
+  qStart = performance.now();
+}
+
+function answer(btn, choice){
+  if(locked) return;
+  locked = true;
+  const correct = (choice === current.a);
+  document.querySelectorAll('.choice').forEach(b => {
+    b.disabled = true;
+    if(b.textContent === current.a) b.classList.add('correct');
+  });
+  if(correct){
+    const sec = (performance.now()-qStart)/1000;
+    const dmg = 10 + (sec<4?8:sec<8?4:0); // 速いほど大ダメージ
+    enemyHp -= dmg;
+    $('feedback').textContent = '🗡 ' + dmg;
+    $('feedback').className = 'feedback good';
+    const em = $('enemyEmoji');
+    em.classList.remove('hit'); void em.offsetWidth; em.classList.add('hit');
+    showDmg(dmg);
+    updateEnemyHp();
+    if(enemyHp <= 0){
+      em.classList.add('defeated');
+      setTimeout(()=>{
+        if(enemyIdx >= ENEMIES.length-1){ win(); }
+        else { enemyIdx++; loadEnemy(); }
+      }, 800);
+    } else {
+      setTimeout(nextProblem, 800);
+    }
+  } else {
+    btn.classList.add('wrong');
+    hearts -= 1;
+    updateHearts();
+    $('feedback').textContent = '💥 ミス！ -♥';
+    $('feedback').className = 'feedback bad';
+    if(hearts <= 0){ setTimeout(gameOver, 900); }
+    else { setTimeout(nextProblem, 1100); }
+  }
+}
+
+function showDmg(d){
+  const pop = document.createElement('div');
+  pop.className = 'dmg-pop';
+  pop.textContent = '-' + d;
+  const card = document.querySelector('.enemy-card');
+  pop.style.left = (card.offsetLeft + card.offsetWidth/2 - 10) + 'px';
+  pop.style.top = (card.offsetTop + 60) + 'px';
+  $('app').appendChild(pop);
+  setTimeout(()=>pop.remove(), 800);
+}
+
+// ===== 数学HP の localStorage(mathPrint_v2)＋すごろくに加算 =====
+function addEarnedPeas(amount){
+  if(amount<=0) return;
+  try {
+    const p = JSON.parse(localStorage.getItem('mathPrint_v2')||'{}')||{};
+    let cur = p.peaCount||0, cups = p.peaCupCount||0;
+    cur += amount;
+    while(cur>=45){ cur-=45; cups++; }
+    p.peaCount=cur; p.peaCupCount=cups;
+    if(!p.done||typeof p.done!=='object') p.done={};
+    localStorage.setItem('mathPrint_v2', JSON.stringify(p));
+  } catch(e){}
+  try {
+    const stage = parseInt(localStorage.getItem('sgCurrentStage')||'1');
+    const key = stage===2?'sgSave_v2':'sgSave_v1';
+    const sv = JSON.parse(localStorage.getItem(key)||'{}')||{};
+    sv.peas = (sv.peas||0) + amount;
+    localStorage.setItem(key, JSON.stringify(sv));
+  } catch(e){}
+}
+
+function win(){
+  showScreen('result-screen');
+  $('resultEmoji').textContent = '🏆';
+  $('resultTitle').textContent = 'ぜんぶ倒した！クリア！';
+  $('resultTitle').className = 'result-title win';
+  // 報酬：基本20 ＋ 残りハート×2（最大30）。1日5回まで
+  let reward = 20 + hearts * 2;
+  let capped = false;
+  if(typeof rewardAllowed==='function' && !rewardAllowed(REWARD_KEY)){ reward = 0; capped = true; }
+  else { addEarnedPeas(reward); }
+  if(capped){
+    $('rewardBox').style.display = 'block';
+    $('rewardBox').innerHTML = '本日の🌱はここまで（1日'+(window.REWARD_MAX_PER_GAME||5)+'回まで）また明日！';
+    $('resultSub').textContent = 'ノーミスでもう一度ねらおう！';
+  } else {
+    $('rewardBox').style.display = 'block';
+    $('rewardBox').innerHTML = '🌱 <span class="pea">'+reward+'</span> 個 ゲット！';
+    $('resultSub').textContent = (hearts===MAX_HEARTS) ? '⭐ ノーミス！パーフェクト！' : '♥ 残り '+hearts;
+  }
+}
+
+function gameOver(){
+  showScreen('result-screen');
+  $('resultEmoji').textContent = '💀';
+  $('resultTitle').textContent = 'やられた…';
+  $('resultTitle').className = 'result-title lose';
+  $('rewardBox').style.display = 'none';
+  $('resultSub').textContent = 'もう一度チャレンジしよう！（クリアで🌱ゲット）';
+}
+
+$('startBtn').addEventListener('click', startGame);
+$('retryBtn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

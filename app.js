@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21j';
+const APP_VERSION = '2026-06-21k';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1221,6 +1221,15 @@ const GAME_ITEMS = [
     icon: '💎',
     onclick: "window.location.href='games/ルートの宝石.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #cc66ff, #4477ff)',
+    isNew: true,
+    category: 'sqrt',
+  },
+  {
+    title: 'ルート計算バトル',
+    desc: '簡約・乗除・加減・有理化・式の値を解いてモンスターを倒せ！平方根の総復習',
+    icon: '⚔️',
+    onclick: "window.location.href='games/ルート計算バトル.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #ff5577, #c8265a)',
     isNew: true,
     category: 'sqrt',
   },
