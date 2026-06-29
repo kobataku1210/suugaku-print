@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21i';
+const APP_VERSION = '2026-06-21j';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1255,6 +1255,25 @@ function renderRanking() {
       <div class="rk-card-body">${renderListBlock(cmList)}</div>
     </div>`;
 
+  // ===== 共通因数ウォール (レベル別) =====
+  const wallData = mathData.kyotsuingenWallRankings || {};
+  const wallLevels = [
+    { key: 'lv1', label: 'Lv.1', emoji: '🟢' },
+    { key: 'lv2', label: 'Lv.2', emoji: '🟡' },
+    { key: 'lv3', label: 'Lv.3', emoji: '🔴' },
+  ];
+  const wallCards = wallLevels.map(lv => {
+    const list = Array.isArray(wallData[lv.key]) ? wallData[lv.key] : [];
+    return `
+      <div class="rk-card rk-card-wall">
+        <div class="rk-card-header">
+          <span class="rk-card-icon">${lv.emoji}</span>
+          <span class="rk-card-title">共通因数ウォール ${lv.label}</span>
+        </div>
+        <div class="rk-card-body">${renderListBlock(list)}</div>
+      </div>`;
+  }).join('');
+
   // ===== 各章 → 各単元 =====
   const chapterBlocks = mathData.chapters.map(ch => {
     const sections = (ch.sections || []).filter(sec => Array.isArray(sec.studentBestList) && sec.studentBestList.length > 0);
@@ -1292,6 +1311,10 @@ function renderRanking() {
     <div class="rk-section">
       <h3 class="rk-section-title">🃏 カードマッチ</h3>
       <div class="rk-card-grid">${cmCard}</div>
+    </div>
+    <div class="rk-section">
+      <h3 class="rk-section-title">🧱 共通因数ウォール</h3>
+      <div class="rk-card-grid">${wallCards}</div>
     </div>
     <div class="rk-section">
       <h3 class="rk-section-title">⏱ タイムアタック</h3>
@@ -3913,6 +3936,7 @@ fetch('./questions.json?_t=' + Date.now(), { cache: 'no-store' })
     mathData.news = Array.isArray(data.news) ? data.news : [];
     mathData.gameDrafts = data.gameDrafts || {};
     mathData.cardMatchStudentBestList = data.cardMatchStudentBestList || [];
+    mathData.kyotsuingenWallRankings = data.kyotsuingenWallRankings || { lv1: [], lv2: [], lv3: [], all: [] };
     if (data.cardMatchTeacherTime != null) cmTeacherTime = data.cardMatchTeacherTime;
     if (data.cardMatchStudentBestTime != null) cmStudentBestTime = data.cardMatchStudentBestTime;
     if (data.cardMatchStudentBestName) cmStudentBestName = data.cardMatchStudentBestName;
