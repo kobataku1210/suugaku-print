@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22d';
+const APP_VERSION = '2026-06-22e';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1054,6 +1054,18 @@ function renderHome() {
       <div class="gm-home-arrow">›</div>
     </div>`;
 
+  // ===== 数学パズルバナー（公開中のパズルがあるときだけ表示）=====
+  const hasVisiblePuzzle = (typeof PUZZLE_ITEMS !== 'undefined') && PUZZLE_ITEMS.some(p => !p.draft || PREVIEW_MODE);
+  const puzzlesBanner = hasVisiblePuzzle ? `
+    <div class="pz-home-banner" onclick="navigate('puzzles')">
+      <span class="pz-home-icon">🧩</span>
+      <div class="pz-home-text">
+        <div class="pz-home-title">数学パズル <span class="game-new-badge">NEW!</span></div>
+        <div class="pz-home-sub">頭をつかうパズルに挑戦しよう！</div>
+      </div>
+      <div class="pz-home-arrow">›</div>
+    </div>` : '';
+
   // ===== 数学便利グッズバナー =====
   const toolsBanner = `
     <div class="tl-home-banner" onclick="navigate('tools')">
@@ -1104,6 +1116,7 @@ function renderHome() {
     ${sgBanner}
     ${aquariumBanner}
     ${gamesBanner}
+    ${puzzlesBanner}
     ${toolsBanner}
     ${rankingBanner}
     <div class="chapters-grid">${cards}</div>
@@ -1137,8 +1150,6 @@ const GAME_CATEGORIES = [
     gradient: 'linear-gradient(90deg, #ff8a2a, #e05a00)' },
   { id: 'sqrt',   label: '平方根',           icon: '√',
     gradient: 'linear-gradient(90deg, #2196f3, #0d47a1)' },
-  { id: 'logic',  label: 'パズル・思考',      icon: '🧩',
-    gradient: 'linear-gradient(90deg, #16a34a, #15803d)' },
 ];
 
 const GAME_ITEMS = [
@@ -1234,16 +1245,6 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #ff5577, #c8265a)',
     isNew: true,
     category: 'sqrt',
-  },
-  {
-    title: '不等号ナンプレ',
-    desc: 'タテ・ヨコに1〜Nを1回ずつ。不等号（&lt; &gt; ∧ ∨）の大小も守って完成！初級・中級・上級',
-    icon: '🔢',
-    onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
-    gradient: 'linear-gradient(135deg, #34d399, #059669)',
-    isNew: true,
-    draft: true, // プレビュー限定（確認後に公開）
-    category: 'logic',
   },
 ];
 // ===== ランキング画面 =====
@@ -1515,6 +1516,44 @@ function renderToolsPage() {
       <p>学習を助けるツールを選んでね</p>
     </div>
     <div class="games-grid">${cards}</div>`;
+}
+
+// ===== 数学パズル画面 =====
+// パズルを追加する場合は PUZZLE_ITEMS に1要素加えるだけ。
+const PUZZLE_ITEMS = [
+  {
+    title: '不等号ナンプレ',
+    desc: 'タテ・ヨコに1〜Nを1回ずつ。不等号（&lt; &gt; ∧ ∨）の大小も守って完成！初級・中級・上級＋最上級',
+    icon: '🔢',
+    onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #34d399, #059669)',
+    isNew: true,
+    draft: true, // プレビュー限定（確認後に公開）
+  },
+];
+function renderPuzzlesPage() {
+  const isDraft = p => !!p.draft;
+  const visible = PUZZLE_ITEMS.filter(p => !isDraft(p) || PREVIEW_MODE);
+  const cards = visible.map(p => {
+    const draft = isDraft(p);
+    const draftMark = draft ? '<span class="game-new-badge" style="background:#f7971e;color:#2a1a00">🚧下書き</span>' : '';
+    return `
+    <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${p.gradient}"
+         onclick="${p.onclick}">
+      <span class="game-card-icon">${p.icon}</span>
+      <div class="game-card-title">${p.title}${p.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
+      <div class="game-card-desc">${p.desc}</div>
+      <div class="game-card-cta">挑戦する ›</div>
+    </div>`;
+  }).join('');
+  const empty = visible.length === 0 ? '<p style="text-align:center;color:#9ab;margin-top:20px;">準備中だよ。お楽しみに！</p>' : '';
+  return `
+    <button class="back-btn" onclick="navigate('home')">← ホームに戻る</button>
+    <div class="section-title">
+      <h2>🧩 数学パズル</h2>
+      <p>頭をつかうパズルに挑戦しよう！</p>
+    </div>
+    <div class="games-grid">${cards}</div>${empty}`;
 }
 
 function handleChapterClick(e, el, idx) {
@@ -3789,6 +3828,7 @@ function render() {
   else if (state.view === 'games')      content = renderGamesPage();
   else if (state.view === 'ranking')    content = renderRanking();
   else if (state.view === 'tools')      content = renderToolsPage();
+  else if (state.view === 'puzzles')    content = renderPuzzlesPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
   else if (state.view === 'aquarium')   content = ''; // aquarium.js が直接 main-content を書き換える
   else if (state.view === 'shooting')   content = ''; // iframeで描画
