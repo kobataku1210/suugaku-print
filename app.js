@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22i';
+const APP_VERSION = '2026-06-22j';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1522,7 +1522,7 @@ function renderToolsPage() {
 // パズルを追加する場合は PUZZLE_ITEMS に1要素加えるだけ。
 const PUZZLE_ITEMS = [
   {
-    title: '不等号ナンプレ',
+    title: 'FUTOSHIKI',
     desc: '',
     icon: '🔢',
     onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
