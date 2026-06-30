@@ -78,6 +78,12 @@
   .ans-in:focus { outline:none; border-color:#ffd200; box-shadow: 0 0 0 3px #ffd20055; }
   .ans-in:disabled { opacity:.7; }
   .ans-root { font-size: 42px; font-weight: 900; font-family:'Times New Roman', serif; }
+  .ans-plus { font-size: 36px; font-weight: 900; font-family:'Times New Roman', serif; }
+  /* 〇√△＋□（定数項あり）の3欄レイアウトは少しコンパクトに */
+  .ans-row.three { gap: 6px; }
+  .ans-row.three .ans-in { width: 58px; height: 62px; font-size: 26px; }
+  .ans-row.three .ans-root { font-size: 32px; }
+  .ans-row.three .ans-plus { font-size: 28px; }
   .ans-btn {
     background: linear-gradient(135deg,#ffd200,#ff9d2a); color:#3a2400; border:none;
     border-radius: 999px; padding: 14px 48px; font-size: 20px; font-weight: 900;
@@ -269,6 +275,19 @@ const BANK = {
     { q:'16 / √2', a:'8√2', choices:['8√2','16√2','8','√128'] },
     { q:'24 / √6', a:'4√6', choices:['4√6','24√6','4','√96'] },
   ],
+  // ルートの加法・減法（4項：√つき2項＋数2項）→ 同類項をまとめる
+  addsub4: [
+    { q:'3√2 + 5 − √2 + 2',  a:'2√2+7' },
+    { q:'4√3 + 6 − √3 − 2',  a:'3√3+4' },
+    { q:'2√5 + 7 + 3√5 − 4', a:'5√5+3' },
+    { q:'5√2 − 1 − 2√2 + 4', a:'3√2+3' },
+    { q:'√7 + 8 + 3√7 − 3',  a:'4√7+5' },
+    { q:'6√3 + 2 − 2√3 + 3', a:'4√3+5' },
+    { q:'2√6 + 9 + 2√6 − 4', a:'4√6+5' },
+    { q:'4√5 − 2 − √5 + 8',  a:'3√5+6' },
+    { q:'3√2 + 1 + 2√2 + 5', a:'5√2+6' },
+    { q:'5√3 + 4 − 3√3 − 1', a:'2√3+3' },
+  ],
   cube: [
     // 整数になる問題（5問）
     { q:'∛8',   a:'2' },
@@ -284,7 +303,7 @@ const BANK = {
     { q:'∛48',  a:'2∛6' },
   ],
 };
-const TYPE_LABEL = { perfect:'① √を整数に（√4=2）', simplify:'② √を簡単に', muldiv:'③ かけ算・わり算', addsub:'④ たし算・ひき算', rational:'⑤ 分母の有理化', cube:'⑥ 三乗根（∛）を外す' };
+const TYPE_LABEL = { perfect:'① √を整数に（√4=2）', simplify:'② √を簡単に', muldiv:'③ かけ算・わり算', addsub:'④ たし算・ひき算', rational:'⑤ 分母の有理化', addsub4:'⑥ ルートの加減（4つの項）', cube:'🏁 三乗根（∛）を外す' };
 // ミスしたとき：答えではなく考え方のヒントを出す
 const HINT = {
   perfect:  '💡 同じ数を2回かけて中の数になる数をさがそう（2×2=4 など）',
@@ -292,6 +311,7 @@ const HINT = {
   muldiv:   '💡 √a×√b=√(a×b)、√a÷√b=√(a÷b) を使おう',
   addsub:   '💡 √の中が同じものどうしをまとめよう（ちがうときは先に√を簡単に）',
   rational: '💡 分母と同じ√を、分母と分子の両方にかけよう',
+  addsub4:  '💡 √どうし・数どうしで仲間分けしてまとめよう（√の中が同じものが同類項）',
   cube:     '💡 ∛は3回かけて中の数になる。「3乗 × 〇」に分けよう',
 };
 
@@ -302,6 +322,7 @@ const ENEMIES = [
   { name:'ヘビ',       emoji:'🐍', hp:55, field:'muldiv' },
   { name:'オーガ',     emoji:'👹', hp:55, field:'addsub' },
   { name:'ゾンビ',     emoji:'🧟', hp:55, field:'rational' },
+  { name:'ゴーレム',   emoji:'🗿', hp:60, field:'addsub4' },
   { name:'ドラゴン王', emoji:'🐉', hp:60, field:'cube' },
 ];
 const MAX_HEARTS = 5;        // プレイヤーのハート
@@ -326,7 +347,12 @@ function loadProgress(){
   return { cleared: ENEMIES.map(()=>false) };
 }
 function saveProgress(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){} }
-function isUnlocked(i, prog){ return i===0 || prog.cleared[i-1]===true; }
+// プレビュー（先生）はすべてのステージを見られる
+const PREVIEW = (new URLSearchParams(location.search).get('preview') === '1')
+  || (function(){ try { return localStorage.getItem('mathPreviewUnlocked') === '1'; } catch(e){ return false; } })();
+function isUnlocked(i, prog){ return PREVIEW || i===0 || prog.cleared[i-1]===true; }
+// ステージ名（最後は「最終ステージ」）
+function stageLabel(i){ return (i===ENEMIES.length-1) ? '最終ステージ' : ('ステージ'+(i+1)); }
 
 // ===== ステージ選択画面 =====
 function showSelect(){
@@ -338,12 +364,12 @@ function showSelect(){
     if(!unlocked){
       return `<button class="stage-item locked" disabled>
         <span class="st-emoji">🔒</span>
-        <span class="st-text"><b>ステージ${i+1}</b><br>？？？（まだロック中）</span>
+        <span class="st-text"><b>${stageLabel(i)}</b><br>？？？（まだロック中）</span>
       </button>`;
     }
     return `<button class="stage-item${cleared?' cleared':''}" data-i="${i}">
       <span class="st-emoji">${e.emoji}</span>
-      <span class="st-text"><b>ステージ${i+1}</b> ${cleared?'✅クリア済み':''}<br>${TYPE_LABEL[e.field]}</span>
+      <span class="st-text"><b>${stageLabel(i)}</b> ${cleared?'✅クリア済み':''}<br>${TYPE_LABEL[e.field]}</span>
     </button>`;
   }).join('');
   list.querySelectorAll('.stage-item[data-i]').forEach(b=>{
@@ -372,7 +398,7 @@ function loadEnemy(){
   $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
   $('enemyEmoji').textContent = e.emoji;
   $('enemyEmoji').className = 'enemy-emoji';
-  $('stageTag').textContent = `ステージ ${enemyIdx+1} / ${ENEMIES.length}`;
+  $('stageTag').textContent = `${stageLabel(enemyIdx)}（${enemyIdx+1}/${ENEMIES.length}）`;
   updateEnemyHp();
   updateHearts();
   nextProblem();
@@ -418,8 +444,13 @@ function renderProblem(){
 
   // 答えの形に合わせて入力欄を出し分け
   const ans = current.ans;
-  let rowHtml, hint;
-  if (ans.rad === 1) {
+  let rowHtml, hint, rowClass = 'ans-row';
+  if (ans.cons !== 0) {
+    // 〇√△ ＋ □（定数項あり：ルートの加減 4項）
+    rowHtml = `<input class="ans-in" id="coefIn" type="number" inputmode="numeric"><span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric"><span class="ans-plus">＋</span><input class="ans-in" id="consIn" type="number" inputmode="numeric">`;
+    hint = '〇' + sym + '△ ＋ □ の形にまとめよう';
+    rowClass = 'ans-row three';
+  } else if (ans.rad === 1) {
     // 整数（ルートなし）→ √は出さない
     rowHtml = `<input class="ans-in ans-wide" id="coefIn" type="number" inputmode="numeric">`;
     hint = '答えの数を入力しよう';
@@ -435,7 +466,7 @@ function renderProblem(){
   wrap.innerHTML = `
     <div class="ans-hint">${hint}</div>
     ${showHint ? `<div class="ans-hint hint-tip">${HINT[type]||''}</div>` : ''}
-    <div class="ans-row">${rowHtml}</div>
+    <div class="${rowClass}">${rowHtml}</div>
     <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
   const inputs = [...wrap.querySelectorAll('input')];
@@ -456,26 +487,37 @@ function renderProblem(){
   qStart = performance.now();
 }
 
-// 答え文字列を {coef, rad} に変換（√・∛ どちらも対応）
+// 答え文字列を {coef, rad, cons} に変換（√・∛・"a√b+c" に対応）
 function parseAns(a){
   const sym = a.indexOf('∛') >= 0 ? '∛' : (a.indexOf('√') >= 0 ? '√' : null);
-  if (sym){
-    const parts = a.split(sym);
-    const coef = parts[0] === '' ? 1 : parseInt(parts[0], 10);
-    const rad = parseInt(parts[1], 10);
-    return { coef, rad };
+  if (!sym){
+    return { coef: parseInt(a, 10), rad: 1, cons: 0 }; // 整数（中を1扱い）
   }
-  return { coef: parseInt(a, 10), rad: 1 }; // 整数（中を1扱い）
+  // "a√b+c" 形（定数項あり）に対応
+  let rootPart = a, cons = 0;
+  const pi = a.indexOf('+');
+  if (pi >= 0){
+    rootPart = a.slice(0, pi);
+    cons = parseInt(a.slice(pi + 1), 10) || 0;
+  }
+  const parts = rootPart.split(sym);
+  const coef = parts[0] === '' ? 1 : parseInt(parts[0], 10);
+  const rad = parseInt(parts[1], 10);
+  return { coef, rad, cons };
 }
 
 function submitAnswer(){
   if(locked) return;
   let correct = false;
+  const ki = $('consIn');
   const cv = (($('coefIn')||{}).value || '').trim();
   const rv = (($('radIn')||{}).value || '').trim();
-  const c = cv === '' ? 1 : parseInt(cv, 10); // 未入力は 1 とみなす
-  const r = rv === '' ? 1 : parseInt(rv, 10);
-  if (c === current.ans.coef && r === current.ans.rad) correct = true;
+  const kv = ((ki||{}).value || '').trim();
+  const c = cv === '' ? 1 : parseInt(cv, 10); // 係数の欄：未入力は 1 とみなす
+  const r = rv === '' ? 1 : parseInt(rv, 10); // ルートの中：未入力は 1 とみなす
+  const k = ki ? (kv === '' ? NaN : parseInt(kv, 10)) : 0; // 定数の欄：欄が無ければ 0／空欄は不正解
+  const ans = current.ans;
+  if (c === ans.coef && r === ans.rad && k === (ans.cons || 0)) correct = true;
   locked = true;
   $('choices').querySelectorAll('input,button').forEach(el => el.disabled = true);
   resolve(correct);
@@ -547,7 +589,7 @@ function stageClear(i){
 
   showScreen('result-screen');
   $('resultEmoji').textContent = (i===ENEMIES.length-1) ? '👑' : '🏆';
-  $('resultTitle').textContent = 'ステージ'+(i+1)+' クリア！';
+  $('resultTitle').textContent = stageLabel(i)+' クリア！';
   $('resultTitle').className = 'result-title win';
 
   // 報酬：初クリア20／再挑戦5（1日5回まで）
@@ -565,7 +607,7 @@ function stageClear(i){
 
   // 解放メッセージ
   if(firstClear && i < ENEMIES.length-1){
-    $('resultSub').textContent = '🔓 ステージ'+(i+2)+' が解放された！';
+    $('resultSub').textContent = '🔓 '+stageLabel(i+1)+' が解放された！';
   } else if(firstClear && i === ENEMIES.length-1){
     $('resultSub').textContent = '🎉 全ステージ制覇！おめでとう！';
   } else {
