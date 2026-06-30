@@ -16,6 +16,8 @@
   .logo { text-align:center; font-size: clamp(26px,6vw,40px); font-weight: 900; letter-spacing: 1px;
     background: linear-gradient(90deg,#56d2ff,#7af5b0); -webkit-background-clip:text; background-clip:text; color: transparent; }
   .sub { text-align:center; font-size: 13px; color:#9fb6d6; line-height:1.8; }
+  .logo-en { text-align:center; font-size: clamp(14px,3.5vw,20px); font-weight:700; letter-spacing:4px;
+    color:#7af5b0; text-transform:uppercase; margin-top:-6px; font-family:'Georgia','Times New Roman',serif; }
   .btn { border:none; border-radius: 999px; font-weight:800; cursor:pointer; font-family:inherit; transition: transform .1s; }
   .btn:active { transform: scale(.96); }
   .btn-home { background:#ffffff22; color:#fff; font-size:13px; padding:9px 22px; border:1px solid #ffffff33; align-self:center; }
@@ -89,6 +91,7 @@
   <!-- 難易度＆パズル一覧 -->
   <div id="select-screen" class="screen active">
     <div class="logo">不等号ナンプレ</div>
+    <div class="logo-en">Futoshiki</div>
     <div id="diff-list"></div>
     <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
   </div>
