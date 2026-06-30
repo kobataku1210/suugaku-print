@@ -315,8 +315,21 @@ const BANK = {
     { q:'∛24 + ∛81', a:'5∛3' },
     { q:'∛128 − ∛16', a:'2∛2' },
   ],
+  // 真の隠しステージ：∛の中が大きい数（≦500）を素因数分解して簡単にする
+  cubebig: [
+    { q:'∛128', a:'4∛2'  }, // 2^6·2
+    { q:'∛192', a:'4∛3'  }, // 64·3
+    { q:'∛250', a:'5∛2'  }, // 125·2
+    { q:'∛320', a:'4∛5'  }, // 64·5
+    { q:'∛375', a:'5∛3'  }, // 125·3
+    { q:'∛189', a:'3∛7'  }, // 27·7
+    { q:'∛432', a:'6∛2'  }, // 216·2
+    { q:'∛448', a:'4∛7'  }, // 64·7
+    { q:'∛297', a:'3∛11' }, // 27·11
+    { q:'∛500', a:'5∛4'  }, // 125·4
+  ],
 };
-const TYPE_LABEL = { perfect:'① √を整数に（√4=2）', simplify:'② √を簡単に', muldiv:'③ かけ算・わり算', addsub:'④ たし算・ひき算', rational:'⑤ 分母の有理化', addsub4:'⑥ ルートの加減（4つの項）', cube:'🏁 三乗根（∛）を外す', cubecalc:'🌟 三乗根の計算（×÷・加減）' };
+const TYPE_LABEL = { perfect:'① √を整数に（√4=2）', simplify:'② √を簡単に', muldiv:'③ かけ算・わり算', addsub:'④ たし算・ひき算', rational:'⑤ 分母の有理化', addsub4:'⑥ ルートの加減（4つの項）', cube:'🏁 三乗根（∛）を外す', cubecalc:'🌟 三乗根の計算（×÷・加減）', cubebig:'✨ 三乗根を簡単に（大きい数）' };
 // ミスしたとき：答えではなく考え方のヒントを出す
 const HINT = {
   perfect:  '💡 同じ数を2回かけて中の数になる数をさがそう（2×2=4 など）',
@@ -327,6 +340,7 @@ const HINT = {
   addsub4:  '💡 √どうし・数どうしで仲間分けしてまとめよう（√の中が同じものが同類項）',
   cube:     '💡 ∛は3回かけて中の数になる。「3乗 × 〇」に分けよう',
   cubecalc: '💡 ∛a×∛b=∛(a×b)、∛a÷∛b=∛(a÷b)。たし算は∛の中が同じものをまとめよう',
+  cubebig:  '💡 中の数を素因数分解 →「同じ数3つ（3乗）」を見つけて∛の外に出そう',
 };
 
 // ===== 敵（分野別・難易度順に1体ずつ）=====
@@ -339,12 +353,13 @@ const ENEMIES = [
   { name:'ゴーレム',   emoji:'🗿', hp:60, field:'addsub4' },
   { name:'ドラゴン王', emoji:'🐉', hp:60, field:'cube' },
   { name:'大賢者',     emoji:'🔮', hp:60, field:'cubecalc' }, // 隠しステージ（最終クリア後に解放）
+  { name:'大魔王',     emoji:'😈', hp:60, field:'cubebig' },  // 真の隠しステージ（隠しステージクリア後に解放）
 ];
 const MAX_HEARTS = 5;        // プレイヤーのハート
 const ENEMY_HP = 10;         // 敵HP＝1種類10問（1問正解で♥1つ減る）
 const REWARD_KEY = 'rootbattle';
-// ステージ初クリア報酬（①10 ②20 …⑥60 最終100 隠し150）。再挑戦は一律5個
-const STAGE_REWARDS = [10, 20, 30, 40, 50, 60, 100, 150];
+// ステージ初クリア報酬（①10 …⑥60 最終100 隠し150 真隠し200）。再挑戦は一律5個
+const STAGE_REWARDS = [10, 20, 30, 40, 50, 60, 100, 150, 200];
 const REPLAY_REWARD = 5;
 
 // ===== 状態 =====
@@ -374,11 +389,18 @@ function saveProgress(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringif
 const PREVIEW = (new URLSearchParams(location.search).get('preview') === '1')
   || (function(){ try { return localStorage.getItem('mathPreviewUnlocked') === '1'; } catch(e){ return false; } })();
 function isUnlocked(i, prog){ return PREVIEW || i===0 || prog.cleared[i-1]===true; }
-// ステージ名（末尾＝隠しステージ／その手前＝最終ステージ）
+// ステージ名（末尾＝真の隠し／その手前＝隠し／さらに手前＝最終）
 function stageLabel(i){
-  if(i===ENEMIES.length-1) return '🌟 隠しステージ';
-  if(i===ENEMIES.length-2) return '最終ステージ';
+  if(i===ENEMIES.length-1) return '😈 真の隠しステージ';
+  if(i===ENEMIES.length-2) return '🌟 隠しステージ';
+  if(i===ENEMIES.length-3) return '最終ステージ';
   return 'ステージ'+(i+1);
+}
+function stageEmoji(i){
+  if(i===ENEMIES.length-1) return '😈';
+  if(i===ENEMIES.length-2) return '🌟';
+  if(i===ENEMIES.length-3) return '👑';
+  return '';
 }
 
 // ===== ステージ選択画面 =====
@@ -422,7 +444,7 @@ function loadEnemy(){
   } else {
     qOrder = pool.slice(0, 10);
   }
-  $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'🌟 ':enemyIdx===ENEMIES.length-2?'👑 ':'') + e.name;
+  $('enemyName').textContent = (stageEmoji(enemyIdx) ? stageEmoji(enemyIdx)+' ' : '') + e.name;
   $('enemyEmoji').textContent = e.emoji;
   $('enemyEmoji').className = 'enemy-emoji';
   $('stageTag').textContent = `${stageLabel(enemyIdx)}（${enemyIdx+1}/${ENEMIES.length}）`;
@@ -446,7 +468,7 @@ function nextProblem(){
   const e = ENEMIES[enemyIdx];
   const p = qOrder[qIndex % qOrder.length]; // loadEnemyで決めた出題順から
   qIndex++;
-  const sym = (e.field === 'cube' || e.field === 'cubecalc') ? '∛' : '√';
+  const sym = (e.field.indexOf('cube') === 0) ? '∛' : '√';
   current = { type:e.field, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
   showHint = false; // 新しい問題ではヒントを消す
   renderProblem();
@@ -615,7 +637,7 @@ function stageClear(i){
   saveProgress(prog);
 
   showScreen('result-screen');
-  $('resultEmoji').textContent = (i===ENEMIES.length-1) ? '🌟' : (i===ENEMIES.length-2) ? '👑' : '🏆';
+  $('resultEmoji').textContent = stageEmoji(i) || '🏆';
   $('resultTitle').textContent = stageLabel(i)+' クリア！';
   $('resultTitle').className = 'result-title win';
 
