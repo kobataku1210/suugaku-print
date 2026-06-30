@@ -25,6 +25,20 @@
   .btn-start { background: linear-gradient(135deg,#ff5577,#c8265a); color:#fff; font-size: 22px; padding: 16px 56px; box-shadow: 0 6px 18px rgba(200,38,90,.5); }
   .btn-home { background: #ffffff22; color:#fff; font-size: 13px; padding: 9px 22px; border: 1px solid #ffffff33; }
 
+  /* ステージ選択 */
+  #select-screen { align-items: center; justify-content: center; gap: 14px; }
+  .select-head { text-align:center; }
+  .stage-list { display:flex; flex-direction:column; gap:10px; width:100%; max-width:380px; }
+  .stage-item { display:flex; align-items:center; gap:14px; text-align:left; width:100%;
+    background:linear-gradient(135deg,#1b2a5e,#16204a); color:#fff; border:1px solid #ffffff22;
+    border-radius:14px; padding:12px 16px; font-family:inherit; cursor:pointer; transition:transform .1s; }
+  .stage-item:active { transform:scale(.97); }
+  .stage-item.locked { opacity:.45; cursor:not-allowed; background:#10162e; }
+  .stage-item.cleared { border-color:#ffd200aa; box-shadow:0 0 0 1px #ffd20055; }
+  .st-emoji { font-size:34px; line-height:1; width:40px; text-align:center; }
+  .st-text { font-size:14px; font-weight:700; line-height:1.5; }
+  .st-text b { font-size:17px; color:#ffd200; }
+
   /* バトル */
   #battle-screen { gap: 12px; }
   .enemy-card { background: linear-gradient(180deg,#16204a,#0d1530); border-radius: 16px; padding: 14px; box-shadow: inset 0 0 0 1px #ffffff14; }
@@ -102,6 +116,15 @@
     <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
   </div>
 
+  <div id="select-screen" class="screen">
+    <div class="select-head">
+      <div class="title-logo" style="font-size:26px;">ステージをえらぼう</div>
+      <div class="title-sub" style="margin-top:8px;">クリアすると次が解放！</div>
+    </div>
+    <div class="stage-list" id="stageList"></div>
+    <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
   <div id="battle-screen" class="screen">
     <div class="enemy-card">
       <div class="enemy-top">
@@ -131,7 +154,7 @@
     <div class="result-title win" id="resultTitle">クリア！</div>
     <div class="reward-box" id="rewardBox" style="display:none">🌱 <span class="pea" id="rewardNum">0</span> 個 ゲット！</div>
     <div id="resultSub" style="font-size:14px;color:#9ab;"></div>
-    <button class="btn btn-start" id="retryBtn" style="font-size:18px;padding:14px 44px;">もう一度</button>
+    <button class="btn btn-start" id="retryBtn" style="font-size:18px;padding:14px 44px;">ステージへもどる</button>
     <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
   </div>
 
@@ -269,8 +292,44 @@ const $ = id => document.getElementById(id);
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-function startGame(){
-  enemyIdx = 0; hearts = MAX_HEARTS;
+// ===== ステージ進捗（localStorage） =====
+const PROGRESS_KEY = 'rootbattle_v1';
+function loadProgress(){
+  try {
+    const p = JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');
+    if(p && Array.isArray(p.cleared) && p.cleared.length===ENEMIES.length) return p;
+  } catch(e){}
+  return { cleared: ENEMIES.map(()=>false) };
+}
+function saveProgress(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){} }
+function isUnlocked(i, prog){ return i===0 || prog.cleared[i-1]===true; }
+
+// ===== ステージ選択画面 =====
+function showSelect(){
+  const prog = loadProgress();
+  const list = $('stageList');
+  list.innerHTML = ENEMIES.map((e,i)=>{
+    const unlocked = isUnlocked(i, prog);
+    const cleared = prog.cleared[i];
+    if(!unlocked){
+      return `<button class="stage-item locked" disabled>
+        <span class="st-emoji">🔒</span>
+        <span class="st-text"><b>ステージ${i+1}</b><br>？？？（まだロック中）</span>
+      </button>`;
+    }
+    return `<button class="stage-item${cleared?' cleared':''}" data-i="${i}">
+      <span class="st-emoji">${e.emoji}</span>
+      <span class="st-text"><b>ステージ${i+1}</b> ${cleared?'✅クリア済み':''}<br>${TYPE_LABEL[e.field]}</span>
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.stage-item[data-i]').forEach(b=>{
+    b.onclick = ()=> startStage(parseInt(b.dataset.i,10));
+  });
+  showScreen('select-screen');
+}
+
+function startStage(i){
+  enemyIdx = i; hearts = MAX_HEARTS;
   showScreen('battle-screen');
   loadEnemy();
 }
@@ -289,7 +348,7 @@ function loadEnemy(){
   $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
   $('enemyEmoji').textContent = e.emoji;
   $('enemyEmoji').className = 'enemy-emoji';
-  $('stageTag').textContent = `敵 ${enemyIdx+1} / ${ENEMIES.length}`;
+  $('stageTag').textContent = `ステージ ${enemyIdx+1} / ${ENEMIES.length}`;
   updateEnemyHp();
   updateHearts();
   nextProblem();
@@ -398,10 +457,7 @@ function resolve(correct){
     updateEnemyHp();
     if(enemyHp <= 0){
       em.classList.add('defeated');
-      setTimeout(()=>{
-        if(enemyIdx >= ENEMIES.length-1){ win(); }
-        else { enemyIdx++; loadEnemy(); } // 10問すべて正解で次の種類へ
-      }, 800);
+      setTimeout(()=> stageClear(enemyIdx), 800); // 10問すべて正解でステージクリア
     } else {
       setTimeout(nextProblem, 700);
     }
@@ -447,24 +503,37 @@ function addEarnedPeas(amount){
   } catch(e){}
 }
 
-function win(){
+function stageClear(i){
+  const prog = loadProgress();
+  const firstClear = !prog.cleared[i];
+  prog.cleared[i] = true;
+  saveProgress(prog);
+
   showScreen('result-screen');
-  $('resultEmoji').textContent = '🏆';
-  $('resultTitle').textContent = 'ぜんぶ倒した！クリア！';
+  $('resultEmoji').textContent = (i===ENEMIES.length-1) ? '👑' : '🏆';
+  $('resultTitle').textContent = 'ステージ'+(i+1)+' クリア！';
   $('resultTitle').className = 'result-title win';
-  // 報酬：基本20 ＋ 残りハート×2（最大30）。1日5回まで
-  let reward = 20 + hearts * 2;
+
+  // 報酬：初クリア20／再挑戦5（1日5回まで）
+  let reward = firstClear ? 20 : 5;
   let capped = false;
   if(typeof rewardAllowed==='function' && !rewardAllowed(REWARD_KEY)){ reward = 0; capped = true; }
-  else { addEarnedPeas(reward); }
+  else if(reward>0){ addEarnedPeas(reward); }
   if(capped){
     $('rewardBox').style.display = 'block';
     $('rewardBox').innerHTML = '本日の🌱はここまで（1日'+(window.REWARD_MAX_PER_GAME||5)+'回まで）また明日！';
-    $('resultSub').textContent = 'ノーミスでもう一度ねらおう！';
   } else {
     $('rewardBox').style.display = 'block';
     $('rewardBox').innerHTML = '🌱 <span class="pea">'+reward+'</span> 個 ゲット！';
-    $('resultSub').textContent = (hearts===MAX_HEARTS) ? '⭐ ノーミス！パーフェクト！' : '♥ 残り '+hearts;
+  }
+
+  // 解放メッセージ
+  if(firstClear && i < ENEMIES.length-1){
+    $('resultSub').textContent = '🔓 ステージ'+(i+2)+' が解放された！';
+  } else if(firstClear && i === ENEMIES.length-1){
+    $('resultSub').textContent = '🎉 全ステージ制覇！おめでとう！';
+  } else {
+    $('resultSub').textContent = (hearts===MAX_HEARTS) ? '⭐ ノーミス！' : '♥ 残り '+hearts;
   }
 }
 
@@ -477,8 +546,8 @@ function gameOver(){
   $('resultSub').textContent = 'もう一度チャレンジしよう！（クリアで🌱ゲット）';
 }
 
-$('startBtn').addEventListener('click', startGame);
-$('retryBtn').addEventListener('click', startGame);
+$('startBtn').addEventListener('click', showSelect);
+$('retryBtn').addEventListener('click', showSelect);
 </script>
 </body>
 </html>
