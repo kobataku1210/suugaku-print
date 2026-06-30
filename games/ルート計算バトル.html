@@ -412,8 +412,17 @@ function renderProblem(){
     <div class="ans-row">${rowHtml}</div>
     <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
-  wrap.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
+  const inputs = [...wrap.querySelectorAll('input')];
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { submitAnswer(); return; }
+      // 矢印キーで隣の入力欄へ移動
+      if (e.key === 'ArrowRight' && idx < inputs.length - 1) {
+        e.preventDefault(); inputs[idx+1].focus(); inputs[idx+1].select();
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault(); inputs[idx-1].focus(); inputs[idx-1].select();
+      }
+    });
   });
   const first = wrap.querySelector('input');
   if (first) setTimeout(() => { first.focus(); first.select(); }, 50);
