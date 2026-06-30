@@ -39,12 +39,17 @@
 
   .player-row { display:flex; justify-content: space-between; align-items:center; font-size: 13px; }
   .hearts { font-size: 22px; letter-spacing: 3px; color:#ff5577; }
+  .enemy-hearts { text-align:center; font-size: 20px; letter-spacing: 2px; color:#ff8a5c; margin: 6px 0 2px; line-height: 1.2; }
   .stage-tag { font-size: 12px; color:#9ab; }
 
   .q-card { background: #fbf7ec; color:#222; border-radius: 16px; padding: 18px 14px; text-align:center; }
   .q-type { font-size: 12px; color:#888; font-weight:700; margin-bottom: 6px; }
   .q-text { font-size: clamp(24px, 6vw, 34px); font-weight: 900; font-family: 'Times New Roman', serif; min-height: 44px; }
   .q-text .small { font-size: .6em; color:#666; font-weight:700; font-family: 'Hiragino Sans', sans-serif; }
+  /* 分数表記（有理化用：分子が上・分母が下） */
+  .frac { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 4px; }
+  .frac .num { padding:0 8px 2px; }
+  .frac .den { padding:3px 8px 0; border-top:3px solid currentColor; }
 
   .choices { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .ans-hint { font-size: 13px; color:#bcd; text-align:center; }
@@ -101,12 +106,12 @@
     <div class="enemy-card">
       <div class="enemy-top">
         <span id="enemyName">モンスター</span>
-        <span id="enemyHpLabel">HP</span>
+        <span id="enemyHpLabel">のこり 10問</span>
       </div>
-      <div class="hpbar"><div class="hpbar-fill" id="enemyHpFill" style="width:100%"></div></div>
+      <div class="enemy-hearts" id="enemyHearts">♥♥♥♥♥♥♥♥♥♥</div>
       <div class="enemy-emoji" id="enemyEmoji">👾</div>
       <div class="player-row">
-        <span class="stage-tag" id="stageTag">敵 1 / 3</span>
+        <span class="stage-tag" id="stageTag">敵 1 / 5</span>
         <span class="hearts" id="hearts">♥♥♥♥♥</span>
       </div>
     </div>
@@ -228,16 +233,18 @@ const BANK = {
     { q:'24 / √6', a:'4√6', choices:['4√6','24√6','4','√96'] },
   ],
   cube: [
+    // 整数になる問題（5問）
     { q:'∛8',   a:'2' },
     { q:'∛27',  a:'3' },
     { q:'∛64',  a:'4' },
     { q:'∛125', a:'5' },
+    { q:'∛216', a:'6' },
+    // ルートが残る問題（5問）
     { q:'∛24',  a:'2∛3' },
     { q:'∛54',  a:'3∛2' },
     { q:'∛16',  a:'2∛2' },
     { q:'∛40',  a:'2∛5' },
     { q:'∛48',  a:'2∛6' },
-    { q:'∛81',  a:'3∛3' },
   ],
 };
 const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', cube:'⑤ 三乗根（∛）を外す' };
@@ -250,7 +257,8 @@ const ENEMIES = [
   { name:'ゾンビ',     emoji:'🧟', hp:55, field:'rational' },
   { name:'ドラゴン王', emoji:'🐉', hp:60, field:'cube' },
 ];
-const MAX_HEARTS = 5;
+const MAX_HEARTS = 5;        // プレイヤーのハート
+const ENEMY_HP = 10;         // 敵HP＝1種類10問（1問正解で♥1つ減る）
 const REWARD_KEY = 'rootbattle';
 
 // ===== 状態 =====
@@ -262,14 +270,14 @@ function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.class
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
 function startGame(){
-  enemyIdx = 0; hearts = MAX_HEARTS; recent = [];
+  enemyIdx = 0; hearts = MAX_HEARTS;
   showScreen('battle-screen');
   loadEnemy();
 }
 
 function loadEnemy(){
   const e = ENEMIES[enemyIdx];
-  enemyHp = e.hp;
+  enemyHp = ENEMY_HP;
   qIndex = 0;
   $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
   $('enemyEmoji').textContent = e.emoji;
@@ -281,27 +289,39 @@ function loadEnemy(){
 }
 
 function updateEnemyHp(){
-  const e = ENEMIES[enemyIdx];
-  const pct = Math.max(0, enemyHp / e.hp * 100);
-  $('enemyHpFill').style.width = pct + '%';
-  $('enemyHpLabel').textContent = `HP ${Math.max(0,Math.round(enemyHp))} / ${e.hp}`;
+  let s=''; for(let i=0;i<ENEMY_HP;i++) s += i<enemyHp ? '♥' : '♡';
+  $('enemyHearts').textContent = s;
+  $('enemyHpLabel').textContent = `のこり ${Math.max(0,enemyHp)}問`;
 }
 function updateHearts(){
   let s=''; for(let i=0;i<MAX_HEARTS;i++) s += i<hearts ? '♥' : '♡';
   $('hearts').textContent = s;
 }
 
+// 次の問題へ（正解で1問進む。1種類10問・難易度順）
 function nextProblem(){
   const e = ENEMIES[enemyIdx];
-  const type = e.field;
-  const pool = BANK[type];
-  const p = pool[qIndex % pool.length]; // 分野別・難易度順（配列の先頭から順に）
+  const pool = BANK[e.field];
+  const p = pool[qIndex % pool.length]; // 配列の先頭から順番に
   qIndex++;
-  const sym = (type === 'cube') ? '∛' : '√';
-  current = { type, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
+  const sym = (e.field === 'cube') ? '∛' : '√';
+  current = { type:e.field, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
+  renderProblem();
+}
 
+// 問題文＋入力欄を描画（まちがえたら同じ問題を再描画するので分離）
+function renderProblem(){
+  const type = current.type, sym = current.sym;
   $('qType').textContent = TYPE_LABEL[type];
-  $('qText').innerHTML = current.q;
+
+  // 有理化は分数表記（分子が上・分母が下）
+  if (type === 'rational' && current.q.indexOf('/') >= 0){
+    const parts = current.q.split('/');
+    const num = parts[0].trim(), den = parts[1].trim();
+    $('qText').innerHTML = `<span class="frac"><span class="num">${num}</span><span class="den">${den}</span></span>`;
+  } else {
+    $('qText').innerHTML = current.q;
+  }
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
   const wrap = $('choices');
@@ -310,16 +330,16 @@ function nextProblem(){
   const ans = current.ans;
   let rowHtml, hint;
   if (ans.rad === 1) {
-    // 整数（ルートなし）
-    rowHtml = `<input class="ans-in ans-wide" id="coefIn" type="number" inputmode="numeric" placeholder="?">`;
+    // 整数（ルートなし）→ √は出さない
+    rowHtml = `<input class="ans-in ans-wide" id="coefIn" type="number" inputmode="numeric">`;
     hint = '答えの数を入力しよう';
   } else if (ans.coef === 1) {
     // 係数なし → 「√〇」の穴うめ（1ボックス）
-    rowHtml = `<span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="?">`;
+    rowHtml = `<span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric">`;
     hint = sym + '〇 の 〇 に入る数を入力しよう';
   } else {
     // 〇√△
-    rowHtml = `<input class="ans-in" id="coefIn" type="number" inputmode="numeric" placeholder="?"><span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="?">`;
+    rowHtml = `<input class="ans-in" id="coefIn" type="number" inputmode="numeric"><span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric">`;
     hint = '〇' + sym + '△ の 〇と△ を入力しよう';
   }
   wrap.innerHTML = `
@@ -363,38 +383,36 @@ function submitAnswer(){
 
 function resolve(correct){
   if(correct){
-    const sec = (performance.now()-qStart)/1000;
-    const dmg = 10 + (sec<4?8:sec<8?4:0); // 速いほど大ダメージ
-    enemyHp -= dmg;
-    $('feedback').textContent = '🗡 ' + dmg;
+    enemyHp -= 1; // 1問正解で敵の♥を1つ減らす
+    $('feedback').textContent = '⭕ せいかい！';
     $('feedback').className = 'feedback good';
     const em = $('enemyEmoji');
     em.classList.remove('hit'); void em.offsetWidth; em.classList.add('hit');
-    showDmg(dmg);
+    showDmg('♥');
     updateEnemyHp();
     if(enemyHp <= 0){
       em.classList.add('defeated');
       setTimeout(()=>{
         if(enemyIdx >= ENEMIES.length-1){ win(); }
-        else { enemyIdx++; loadEnemy(); }
+        else { enemyIdx++; loadEnemy(); } // 10問すべて正解で次の種類へ
       }, 800);
     } else {
-      setTimeout(nextProblem, 800);
+      setTimeout(nextProblem, 700);
     }
   } else {
-    hearts -= 1;
+    hearts -= 1; // まちがえると自分の♥が減る
     updateHearts();
     $('feedback').textContent = '💥 ミス！正解は ' + current.a;
     $('feedback').className = 'feedback bad';
     if(hearts <= 0){ setTimeout(gameOver, 1300); }
-    else { setTimeout(nextProblem, 1500); }
+    else { setTimeout(renderProblem, 1500); } // 同じ問題をもう一度（10問解くまで進めない）
   }
 }
 
 function showDmg(d){
   const pop = document.createElement('div');
   pop.className = 'dmg-pop';
-  pop.textContent = '-' + d;
+  pop.textContent = '-' + d; // 敵の♥が1つ減る演出
   const card = document.querySelector('.enemy-card');
   pop.style.left = (card.offsetLeft + card.offsetWidth/2 - 10) + 'px';
   pop.style.top = (card.offsetTop + 60) + 'px';
