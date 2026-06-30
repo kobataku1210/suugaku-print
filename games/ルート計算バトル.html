@@ -242,18 +242,20 @@ const BANK = {
 };
 const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', cube:'⑤ 三乗根（∛）を外す' };
 
-// ===== 敵 =====
+// ===== 敵（分野別・難易度順に1体ずつ）=====
 const ENEMIES = [
-  { name:'コウモリ',   emoji:'🦇', hp:28, types:['simplify','muldiv'] },
-  { name:'オーガ',     emoji:'👹', hp:40, types:['addsub','rational'] },
-  { name:'ドラゴン王', emoji:'🐉', hp:72, types:['simplify','muldiv','addsub','rational','cube'] },
+  { name:'コウモリ',   emoji:'🦇', hp:50, field:'simplify' },
+  { name:'ヘビ',       emoji:'🐍', hp:55, field:'muldiv' },
+  { name:'オーガ',     emoji:'👹', hp:55, field:'addsub' },
+  { name:'ゾンビ',     emoji:'🧟', hp:55, field:'rational' },
+  { name:'ドラゴン王', emoji:'🐉', hp:60, field:'cube' },
 ];
 const MAX_HEARTS = 5;
 const REWARD_KEY = 'rootbattle';
 
 // ===== 状態 =====
 let enemyIdx = 0, enemyHp = 0, hearts = MAX_HEARTS;
-let current = null, qStart = 0, locked = false, recent = [];
+let current = null, qStart = 0, locked = false, qIndex = 0;
 
 const $ = id => document.getElementById(id);
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
@@ -268,6 +270,7 @@ function startGame(){
 function loadEnemy(){
   const e = ENEMIES[enemyIdx];
   enemyHp = e.hp;
+  qIndex = 0;
   $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
   $('enemyEmoji').textContent = e.emoji;
   $('enemyEmoji').className = 'enemy-emoji';
@@ -290,11 +293,10 @@ function updateHearts(){
 
 function nextProblem(){
   const e = ENEMIES[enemyIdx];
-  const type = e.types[Math.floor(Math.random()*e.types.length)];
+  const type = e.field;
   const pool = BANK[type];
-  let p, tries=0;
-  do { p = pool[Math.floor(Math.random()*pool.length)]; tries++; } while(recent.includes(p.q) && tries<30);
-  recent.push(p.q); if(recent.length>6) recent.shift();
+  const p = pool[qIndex % pool.length]; // 分野別・難易度順（配列の先頭から順に）
+  qIndex++;
   const sym = (type === 'cube') ? '∛' : '√';
   current = { type, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
 
@@ -303,16 +305,26 @@ function nextProblem(){
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
   const wrap = $('choices');
-  const hint = (type === 'cube')
-    ? '〇∛△ の形で答えよう（整数は中を 1、∛だけは前を 1）'
-    : '〇√△ の形で答えよう（整数は √ の中を 1、ルートだけは前を 1）';
+
+  // 答えの形に合わせて入力欄を出し分け
+  const ans = current.ans;
+  let rowHtml, hint;
+  if (ans.rad === 1) {
+    // 整数（ルートなし）
+    rowHtml = `<input class="ans-in ans-wide" id="coefIn" type="number" inputmode="numeric" placeholder="?">`;
+    hint = '答えの数を入力しよう';
+  } else if (ans.coef === 1) {
+    // 係数なし → 「√〇」の穴うめ（1ボックス）
+    rowHtml = `<span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="?">`;
+    hint = sym + '〇 の 〇 に入る数を入力しよう';
+  } else {
+    // 〇√△
+    rowHtml = `<input class="ans-in" id="coefIn" type="number" inputmode="numeric" placeholder="?"><span class="ans-root">${sym}</span><input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="?">`;
+    hint = '〇' + sym + '△ の 〇と△ を入力しよう';
+  }
   wrap.innerHTML = `
     <div class="ans-hint">${hint}</div>
-    <div class="ans-row">
-      <input class="ans-in" id="coefIn" type="number" inputmode="numeric" placeholder="1">
-      <span class="ans-root">${sym}</span>
-      <input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="1">
-    </div>
+    <div class="ans-row">${rowHtml}</div>
     <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
   wrap.querySelectorAll('input').forEach(inp => {
