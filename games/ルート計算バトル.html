@@ -67,6 +67,7 @@
 
   .choices { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .ans-hint { font-size: 13px; color:#bcd; text-align:center; }
+  .ans-hint.hint-tip { font-size: 14px; color:#ffd200; font-weight:700; line-height:1.5; max-width: 340px; }
   .ans-row { display:flex; align-items:center; justify-content:center; gap: 10px; }
   .ans-in {
     width: 90px; height: 70px; text-align:center; border-radius: 14px;
@@ -271,6 +272,14 @@ const BANK = {
   ],
 };
 const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', cube:'⑤ 三乗根（∛）を外す' };
+// ミスしたとき：答えではなく考え方のヒントを出す
+const HINT = {
+  simplify: '💡 √の中を「平方数 × 〇」に分けよう（4・9・16・25…）',
+  muldiv:   '💡 √a×√b=√(a×b)、√a÷√b=√(a÷b) を使おう',
+  addsub:   '💡 √の中が同じものどうしをまとめよう（ちがうときは先に√を簡単に）',
+  rational: '💡 分母と同じ√を、分母と分子の両方にかけよう',
+  cube:     '💡 ∛は3回かけて中の数になる。「3乗 × 〇」に分けよう',
+};
 
 // ===== 敵（分野別・難易度順に1体ずつ）=====
 const ENEMIES = [
@@ -286,7 +295,7 @@ const REWARD_KEY = 'rootbattle';
 
 // ===== 状態 =====
 let enemyIdx = 0, enemyHp = 0, hearts = MAX_HEARTS;
-let current = null, qStart = 0, locked = false, qIndex = 0, qOrder = [];
+let current = null, qStart = 0, locked = false, qIndex = 0, qOrder = [], showHint = false;
 
 const $ = id => document.getElementById(id);
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
@@ -371,6 +380,7 @@ function nextProblem(){
   qIndex++;
   const sym = (e.field === 'cube') ? '∛' : '√';
   current = { type:e.field, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
+  showHint = false; // 新しい問題ではヒントを消す
   renderProblem();
 }
 
@@ -409,6 +419,7 @@ function renderProblem(){
   }
   wrap.innerHTML = `
     <div class="ans-hint">${hint}</div>
+    ${showHint ? `<div class="ans-hint hint-tip">${HINT[type]||''}</div>` : ''}
     <div class="ans-row">${rowHtml}</div>
     <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
@@ -473,7 +484,8 @@ function resolve(correct){
   } else {
     hearts -= 1; // まちがえると自分の♥が減る
     updateHearts();
-    $('feedback').textContent = '💥 ミス！正解は ' + current.a;
+    showHint = true; // 正解は出さず、ヒントを表示
+    $('feedback').textContent = '💥 ミス！';
     $('feedback').className = 'feedback bad';
     if(hearts <= 0){ setTimeout(gameOver, 1300); }
     else { setTimeout(renderProblem, 1500); } // 同じ問題をもう一度（10問解くまで進めない）
