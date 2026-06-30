@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-21n';
+const APP_VERSION = '2026-06-21o';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1226,7 +1226,7 @@ const GAME_ITEMS = [
   },
   {
     title: 'ルート計算バトル',
-    desc: '簡約・乗除・加減・有理化・式の値を解いてモンスターを倒せ！平方根の総復習',
+    desc: '簡約・乗除・加減・有理化・三乗根を解いてモンスターを倒せ！平方根の総復習',
     icon: '⚔️',
     onclick: "window.location.href='games/ルート計算バトル.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #ff5577, #c8265a)',

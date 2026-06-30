@@ -92,7 +92,7 @@
   <div id="title-screen" class="screen active">
     <div class="title-logo">ルート計算バトル</div>
     <div class="title-sub">⚔️ 平方根の総復習</div>
-    <div class="title-desc">問題に正解して モンスターを たおそう！<br>簡約・乗除・加減・有理化・式の値…ぜんぶ出るよ。<br>まちがえると ♥ が へるので 気をつけて！</div>
+    <div class="title-desc">問題に正解して モンスターを たおそう！<br>簡約・乗除・加減・有理化・三乗根…ぜんぶ出るよ。<br>まちがえると ♥ が へるので 気をつけて！</div>
     <button class="btn btn-start" id="startBtn">スタート</button>
     <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
   </div>
@@ -227,26 +227,26 @@ const BANK = {
     { q:'16 / √2', a:'8√2', choices:['8√2','16√2','8','√128'] },
     { q:'24 / √6', a:'4√6', choices:['4√6','24√6','4','√96'] },
   ],
-  shiki: [
-    { q:'√2=1.414 のとき<br>√8 = ?',  a:'2.828', choices:['2.828','1.414','5.656','8'] },
-    { q:'√3=1.732 のとき<br>√12 = ?', a:'3.464', choices:['3.464','1.732','6.928','12'] },
-    { q:'√5=2.236 のとき<br>√20 = ?', a:'4.472', choices:['4.472','2.236','8.944','20'] },
-    { q:'√2=1.414 のとき<br>√18 = ?', a:'4.242', choices:['4.242','2.828','1.414','18'] },
-    { q:'√3=1.732 のとき<br>√27 = ?', a:'5.196', choices:['5.196','3.464','1.732','27'] },
-    { q:'√2=1.414 のとき<br>√50 = ?', a:'7.07',  choices:['7.07','2.828','1.414','50'] },
-    { q:'√5=2.236 のとき<br>√45 = ?', a:'6.708', choices:['6.708','2.236','4.472','45'] },
-    { q:'√3=1.732 のとき<br>√48 = ?', a:'6.928', choices:['6.928','3.464','1.732','48'] },
-    { q:'√2=1.414 のとき<br>√32 = ?', a:'5.656', choices:['5.656','2.828','1.414','32'] },
-    { q:'√5=2.236 のとき<br>√80 = ?', a:'8.944', choices:['8.944','4.472','2.236','80'] },
+  cube: [
+    { q:'∛8',   a:'2' },
+    { q:'∛27',  a:'3' },
+    { q:'∛64',  a:'4' },
+    { q:'∛125', a:'5' },
+    { q:'∛24',  a:'2∛3' },
+    { q:'∛54',  a:'3∛2' },
+    { q:'∛16',  a:'2∛2' },
+    { q:'∛40',  a:'2∛5' },
+    { q:'∛48',  a:'2∛6' },
+    { q:'∛81',  a:'3∛3' },
   ],
 };
-const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', shiki:'⑤ 式の値' };
+const TYPE_LABEL = { simplify:'① √を簡単に', muldiv:'② かけ算・わり算', addsub:'③ たし算・ひき算', rational:'④ 分母の有理化', cube:'⑤ 三乗根（∛）を外す' };
 
 // ===== 敵 =====
 const ENEMIES = [
   { name:'コウモリ',   emoji:'🦇', hp:28, types:['simplify','muldiv'] },
   { name:'オーガ',     emoji:'👹', hp:40, types:['addsub','rational'] },
-  { name:'ドラゴン王', emoji:'🐉', hp:72, types:['simplify','muldiv','addsub','rational','shiki'] },
+  { name:'ドラゴン王', emoji:'🐉', hp:72, types:['simplify','muldiv','addsub','rational','cube'] },
 ];
 const MAX_HEARTS = 5;
 const REWARD_KEY = 'rootbattle';
@@ -295,30 +295,25 @@ function nextProblem(){
   let p, tries=0;
   do { p = pool[Math.floor(Math.random()*pool.length)]; tries++; } while(recent.includes(p.q) && tries<30);
   recent.push(p.q); if(recent.length>6) recent.shift();
-  current = { type, q:p.q, a:p.a, ans: parseAns(p.a, type) };
+  const sym = (type === 'cube') ? '∛' : '√';
+  current = { type, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
 
   $('qType').textContent = TYPE_LABEL[type];
   $('qText').innerHTML = current.q;
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
   const wrap = $('choices');
-  if (type === 'shiki') {
-    wrap.innerHTML = `
-      <div class="ans-hint">小数で答えよう</div>
-      <div class="ans-row">
-        <input class="ans-in ans-wide" id="decIn" type="number" step="0.001" inputmode="decimal" placeholder="?">
-      </div>
-      <button class="ans-btn" id="ansBtn">こうげき！</button>`;
-  } else {
-    wrap.innerHTML = `
-      <div class="ans-hint">〇√△ の形で答えよう（整数は √ の中を 1、ルートだけは前を 1）</div>
-      <div class="ans-row">
-        <input class="ans-in" id="coefIn" type="number" inputmode="numeric" value="1">
-        <span class="ans-root">√</span>
-        <input class="ans-in" id="radIn" type="number" inputmode="numeric" value="1">
-      </div>
-      <button class="ans-btn" id="ansBtn">こうげき！</button>`;
-  }
+  const hint = (type === 'cube')
+    ? '〇∛△ の形で答えよう（整数は中を 1、∛だけは前を 1）'
+    : '〇√△ の形で答えよう（整数は √ の中を 1、ルートだけは前を 1）';
+  wrap.innerHTML = `
+    <div class="ans-hint">${hint}</div>
+    <div class="ans-row">
+      <input class="ans-in" id="coefIn" type="number" inputmode="numeric" value="1">
+      <span class="ans-root">${sym}</span>
+      <input class="ans-in" id="radIn" type="number" inputmode="numeric" value="1">
+    </div>
+    <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
   wrap.querySelectorAll('input').forEach(inp => {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
@@ -329,29 +324,24 @@ function nextProblem(){
   qStart = performance.now();
 }
 
-// 答え文字列を {coef, rad} か {dec} に変換
-function parseAns(a, type){
-  if (type === 'shiki') return { dec: parseFloat(a) };
-  if (a.indexOf('√') >= 0){
-    const parts = a.split('√');
+// 答え文字列を {coef, rad} に変換（√・∛ どちらも対応）
+function parseAns(a){
+  const sym = a.indexOf('∛') >= 0 ? '∛' : (a.indexOf('√') >= 0 ? '√' : null);
+  if (sym){
+    const parts = a.split(sym);
     const coef = parts[0] === '' ? 1 : parseInt(parts[0], 10);
     const rad = parseInt(parts[1], 10);
     return { coef, rad };
   }
-  return { coef: parseInt(a, 10), rad: 1 };
+  return { coef: parseInt(a, 10), rad: 1 }; // 整数（中を1扱い）
 }
 
 function submitAnswer(){
   if(locked) return;
   let correct = false;
-  if (current.type === 'shiki'){
-    const v = parseFloat(($('decIn')||{}).value);
-    if (!isNaN(v) && Math.abs(v - current.ans.dec) < 0.02) correct = true;
-  } else {
-    const c = parseInt(($('coefIn')||{}).value, 10);
-    const r = parseInt(($('radIn')||{}).value, 10);
-    if (c === current.ans.coef && r === current.ans.rad) correct = true;
-  }
+  const c = parseInt(($('coefIn')||{}).value, 10);
+  const r = parseInt(($('radIn')||{}).value, 10);
+  if (c === current.ans.coef && r === current.ans.rad) correct = true;
   locked = true;
   $('choices').querySelectorAll('input,button').forEach(el => el.disabled = true);
   resolve(correct);
