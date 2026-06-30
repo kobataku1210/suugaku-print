@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22c';
+const APP_VERSION = '2026-06-22d';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1137,6 +1137,8 @@ const GAME_CATEGORIES = [
     gradient: 'linear-gradient(90deg, #ff8a2a, #e05a00)' },
   { id: 'sqrt',   label: '平方根',           icon: '√',
     gradient: 'linear-gradient(90deg, #2196f3, #0d47a1)' },
+  { id: 'logic',  label: 'パズル・思考',      icon: '🧩',
+    gradient: 'linear-gradient(90deg, #16a34a, #15803d)' },
 ];
 
 const GAME_ITEMS = [
@@ -1232,6 +1234,16 @@ const GAME_ITEMS = [
     gradient: 'linear-gradient(135deg, #ff5577, #c8265a)',
     isNew: true,
     category: 'sqrt',
+  },
+  {
+    title: '不等号ナンプレ',
+    desc: 'タテ・ヨコに1〜Nを1回ずつ。不等号（&lt; &gt; ∧ ∨）の大小も守って完成！初級・中級・上級',
+    icon: '🔢',
+    onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #34d399, #059669)',
+    isNew: true,
+    draft: true, // プレビュー限定（確認後に公開）
+    category: 'logic',
   },
 ];
 // ===== ランキング画面 =====

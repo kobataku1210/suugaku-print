@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>不等号ナンプレ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #11203a; }
+  body { font-family: 'Hiragino Sans','Meiryo','Yu Gothic',sans-serif; color: #fff; }
+  #app { position: relative; width: 100%; min-height: 100%; max-width: 720px; margin: 0 auto; padding: 16px; }
+
+  .screen { display: none; flex-direction: column; gap: 14px; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  .logo { text-align:center; font-size: clamp(26px,6vw,40px); font-weight: 900; letter-spacing: 1px;
+    background: linear-gradient(90deg,#56d2ff,#7af5b0); -webkit-background-clip:text; background-clip:text; color: transparent; }
+  .sub { text-align:center; font-size: 13px; color:#9fb6d6; line-height:1.8; }
+  .btn { border:none; border-radius: 999px; font-weight:800; cursor:pointer; font-family:inherit; transition: transform .1s; }
+  .btn:active { transform: scale(.96); }
+  .btn-home { background:#ffffff22; color:#fff; font-size:13px; padding:9px 22px; border:1px solid #ffffff33; align-self:center; }
+  .btn-back { background:#ffffff18; color:#cfe; font-size:13px; padding:8px 18px; border:1px solid #ffffff22; align-self:flex-start; }
+
+  /* 難易度選択 */
+  .diff-block { background:#16264a; border-radius:16px; padding:14px; box-shadow: inset 0 0 0 1px #ffffff14; }
+  .diff-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .diff-title { font-size:18px; font-weight:900; }
+  .diff-reward { font-size:12px; color:#9ded62; font-weight:800; }
+  .easy .diff-title { color:#7af5b0; } .medium .diff-title { color:#ffd86b; } .hard .diff-title { color:#ff8aa6; }
+  .puz-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:10px; }
+  .puz-btn { position:relative; aspect-ratio:1; border:none; border-radius:14px; cursor:pointer; font-family:inherit;
+    font-size:22px; font-weight:900; color:#10233f; background:linear-gradient(135deg,#cfe8ff,#9ec8f0);
+    display:flex; align-items:center; justify-content:center; transition: transform .1s; }
+  .puz-btn:active { transform: scale(.95); }
+  .puz-btn.cleared { background:linear-gradient(135deg,#ffe08a,#ffc24d); }
+  .puz-btn .pz-check { position:absolute; top:4px; right:6px; font-size:13px; }
+  .puz-btn .pz-size { position:absolute; bottom:4px; font-size:10px; color:#33507a; font-weight:700; }
+
+  /* パズル画面 */
+  #play-screen { align-items:center; }
+  .play-head { width:100%; display:flex; justify-content:space-between; align-items:center; }
+  .play-title { font-size:16px; font-weight:900; }
+  .play-reward { font-size:12px; color:#9ded62; font-weight:800; }
+  .grid-wrap { display:flex; justify-content:center; margin:6px 0; }
+  .fp-grid { display:grid; justify-content:center; align-content:center; }
+  .fp-cell { width:var(--fp-cell); height:var(--fp-cell); display:flex; align-items:center; justify-content:center;
+    border-radius:10px; font-size:calc(var(--fp-cell)*0.5); font-weight:900; font-family:'Times New Roman',serif; }
+  .fp-cell.given { background:#24395f; color:#bcd3f5; }
+  .fp-cell.editable { background:#fbf7ec; color:#1a2a4a; cursor:pointer; box-shadow: inset 0 0 0 2px #ffffff22; }
+  .fp-cell.editable.sel { box-shadow: inset 0 0 0 3px #ffd200; background:#fffbe8; }
+  .fp-cell.editable.bad { background:#ffd9d9; }
+  .fp-sign { display:flex; align-items:center; justify-content:center; color:#ffd86b; font-weight:900;
+    font-size:calc(var(--fp-gap)*0.95); font-family:'Times New Roman',serif; }
+  .fp-x { }
+
+  .pad { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:4px; }
+  .pad-btn { min-width:46px; height:52px; border:none; border-radius:12px; font-size:22px; font-weight:900;
+    font-family:inherit; cursor:pointer; background:linear-gradient(135deg,#3a5a8c,#28406a); color:#fff; padding:0 8px; }
+  .pad-btn:active { transform: scale(.95); }
+  .pad-btn.del { background:linear-gradient(135deg,#8c4a4a,#6a2828); }
+  .play-msg { min-height:24px; font-size:14px; font-weight:800; text-align:center; }
+  .play-msg.ok { color:#7af5b0; } .play-msg.ng { color:#ff9d9d; }
+  .play-tip { font-size:12px; color:#9fb6d6; text-align:center; line-height:1.7; }
+
+  /* クリア演出 */
+  .overlay { position:fixed; inset:0; background:rgba(6,12,26,.82); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.show { display:flex; }
+  .ov-card { background:linear-gradient(180deg,#1c2f56,#13213e); border-radius:20px; padding:26px 22px; text-align:center;
+    max-width:340px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .ov-emoji { font-size:54px; }
+  .ov-title { font-size:24px; font-weight:900; color:#ffd86b; margin:6px 0; }
+  .ov-reward { background:#0e1c36; border-radius:12px; padding:10px; font-size:18px; font-weight:800; margin:10px 0; }
+  .ov-reward .pea { color:#9ded62; font-size:24px; }
+  .ov-btns { display:flex; gap:10px; margin-top:12px; }
+  .ov-btn { flex:1; border:none; border-radius:999px; padding:12px; font-weight:800; font-family:inherit; cursor:pointer; }
+  .ov-next { background:linear-gradient(135deg,#56d2ff,#3a9fd6); color:#06243a; }
+  .ov-list { background:#ffffff22; color:#fff; border:1px solid #ffffff33; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 難易度＆パズル一覧 -->
+  <div id="select-screen" class="screen active">
+    <div class="logo">不等号ナンプレ</div>
+    <div class="sub">タテ・ヨコに1〜N を1回ずつ。<br>マスの間の不等号（&lt; &gt; ∧ ∨）の大小も守ろう！</div>
+    <div id="diff-list"></div>
+    <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+  <!-- パズルを解く -->
+  <div id="play-screen" class="screen">
+    <button class="btn btn-back" onclick="backToSelect()">← 一覧へ</button>
+    <div class="play-head">
+      <span class="play-title" id="playTitle">問題</span>
+      <span class="play-reward" id="playReward"></span>
+    </div>
+    <div class="grid-wrap"><div class="fp-grid" id="grid"></div></div>
+    <div class="pad" id="pad"></div>
+    <div class="play-msg" id="playMsg"></div>
+    <div class="play-tip">マスをタップ → 数字を入れる。「⌫」で消す。<br>不等号は「とがった方が小さい」よ。</div>
+  </div>
+
+  <!-- クリア演出 -->
+  <div class="overlay" id="overlay">
+    <div class="ov-card">
+      <div class="ov-emoji" id="ovEmoji">🎉</div>
+      <div class="ov-title" id="ovTitle">クリア！</div>
+      <div class="ov-reward" id="ovReward" style="display:none"></div>
+      <div id="ovSub" style="font-size:13px;color:#9fb6d6"></div>
+      <div class="ov-btns">
+        <button class="ov-btn ov-next" id="ovNext">次の問題へ ›</button>
+        <button class="ov-btn ov-list" onclick="closeOverlay();backToSelect()">一覧へ</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js?v=2"></script>
+<script>
+'use strict';
+
+// ============================================================
+//  解答グリッド（妥当なラテン方陣）。難易度順に 初級5(4×4)・中級5(5×5)・上級5(5×5)
+// ============================================================
+const SOLUTIONS = [
+  // ----- 初級 4×4 -----
+  [[1,2,3,4],[2,3,4,1],[3,4,1,2],[4,1,2,3]],
+  [[4,3,2,1],[3,2,1,4],[2,1,4,3],[1,4,3,2]],
+  [[1,4,3,2],[2,1,4,3],[3,2,1,4],[4,3,2,1]],
+  [[2,3,4,1],[4,1,2,3],[1,2,3,4],[3,4,1,2]],
+  [[4,3,2,1],[1,4,3,2],[2,1,4,3],[3,2,1,4]],
+  // ----- 中級 5×5 -----
+  [[1,2,3,4,5],[2,3,4,5,1],[3,4,5,1,2],[4,5,1,2,3],[5,1,2,3,4]],
+  [[1,5,3,4,2],[2,1,4,5,3],[3,2,5,1,4],[4,3,1,2,5],[5,4,2,3,1]],
+  [[3,4,5,1,2],[1,2,3,4,5],[5,1,2,3,4],[2,3,4,5,1],[4,5,1,2,3]],
+  [[5,1,2,3,4],[4,5,1,2,3],[3,4,5,1,2],[2,3,4,5,1],[1,2,3,4,5]],
+  [[5,4,3,2,1],[1,5,4,3,2],[2,1,5,4,3],[3,2,1,5,4],[4,3,2,1,5]],
+  // ----- 上級 5×5 -----
+  [[3,2,1,4,5],[4,3,2,5,1],[5,4,3,1,2],[1,5,4,2,3],[2,1,5,3,4]],
+  [[1,2,3,4,5],[3,4,5,1,2],[5,1,2,3,4],[2,3,4,5,1],[4,5,1,2,3]],
+  [[4,5,1,2,3],[2,3,4,5,1],[5,1,2,3,4],[3,4,5,1,2],[1,2,3,4,5]],
+  [[5,4,3,2,1],[2,1,5,4,3],[4,3,2,1,5],[1,5,4,3,2],[3,2,1,5,4]],
+  [[1,2,3,4,5],[4,5,1,2,3],[2,3,4,5,1],[5,1,2,3,4],[3,4,5,1,2]],
+];
+
+// 難易度設定（与える数字の数・報酬）
+const GROUPS = [
+  { key:'easy',   label:'初級', sols:[0,1,2,3,4],      givens:6, minIneq:3, reward:100 },
+  { key:'medium', label:'中級', sols:[5,6,7,8,9],      givens:8, minIneq:4, reward:500 },
+  { key:'hard',   label:'上級', sols:[10,11,12,13,14], givens:3, minIneq:5, reward:1000 },
+];
+
+// ---- 乱数（シード固定で全員同じ問題になる）----
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffle(arr, rng){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// ---- 解の個数を数える（limit で打ち切り）----
+function countSolutions(c, limit){
+  const N=c.n;
+  const given=Array.from({length:N},()=>Array(N).fill(0));
+  c.givens.forEach(([r,cc,v])=>given[r][cc]=v);
+  const hmap={}; c.h.forEach(([r,cc,s])=>hmap[r+','+cc]=s);
+  const vmap={}; c.v.forEach(([r,cc,s])=>vmap[r+','+cc]=s);
+  const g=Array.from({length:N},()=>Array(N).fill(0));
+  const rowUsed=Array.from({length:N},()=>Array(N+1).fill(false));
+  const colUsed=Array.from({length:N},()=>Array(N+1).fill(false));
+  let count=0;
+  function rec(pos){
+    if(count>=limit) return;
+    if(pos===N*N){ count++; return; }
+    const r=(pos/N)|0, cc=pos%N, fixed=given[r][cc];
+    for(let v=1;v<=N;v++){
+      if(fixed && v!==fixed) continue;
+      if(rowUsed[r][v]||colUsed[cc][v]) continue;
+      if(cc>0){ const s=hmap[r+','+(cc-1)]; if(s){ const left=g[r][cc-1]; if(s==='<'&&!(left<v))continue; if(s==='>'&&!(left>v))continue; } }
+      if(r>0){ const s=vmap[(r-1)+','+cc]; if(s){ const up=g[r-1][cc]; if(s==='<'&&!(up<v))continue; if(s==='>'&&!(up>v))continue; } }
+      g[r][cc]=v; rowUsed[r][v]=true; colUsed[cc][v]=true;
+      rec(pos+1);
+      rowUsed[r][v]=false; colUsed[cc][v]=false; g[r][cc]=0;
+      if(count>=limit) return;
+    }
+  }
+  rec(0);
+  return count;
+}
+
+// ---- 解答から「一意に解ける」問題（与え数字＋不等号）を生成 ----
+function buildPuzzle(sol, rng, targetGivens, minIneq){
+  const N=sol.length;
+  const cells=[]; for(let r=0;r<N;r++) for(let c=0;c<N;c++) cells.push([r,c]);
+  const allH=[]; for(let r=0;r<N;r++) for(let c=0;c<N-1;c++) allH.push([r,c]);
+  const allV=[]; for(let r=0;r<N-1;r++) for(let c=0;c<N;c++) allV.push([r,c]);
+  const shCells=shuffle(cells,rng), hpool=shuffle(allH,rng), vpool=shuffle(allV,rng);
+  let givens=shCells.slice(0,targetGivens).map(([r,c])=>[r,c,sol[r][c]]);
+  let hset=[], vset=[];
+  const hSign=([r,c])=>[r,c, sol[r][c]<sol[r][c+1]?'<':'>'];
+  const vSign=([r,c])=>[r,c, sol[r][c]<sol[r+1][c]?'<':'>'];
+  const cur=()=>({ n:N, givens, h:hset.map(hSign), v:vset.map(vSign) });
+  let hi=0, vi=0, t=0, guard=0;
+  while(countSolutions(cur(),2) > 1 && guard++ < 2000){
+    if(t%2===0 && hi<hpool.length) hset.push(hpool[hi++]);
+    else if(vi<vpool.length) vset.push(vpool[vi++]);
+    else if(hi<hpool.length) hset.push(hpool[hi++]);
+    else { const rem=shCells.find(([r,c])=>!givens.some(g=>g[0]===r&&g[1]===c)); if(rem) givens.push([rem[0],rem[1],sol[rem[0]][rem[1]]]); else break; }
+    t++;
+  }
+  // 余分な不等号を削る（一意のまま）
+  for(let i=hset.length-1;i>=0;i--){ const b=hset[i]; hset.splice(i,1); if(countSolutions(cur(),2)!==1) hset.splice(i,0,b); }
+  for(let i=vset.length-1;i>=0;i--){ const b=vset[i]; vset.splice(i,1); if(countSolutions(cur(),2)!==1) vset.splice(i,0,b); }
+  // 不等号が少なすぎる場合は、解に矛盾しない辺を足す（一意性は保たれる）
+  if(minIneq){
+    const usedH=new Set(hset.map(e=>e[0]+','+e[1])), usedV=new Set(vset.map(e=>e[0]+','+e[1]));
+    const extra=shuffle(
+      allH.filter(e=>!usedH.has(e[0]+','+e[1])).map(e=>['h',e])
+      .concat(allV.filter(e=>!usedV.has(e[0]+','+e[1])).map(e=>['v',e])), rng);
+    let need = minIneq - (hset.length+vset.length);
+    for(let i=0;i<extra.length && need>0;i++){ const [k,e]=extra[i]; if(k==='h') hset.push(e); else vset.push(e); need--; }
+  }
+  return cur();
+}
+
+// ---- 全15問を生成 ----
+function buildAllPuzzles(){
+  const out=[];
+  GROUPS.forEach((g,gi)=>{
+    g.sols.forEach((solIdx,si)=>{
+      const rng=mulberry32(1000 + gi*100 + si*7 + 3);
+      const p=buildPuzzle(SOLUTIONS[solIdx], rng, g.givens, g.minIneq);
+      out.push({ id:g.key+(si+1), group:g.key, label:g.label, n:p.n, givens:p.givens, h:p.h, v:p.v, reward:g.reward, num:si+1 });
+    });
+  });
+  return out;
+}
+const PUZZLES = buildAllPuzzles();
+
+// ============================================================
+//  進捗（localStorage）
+// ============================================================
+const PROGRESS_KEY = 'futoshiki_v1';
+function loadProg(){ try { const p=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null'); if(p&&p.cleared) return p; } catch(e){} return { cleared:{} }; }
+function saveProg(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){} }
+
+// 数学HPの🌱に加算（お椀＋すごろく）
+function addEarnedPeas(amount){
+  if(amount<=0) return;
+  try { const p=JSON.parse(localStorage.getItem('mathPrint_v2')||'{}')||{}; let cur=p.peaCount||0,cups=p.peaCupCount||0; cur+=amount; while(cur>=45){cur-=45;cups++;} p.peaCount=cur; p.peaCupCount=cups; if(!p.done||typeof p.done!=='object') p.done={}; localStorage.setItem('mathPrint_v2', JSON.stringify(p)); } catch(e){}
+  try { const stage=parseInt(localStorage.getItem('sgCurrentStage')||'1'); const key=stage===2?'sgSave_v2':'sgSave_v1'; const sv=JSON.parse(localStorage.getItem(key)||'{}')||{}; sv.peas=(sv.peas||0)+amount; localStorage.setItem(key, JSON.stringify(sv)); } catch(e){}
+}
+
+const $ = id => document.getElementById(id);
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+
+// ============================================================
+//  一覧画面
+// ============================================================
+function renderSelect(){
+  const prog=loadProg();
+  $('diff-list').innerHTML = GROUPS.map(g=>{
+    const puzzles = PUZZLES.filter(p=>p.group===g.key);
+    const btns = puzzles.map(p=>{
+      const cleared = !!prog.cleared[p.id];
+      return `<button class="puz-btn${cleared?' cleared':''}" onclick="openPuzzle('${p.id}')">
+        ${p.num}<span class="pz-size">${p.n}×${p.n}</span>${cleared?'<span class="pz-check">✅</span>':''}</button>`;
+    }).join('');
+    return `<div class="diff-block ${g.key}">
+      <div class="diff-head"><span class="diff-title">${g.label}</span><span class="diff-reward">初クリア 🌱+${g.reward}</span></div>
+      <div class="puz-grid">${btns}</div>
+    </div>`;
+  }).join('');
+  showScreen('select-screen');
+}
+
+// ============================================================
+//  パズル画面
+// ============================================================
+let cur = null;       // 現在のパズル
+let vals = null;      // 入力値の2次元配列（givenは0扱い、固定）
+let sel = null;       // 選択中 {r,c}
+
+function openPuzzle(id){
+  cur = PUZZLES.find(p=>p.id===id);
+  if(!cur) return;
+  const N=cur.n;
+  vals = Array.from({length:N},()=>Array(N).fill(0));
+  cur.givens.forEach(([r,c,v])=>{ vals[r][c]=v; });
+  sel = null;
+  $('playTitle').textContent = `${cur.label} ${cur.num}（${N}×${N}）`;
+  $('playReward').textContent = loadProg().cleared[cur.id] ? '✅ クリア済み' : `初クリア 🌱+${cur.reward}`;
+  $('playMsg').textContent=''; $('playMsg').className='play-msg';
+  buildGrid();
+  buildPad();
+  showScreen('play-screen');
+}
+
+function isGiven(r,c){ return cur.givens.some(g=>g[0]===r&&g[1]===c); }
+
+function buildGrid(){
+  const N=cur.n;
+  const grid=$('grid');
+  grid.style.setProperty('--fp-cell', (N===4?'58px':'50px'));
+  grid.style.setProperty('--fp-gap', (N===4?'24px':'22px'));
+  const G=N+(N-1);
+  const sizes=[]; for(let i=0;i<G;i++) sizes.push(i%2===0?'var(--fp-cell)':'var(--fp-gap)');
+  grid.style.gridTemplateColumns=sizes.join(' ');
+  grid.style.gridTemplateRows=sizes.join(' ');
+  const hmap={}; cur.h.forEach(([r,c,s])=>hmap[r+','+c]=s);
+  const vmap={}; cur.v.forEach(([r,c,s])=>vmap[r+','+c]=s);
+  grid.innerHTML='';
+  for(let gr=0;gr<G;gr++) for(let gc=0;gc<G;gc++){
+    const el=document.createElement('div');
+    if(gr%2===0 && gc%2===0){
+      const r=gr/2, c=gc/2;
+      el.dataset.r=r; el.dataset.c=c;
+      if(isGiven(r,c)){ el.className='fp-cell given'; el.textContent=vals[r][c]; }
+      else { el.className='fp-cell editable'; el.textContent = vals[r][c]||''; el.onclick=()=>selectCell(r,c,el); }
+    } else if(gr%2===0 && gc%2===1){
+      const r=gr/2, c=(gc-1)/2, s=hmap[r+','+c];
+      el.className='fp-sign fp-h'; el.textContent = s||'';
+    } else if(gr%2===1 && gc%2===0){
+      const r=(gr-1)/2, c=gc/2, s=vmap[r+','+c];
+      el.className='fp-sign fp-v'; el.textContent = s? (s==='<'?'∧':'∨') : '';
+    } else { el.className='fp-x'; }
+    grid.appendChild(el);
+  }
+}
+
+function buildPad(){
+  const N=cur.n;
+  let html='';
+  for(let v=1;v<=N;v++) html+=`<button class="pad-btn" onclick="setVal(${v})">${v}</button>`;
+  html+=`<button class="pad-btn del" onclick="setVal(0)">⌫</button>`;
+  $('pad').innerHTML=html;
+}
+
+function selectCell(r,c,el){
+  document.querySelectorAll('.fp-cell.sel').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  sel={r,c};
+}
+
+function setVal(v){
+  if(!sel) { flash('まずマスをタップしてね','ng'); return; }
+  const {r,c}=sel;
+  if(isGiven(r,c)) return;
+  vals[r][c]=v;
+  // DOM更新
+  const el=[...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r && +e.dataset.c===c);
+  if(el) el.textContent = v||'';
+  clearBad();
+  checkState();
+}
+
+function flash(msg,kind){ $('playMsg').textContent=msg; $('playMsg').className='play-msg '+(kind||''); }
+function clearBad(){ document.querySelectorAll('.fp-cell.bad').forEach(e=>e.classList.remove('bad')); }
+
+// 入力状態をチェック：埋まったら正誤判定
+function checkState(){
+  const N=cur.n;
+  let filled=0;
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(vals[r][c]) filled++;
+  if(filled < N*N){ $('playMsg').textContent=''; $('playMsg').className='play-msg'; return; }
+  // 全部埋まった → 検証
+  const bad = findViolations();
+  if(bad.length===0){ win(); }
+  else { bad.forEach(([r,c])=>{ const el=[...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r&&+e.dataset.c===c); if(el) el.classList.add('bad'); }); flash('まだ条件を満たしていないよ。赤いマスを見直そう','ng'); }
+}
+
+// ルール違反のマスを返す（行/列の重複・不等号違反）
+function findViolations(){
+  const N=cur.n; const bad=new Set(); const key=(r,c)=>r+','+c;
+  // 行・列の重複
+  for(let r=0;r<N;r++){ const seen={}; for(let c=0;c<N;c++){ const v=vals[r][c]; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(r,seen[v])); } else seen[v]=c; } }
+  for(let c=0;c<N;c++){ const seen={}; for(let r=0;r<N;r++){ const v=vals[r][c]; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(seen[v],c)); } else seen[v]=r; } }
+  // 不等号
+  cur.h.forEach(([r,c,s])=>{ const a=vals[r][c], b=vals[r][c+1]; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r,c+1)); } });
+  cur.v.forEach(([r,c,s])=>{ const a=vals[r][c], b=vals[r+1][c]; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r+1,c)); } });
+  // given は赤くしない
+  return [...bad].map(k=>k.split(',').map(Number)).filter(([r,c])=>!isGiven(r,c));
+}
+
+function win(){
+  flash('🎉 正解！','ok');
+  const prog=loadProg();
+  const first = !prog.cleared[cur.id];
+  let reward=0;
+  if(first){ prog.cleared[cur.id]=true; saveProg(prog); reward=cur.reward; addEarnedPeas(reward); }
+  $('ovEmoji').textContent = first?'🎉':'✅';
+  $('ovTitle').textContent = first?'クリア！':'またクリア！';
+  if(first){ $('ovReward').style.display='block'; $('ovReward').innerHTML='🌱 <span class="pea">'+reward+'</span> 個 ゲット！'; $('ovSub').textContent=''; }
+  else { $('ovReward').style.display='none'; $('ovSub').textContent='（報酬は初クリアのときだけ）'; }
+  // 次の問題ボタン
+  const list=PUZZLES.filter(p=>p.group===cur.group);
+  const idx=list.findIndex(p=>p.id===cur.id);
+  const next=list[idx+1];
+  $('ovNext').style.display = next?'block':'none';
+  $('ovNext').onclick = ()=>{ closeOverlay(); if(next) openPuzzle(next.id); };
+  $('overlay').classList.add('show');
+}
+function closeOverlay(){ $('overlay').classList.remove('show'); }
+function backToSelect(){ closeOverlay(); renderSelect(); }
+
+renderSelect();
+</script>
+</body>
+</html>
