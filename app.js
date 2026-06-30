@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22g';
+const APP_VERSION = '2026-06-22h';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1523,7 +1523,7 @@ function renderToolsPage() {
 const PUZZLE_ITEMS = [
   {
     title: '不等号ナンプレ',
-    desc: 'タテ・ヨコに1〜Nを1回ずつ。不等号（&lt; &gt; ∧ ∨）の大小も守って完成！初級・中級・上級＋最上級',
+    desc: '',
     icon: '🔢',
     onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #34d399, #059669)',
@@ -1542,7 +1542,7 @@ function renderPuzzlesPage() {
          onclick="${p.onclick}">
       <span class="game-card-icon">${p.icon}</span>
       <div class="game-card-title">${p.title}${p.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
-      <div class="game-card-desc">${p.desc}</div>
+      ${p.desc ? `<div class="game-card-desc">${p.desc}</div>` : ''}
       <div class="game-card-cta">挑戦する ›</div>
     </div>`;
   }).join('');
