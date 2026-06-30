@@ -582,6 +582,7 @@
 
   // ===== 装飾ドラッグ =====
   let aqDrag = null;
+  let aqDecoDeleteMode = false; // 装飾の削除モード（ON中はタップで削除）
   function aqDecoPointerDown(e) {
     const el = e.currentTarget;
     const id = parseInt(el.dataset.decoId);
@@ -621,14 +622,31 @@
     if (aqDrag.moved && aqDrag.fx != null) {
       // ドラッグ：位置を保存
       if (d) { d.x = aqDrag.fx; d.y = aqDrag.fy; aqSave(s); }
+    } else if (aqDecoDeleteMode) {
+      // 削除モード中のタップ：装飾を消す
+      const idx = s.decos.findIndex(x => x.id === aqDrag.id);
+      if (idx >= 0) { s.decos.splice(idx, 1); aqSave(s); }
+      el.remove();
     } else {
       // タップ：45°回転
       const newRot = (aqDrag.rot + 45) % 360;
       if (d) { d.rot = newRot; aqSave(s); }
       el.dataset.rot = String(newRot);
+      el.style.setProperty('--aq-rot', newRot + 'deg');
       el.style.transform = 'translate(-50%,-50%) rotate(' + newRot + 'deg)';
     }
     aqDrag = null;
+  }
+
+  // 装飾の削除モードの ON/OFF
+  function aqToggleDecoDelete(btn) {
+    aqDecoDeleteMode = !aqDecoDeleteMode;
+    const tank = document.getElementById('aq-tank');
+    if (tank) tank.classList.toggle('aq-deco-delete-mode', aqDecoDeleteMode);
+    if (btn) {
+      btn.classList.toggle('aq-active', aqDecoDeleteMode);
+      btn.textContent = aqDecoDeleteMode ? '✅ 消すのをやめる' : '🗑 装飾を消す';
+    }
   }
 
   // ===== 魚ドラッグ（移動）＆タップ（餌やり）判別 =====
@@ -736,6 +754,7 @@
 
   function renderAquarium() {
     const now = Date.now();
+    aqDecoDeleteMode = false; // 画面を開くたびに削除モードはOFFで始める
     const s = aqProcessTime(aqLoad(), now);
     aqSave(s);
 
@@ -779,7 +798,7 @@
           <div class="aq-tank-floor"></div>
         </div>
 
-        <div class="aq-hint">👆 魚をタップで餌やり ／ ドラッグで移動 ／ 装飾はタップで回転</div>
+        <div class="aq-hint">👆 魚をタップで餌やり ／ ドラッグで移動 ／ 装飾はタップで回転・ドラッグで移動<br>🗑「装飾を消す」をONにして装飾をタップすると消せます</div>
 
         <div class="aq-gacha-area">
           <button class="aq-gacha-btn aq-gacha-fish" onclick="aqRollGacha('fish')">
@@ -811,6 +830,7 @@
           <button class="aq-tool-btn aq-dex-btn" onclick="aqOpenDex()">📖 ずかん</button>
           <button class="aq-tool-btn aq-list-btn" onclick="aqOpenFishList()">🐟 魚一覧・化石にする</button>
         </div>
+        <button class="aq-tool-btn aq-deco-del-btn" onclick="aqToggleDecoDelete(this)" style="width:100%;margin-bottom:1rem;">🗑 装飾を消す</button>
 
         <button class="aq-expand-btn" onclick="aqExpandTank()">
           🔧 水槽を拡大（+${EXPAND_AMOUNT}匹）　🌱${EXPAND_COST}
@@ -851,6 +871,7 @@
       el.style.top  = (d.y * 100) + '%';
       const rot = d.rot || 0;
       el.dataset.rot = String(rot);
+      el.style.setProperty('--aq-rot', rot + 'deg');
       el.style.transform = 'translate(-50%,-50%) rotate(' + rot + 'deg)';
       el.addEventListener('pointerdown', aqDecoPointerDown);
       tank.appendChild(el);
@@ -1014,5 +1035,6 @@
   window.aqExchangeAllFossils = aqExchangeAllFossils;
   window.aqOpenFishList = aqOpenFishList;
   window.aqExpandTank = aqExpandTank;
+  window.aqToggleDecoDelete = aqToggleDecoDelete;
   window.aqStopAnim = aqStopAnim;
 })();

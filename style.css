@@ -2435,6 +2435,12 @@ body {
 .aq-pea { position: absolute; z-index: 4; font-size: 16px; will-change: transform; }
 .aq-deco { position: absolute; z-index: 2; cursor: grab; transform: translate(-50%,-50%); user-select: none; touch-action: none; }
 .aq-deco-dragging { cursor: grabbing; filter: drop-shadow(0 0 8px #ffe27a); z-index: 6; }
+/* 装飾の削除モード */
+.aq-tank.aq-deco-delete-mode { box-shadow: inset 0 0 0 3px #d4537e, inset 0 0 30px rgba(0,0,0,0.35); }
+.aq-tank.aq-deco-delete-mode .aq-deco { cursor: pointer; outline: 2px dashed #ff8ab3; outline-offset: 3px; border-radius: 8px; animation: aqDecoWiggle 0.45s ease-in-out infinite; }
+@keyframes aqDecoWiggle { 0%,100%{ transform: translate(-50%,-50%) rotate(var(--aq-rot,0deg)) scale(1); } 50%{ transform: translate(-50%,-50%) rotate(var(--aq-rot,0deg)) scale(1.08); } }
+.aq-deco-del-btn { border-color: #d4537e; background: #fbe6ee; color: #7a2348; }
+.aq-deco-del-btn.aq-active { background: #d4537e; color: #fff; border-color: #a83362; }
 
 .aq-hint { text-align: center; font-size: 0.8rem; color: var(--text-sub, #678); margin: 0.6rem 0 1rem; }
 
