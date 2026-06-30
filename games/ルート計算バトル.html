@@ -263,7 +263,7 @@ const REWARD_KEY = 'rootbattle';
 
 // ===== 状態 =====
 let enemyIdx = 0, enemyHp = 0, hearts = MAX_HEARTS;
-let current = null, qStart = 0, locked = false, qIndex = 0;
+let current = null, qStart = 0, locked = false, qIndex = 0, qOrder = [];
 
 const $ = id => document.getElementById(id);
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
@@ -279,6 +279,13 @@ function loadEnemy(){
   const e = ENEMIES[enemyIdx];
   enemyHp = ENEMY_HP;
   qIndex = 0;
+  // 出題順：基本は難易度順。三乗根は「整数になる5問」だけランダムにする
+  const pool = BANK[e.field];
+  if (e.field === 'cube') {
+    qOrder = shuffle(pool.slice(0, 5)).concat(pool.slice(5, 10));
+  } else {
+    qOrder = pool.slice(0, 10);
+  }
   $('enemyName').textContent = (enemyIdx===ENEMIES.length-1?'👑 ':'') + e.name;
   $('enemyEmoji').textContent = e.emoji;
   $('enemyEmoji').className = 'enemy-emoji';
@@ -301,8 +308,7 @@ function updateHearts(){
 // 次の問題へ（正解で1問進む。1種類10問・難易度順）
 function nextProblem(){
   const e = ENEMIES[enemyIdx];
-  const pool = BANK[e.field];
-  const p = pool[qIndex % pool.length]; // 配列の先頭から順番に
+  const p = qOrder[qIndex % qOrder.length]; // loadEnemyで決めた出題順から
   qIndex++;
   const sym = (e.field === 'cube') ? '∛' : '√';
   current = { type:e.field, q:p.q, a:p.a, sym: sym, ans: parseAns(p.a) };
