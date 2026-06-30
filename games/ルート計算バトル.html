@@ -328,6 +328,9 @@ const ENEMIES = [
 const MAX_HEARTS = 5;        // プレイヤーのハート
 const ENEMY_HP = 10;         // 敵HP＝1種類10問（1問正解で♥1つ減る）
 const REWARD_KEY = 'rootbattle';
+// ステージ初クリア報酬（①10 ②20 …⑥60 最終100）。再挑戦は一律5個
+const STAGE_REWARDS = [10, 20, 30, 40, 50, 60, 100];
+const REPLAY_REWARD = 5;
 
 // ===== 状態 =====
 let enemyIdx = 0, enemyHp = 0, hearts = MAX_HEARTS;
@@ -592,11 +595,16 @@ function stageClear(i){
   $('resultTitle').textContent = stageLabel(i)+' クリア！';
   $('resultTitle').className = 'result-title win';
 
-  // 報酬：初クリア20／再挑戦5（1日5回まで）
-  let reward = firstClear ? 20 : 5;
-  let capped = false;
-  if(typeof rewardAllowed==='function' && !rewardAllowed(REWARD_KEY)){ reward = 0; capped = true; }
-  else if(reward>0){ addEarnedPeas(reward); }
+  // 報酬：初クリアはステージごとの額（1回だけなので上限なし）。再挑戦は一律5個・1日5回まで
+  let reward, capped = false;
+  if(firstClear){
+    reward = (STAGE_REWARDS[i] != null) ? STAGE_REWARDS[i] : (i===ENEMIES.length-1 ? 100 : (i+1)*10);
+    addEarnedPeas(reward);
+  } else {
+    reward = REPLAY_REWARD;
+    if(typeof rewardAllowed==='function' && !rewardAllowed(REWARD_KEY)){ reward = 0; capped = true; }
+    else { addEarnedPeas(reward); }
+  }
   if(capped){
     $('rewardBox').style.display = 'block';
     $('rewardBox').innerHTML = '本日の🌱はここまで（1日'+(window.REWARD_MAX_PER_GAME||5)+'回まで）また明日！';
