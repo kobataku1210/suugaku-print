@@ -13,7 +13,7 @@
   .screen { display: none; flex-direction: column; gap: 14px; min-height: 100vh; }
   .screen.active { display: flex; }
 
-  .logo { text-align:center; font-size: clamp(26px,6vw,40px); font-weight: 900; letter-spacing: 1px;
+  .logo { text-align:center; font-size: clamp(26px,6vw,40px); font-weight: 900; letter-spacing: 4px;
     background: linear-gradient(90deg,#56d2ff,#7af5b0); -webkit-background-clip:text; background-clip:text; color: transparent; }
   .sub { text-align:center; font-size: 13px; color:#9fb6d6; line-height:1.8; }
   .logo-en { text-align:center; font-size: clamp(14px,3.5vw,20px); font-weight:700; letter-spacing:4px;
@@ -90,8 +90,7 @@
 
   <!-- 難易度＆パズル一覧 -->
   <div id="select-screen" class="screen active">
-    <div class="logo">不等号ナンプレ</div>
-    <div class="logo-en">Futoshiki</div>
+    <div class="logo">FUTOSHIKI</div>
     <div id="diff-list"></div>
     <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
   </div>
