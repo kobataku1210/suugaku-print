@@ -309,9 +309,9 @@ function nextProblem(){
   wrap.innerHTML = `
     <div class="ans-hint">${hint}</div>
     <div class="ans-row">
-      <input class="ans-in" id="coefIn" type="number" inputmode="numeric" value="1">
+      <input class="ans-in" id="coefIn" type="number" inputmode="numeric" placeholder="1">
       <span class="ans-root">${sym}</span>
-      <input class="ans-in" id="radIn" type="number" inputmode="numeric" value="1">
+      <input class="ans-in" id="radIn" type="number" inputmode="numeric" placeholder="1">
     </div>
     <button class="ans-btn" id="ansBtn">こうげき！</button>`;
   $('ansBtn').onclick = submitAnswer;
@@ -339,8 +339,10 @@ function parseAns(a){
 function submitAnswer(){
   if(locked) return;
   let correct = false;
-  const c = parseInt(($('coefIn')||{}).value, 10);
-  const r = parseInt(($('radIn')||{}).value, 10);
+  const cv = (($('coefIn')||{}).value || '').trim();
+  const rv = (($('radIn')||{}).value || '').trim();
+  const c = cv === '' ? 1 : parseInt(cv, 10); // 未入力は 1 とみなす
+  const r = rv === '' ? 1 : parseInt(rv, 10);
   if (c === current.ans.coef && r === current.ans.rad) correct = true;
   locked = true;
   $('choices').querySelectorAll('input,button').forEach(el => el.disabled = true);
