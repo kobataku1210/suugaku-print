@@ -40,6 +40,11 @@
   .master-lock { text-align:center; font-size:13px; color:#b79fd6; line-height:1.7; padding:6px 0; }
   .master-btn { width:100%; aspect-ratio:auto; height:56px; font-size:18px; color:#2a1640;
     background:linear-gradient(135deg,#e0b3ff,#b06cff); }
+  .diff-block.grand { background:linear-gradient(180deg,#0d3550,#0a2338); box-shadow: inset 0 0 0 1px #56d2ff55, 0 0 18px #2a9fd633; }
+  .diff-block.grand .diff-title { color:#8fe6ff; }
+  .diff-block.grand.locked { opacity:.85; background:#0c1c30; }
+  .grand-btn { width:100%; aspect-ratio:auto; height:56px; font-size:18px; color:#06283a;
+    background:linear-gradient(135deg,#8fe6ff,#38b6e6); }
   .puz-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:10px; }
   .puz-btn { position:relative; aspect-ratio:1; border:none; border-radius:14px; cursor:pointer; font-family:inherit;
     font-size:22px; font-weight:900; color:#10233f; background:linear-gradient(135deg,#cfe8ff,#9ec8f0);
@@ -179,6 +184,8 @@ const SOLUTIONS = [
   [[1,2,3,4,5],[4,5,1,2,3],[2,3,4,5,1],[5,1,2,3,4],[3,4,5,1,2]],
   // ----- 最上級 6×6（超難問） -----
   [[1,2,3,4,5,6],[2,3,4,5,6,1],[3,4,5,6,1,2],[4,5,6,1,2,3],[5,6,1,2,3,4],[6,1,2,3,4,5]],
+  // ----- 最最上級 8×8 -----
+  [[1,2,3,4,5,6,7,8],[2,3,4,5,6,7,8,1],[3,4,5,6,7,8,1,2],[4,5,6,7,8,1,2,3],[5,6,7,8,1,2,3,4],[6,7,8,1,2,3,4,5],[7,8,1,2,3,4,5,6],[8,1,2,3,4,5,6,7]],
 ];
 
 // 難易度設定（与える数字の数・報酬）
@@ -187,6 +194,7 @@ const GROUPS = [
   { key:'medium', label:'中級', sols:[5,6,7,8,9],      givens:8, minIneq:4, reward:500 },
   { key:'hard',   label:'上級', sols:[10,11,12,13,14], givens:3, minIneq:5, reward:1000 },
   { key:'master', label:'最上級', sols:[15],            givens:4, minIneq:10, reward:3000 },
+  { key:'grandmaster', label:'最最上級', sols:[16],      givens:22, minIneq:16, reward:5000 },
 ];
 
 // ---- 乱数（シード固定で全員同じ問題になる）----
@@ -271,7 +279,7 @@ function buildAllPuzzles(){
   return out;
 }
 // 事前生成して固定（解が一意なことを検証済み。読み込み時の生成コストを無くすため静的化）
-const PUZZLES = [{"id":"easy1","group":"easy","label":"初級","n":4,"givens":[[0,2,3],[3,2,2],[2,3,2],[3,3,3],[2,2,1],[0,1,2]],"h":[[0,2,"<"]],"v":[[0,0,"<"],[0,3,">"]],"reward":100,"num":1},{"id":"easy2","group":"easy","label":"初級","n":4,"givens":[[2,2,4],[3,3,2],[0,1,3],[2,1,1],[1,1,2],[2,3,3]],"h":[[0,2,">"],[2,0,">"]],"v":[[2,0,">"]],"reward":100,"num":2},{"id":"easy3","group":"easy","label":"初級","n":4,"givens":[[2,1,2],[0,1,4],[3,0,4],[1,3,3],[3,3,1],[3,1,3]],"h":[[2,1,">"],[1,0,">"]],"v":[[2,0,"<"]],"reward":100,"num":3},{"id":"easy4","group":"easy","label":"初級","n":4,"givens":[[3,3,2],[0,1,3],[2,2,3],[3,0,3],[1,3,3],[3,1,4]],"h":[[3,1,">"],[1,1,"<"]],"v":[[1,2,"<"]],"reward":100,"num":4},{"id":"easy5","group":"easy","label":"初級","n":4,"givens":[[1,0,1],[0,2,2],[3,1,2],[2,0,2],[1,2,3],[0,0,4]],"h":[[2,0,">"],[1,2,">"],[0,2,">"]],"v":[],"reward":100,"num":5},{"id":"medium1","group":"medium","label":"中級","n":5,"givens":[[2,3,1],[0,1,2],[2,2,5],[4,1,1],[2,0,3],[1,4,1],[2,4,2],[2,1,4]],"h":[[0,0,"<"]],"v":[[0,2,"<"],[0,3,"<"],[3,4,"<"]],"reward":500,"num":1},{"id":"medium2","group":"medium","label":"中級","n":5,"givens":[[2,4,4],[0,1,5],[3,2,1],[2,0,3],[2,3,1],[3,3,2],[0,4,2],[1,1,1]],"h":[[2,1,"<"]],"v":[[3,0,"<"],[1,2,"<"],[1,3,">"]],"reward":500,"num":2},{"id":"medium3","group":"medium","label":"中級","n":5,"givens":[[1,2,3],[4,4,3],[1,1,2],[0,1,4],[0,0,3],[2,4,4],[4,2,1],[0,3,1]],"h":[[0,1,"<"],[4,0,"<"]],"v":[[0,0,">"],[1,3,">"]],"reward":500,"num":3},{"id":"medium4","group":"medium","label":"中級","n":5,"givens":[[3,2,4],[3,0,2],[2,0,3],[0,0,5],[1,4,3],[4,1,2],[2,1,4],[1,3,2]],"h":[[0,3,"<"],[4,0,"<"]],"v":[[0,1,"<"],[2,4,">"]],"reward":500,"num":4},{"id":"medium5","group":"medium","label":"中級","n":5,"givens":[[0,2,3],[1,4,2],[3,3,5],[4,0,4],[3,1,2],[0,4,1],[0,1,4],[4,2,2]],"h":[[3,1,">"]],"v":[[1,1,">"],[3,4,"<"],[0,0,">"]],"reward":500,"num":5},{"id":"hard1","group":"hard","label":"上級","n":5,"givens":[[3,0,1],[3,1,5],[2,3,1]],"h":[[0,2,"<"],[2,1,">"]],"v":[[1,4,"<"],[1,2,"<"],[2,4,"<"]],"reward":1000,"num":1},{"id":"hard2","group":"hard","label":"上級","n":5,"givens":[[3,4,1],[4,4,3],[4,0,4]],"h":[[3,2,"<"],[0,1,"<"],[0,0,"<"],[2,1,"<"]],"v":[[2,2,"<"],[3,3,">"],[3,0,"<"],[0,2,"<"]],"reward":1000,"num":2},{"id":"hard3","group":"hard","label":"上級","n":5,"givens":[[1,3,5],[1,1,3],[0,4,3]],"h":[[4,1,"<"],[0,2,"<"],[4,2,"<"]],"v":[[2,3,">"],[2,4,">"],[2,0,">"]],"reward":1000,"num":3},{"id":"hard4","group":"hard","label":"上級","n":5,"givens":[[0,2,3],[2,4,5],[1,1,1]],"h":[[2,0,">"],[4,0,">"]],"v":[[3,3,"<"],[3,2,">"],[0,0,">"],[2,2,"<"],[2,3,"<"]],"reward":1000,"num":4},{"id":"hard5","group":"hard","label":"上級","n":5,"givens":[[4,4,2],[4,1,4],[1,3,2]],"h":[[1,3,"<"],[0,1,"<"],[2,0,"<"],[2,3,">"],[0,0,"<"]],"v":[[1,1,">"],[3,0,">"]],"reward":1000,"num":5},{"id":"master1","group":"master","label":"最上級","n":6,"givens":[[1,3,5],[3,3,1],[0,3,4],[0,2,3]],"h":[[4,0,"<"],[2,1,"<"]],"v":[[2,1,"<"],[0,0,"<"],[2,0,"<"],[4,4,"<"],[0,4,"<"],[3,4,"<"],[1,0,"<"],[1,5,"<"],[3,0,"<"]],"reward":3000,"num":1}];
+const PUZZLES = [{"id":"easy1","group":"easy","label":"初級","n":4,"givens":[[0,2,3],[3,2,2],[2,3,2],[3,3,3],[2,2,1],[0,1,2]],"h":[[0,2,"<"]],"v":[[0,0,"<"],[0,3,">"]],"reward":100,"num":1},{"id":"easy2","group":"easy","label":"初級","n":4,"givens":[[2,2,4],[3,3,2],[0,1,3],[2,1,1],[1,1,2],[2,3,3]],"h":[[0,2,">"],[2,0,">"]],"v":[[2,0,">"]],"reward":100,"num":2},{"id":"easy3","group":"easy","label":"初級","n":4,"givens":[[2,1,2],[0,1,4],[3,0,4],[1,3,3],[3,3,1],[3,1,3]],"h":[[2,1,">"],[1,0,">"]],"v":[[2,0,"<"]],"reward":100,"num":3},{"id":"easy4","group":"easy","label":"初級","n":4,"givens":[[3,3,2],[0,1,3],[2,2,3],[3,0,3],[1,3,3],[3,1,4]],"h":[[3,1,">"],[1,1,"<"]],"v":[[1,2,"<"]],"reward":100,"num":4},{"id":"easy5","group":"easy","label":"初級","n":4,"givens":[[1,0,1],[0,2,2],[3,1,2],[2,0,2],[1,2,3],[0,0,4]],"h":[[2,0,">"],[1,2,">"],[0,2,">"]],"v":[],"reward":100,"num":5},{"id":"medium1","group":"medium","label":"中級","n":5,"givens":[[2,3,1],[0,1,2],[2,2,5],[4,1,1],[2,0,3],[1,4,1],[2,4,2],[2,1,4]],"h":[[0,0,"<"]],"v":[[0,2,"<"],[0,3,"<"],[3,4,"<"]],"reward":500,"num":1},{"id":"medium2","group":"medium","label":"中級","n":5,"givens":[[2,4,4],[0,1,5],[3,2,1],[2,0,3],[2,3,1],[3,3,2],[0,4,2],[1,1,1]],"h":[[2,1,"<"]],"v":[[3,0,"<"],[1,2,"<"],[1,3,">"]],"reward":500,"num":2},{"id":"medium3","group":"medium","label":"中級","n":5,"givens":[[1,2,3],[4,4,3],[1,1,2],[0,1,4],[0,0,3],[2,4,4],[4,2,1],[0,3,1]],"h":[[0,1,"<"],[4,0,"<"]],"v":[[0,0,">"],[1,3,">"]],"reward":500,"num":3},{"id":"medium4","group":"medium","label":"中級","n":5,"givens":[[3,2,4],[3,0,2],[2,0,3],[0,0,5],[1,4,3],[4,1,2],[2,1,4],[1,3,2]],"h":[[0,3,"<"],[4,0,"<"]],"v":[[0,1,"<"],[2,4,">"]],"reward":500,"num":4},{"id":"medium5","group":"medium","label":"中級","n":5,"givens":[[0,2,3],[1,4,2],[3,3,5],[4,0,4],[3,1,2],[0,4,1],[0,1,4],[4,2,2]],"h":[[3,1,">"]],"v":[[1,1,">"],[3,4,"<"],[0,0,">"]],"reward":500,"num":5},{"id":"hard1","group":"hard","label":"上級","n":5,"givens":[[3,0,1],[3,1,5],[2,3,1]],"h":[[0,2,"<"],[2,1,">"]],"v":[[1,4,"<"],[1,2,"<"],[2,4,"<"]],"reward":1000,"num":1},{"id":"hard2","group":"hard","label":"上級","n":5,"givens":[[3,4,1],[4,4,3],[4,0,4]],"h":[[3,2,"<"],[0,1,"<"],[0,0,"<"],[2,1,"<"]],"v":[[2,2,"<"],[3,3,">"],[3,0,"<"],[0,2,"<"]],"reward":1000,"num":2},{"id":"hard3","group":"hard","label":"上級","n":5,"givens":[[1,3,5],[1,1,3],[0,4,3]],"h":[[4,1,"<"],[0,2,"<"],[4,2,"<"]],"v":[[2,3,">"],[2,4,">"],[2,0,">"]],"reward":1000,"num":3},{"id":"hard4","group":"hard","label":"上級","n":5,"givens":[[0,2,3],[2,4,5],[1,1,1]],"h":[[2,0,">"],[4,0,">"]],"v":[[3,3,"<"],[3,2,">"],[0,0,">"],[2,2,"<"],[2,3,"<"]],"reward":1000,"num":4},{"id":"hard5","group":"hard","label":"上級","n":5,"givens":[[4,4,2],[4,1,4],[1,3,2]],"h":[[1,3,"<"],[0,1,"<"],[2,0,"<"],[2,3,">"],[0,0,"<"]],"v":[[1,1,">"],[3,0,">"]],"reward":1000,"num":5},{"id":"master1","group":"master","label":"最上級","n":6,"givens":[[1,3,5],[3,3,1],[0,3,4],[0,2,3]],"h":[[4,0,"<"],[2,1,"<"]],"v":[[2,1,"<"],[0,0,"<"],[2,0,"<"],[4,4,"<"],[0,4,"<"],[3,4,"<"],[1,0,"<"],[1,5,"<"],[3,0,"<"]],"reward":3000,"num":1},{"id":"grand1","group":"grandmaster","label":"最最上級","n":8,"givens":[[2,1,4],[5,7,5],[1,6,8],[1,1,3],[6,4,3],[7,7,7],[3,2,6],[5,5,3],[5,2,8],[5,6,4],[4,6,3],[4,7,4],[0,2,3],[1,2,4],[2,3,6],[3,7,3],[4,1,6],[2,6,1],[7,4,4],[1,7,1],[5,3,1],[7,0,8]],"h":[[4,4,"<"],[7,1,"<"]],"v":[[6,3,"<"],[2,3,"<"],[0,1,"<"],[3,2,"<"],[4,5,"<"],[6,6,"<"],[5,4,"<"]],"reward":5000,"num":1}];
 
 // ============================================================
 //  進捗（localStorage）
@@ -302,7 +310,7 @@ function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.class
 function renderSelect(){
   const prog=loadProg();
   // 通常の3難易度
-  let html = GROUPS.filter(g=>g.key!=='master').map(g=>{
+  let html = GROUPS.filter(g=>g.key!=='master'&&g.key!=='grandmaster').map(g=>{
     const puzzles = PUZZLES.filter(p=>p.group===g.key);
     const btns = puzzles.map(p=>{
       const cleared = !!prog.cleared[p.id];
@@ -317,7 +325,7 @@ function renderSelect(){
 
   // 最上級（初級〜上級を全クリアで出現）
   const mg = GROUPS.find(g=>g.key==='master');
-  const base = PUZZLES.filter(p=>p.group!=='master');
+  const base = PUZZLES.filter(p=>p.group!=='master'&&p.group!=='grandmaster');
   const allCleared = base.every(p=>prog.cleared[p.id]);
   const mp = PUZZLES.find(p=>p.group==='master');
   if(allCleared){
@@ -333,6 +341,25 @@ function renderSelect(){
       <div class="diff-head"><span class="diff-title">🔒 最上級（超難問）</span></div>
       <div class="master-lock">初級〜上級をぜんぶクリアすると出現！<br>（あと ${base.length-done} 問・現在 ${done}/${base.length}）</div>
     </div>`;
+  }
+
+  // 最最上級（最上級をクリアで出現）8×8
+  const gg = GROUPS.find(g=>g.key==='grandmaster');
+  const gp = PUZZLES.find(p=>p.group==='grandmaster');
+  if(gp){
+    if(prog.cleared[mp.id]){
+      const cleared = !!prog.cleared[gp.id];
+      html += `<div class="diff-block grand">
+        <div class="diff-head"><span class="diff-title">💠 最最上級（${gp.n}×${gp.n}）</span><span class="diff-reward">初クリア 🌱+${gg.reward}</span></div>
+        <button class="puz-btn grand-btn${cleared?' cleared':''}" onclick="openPuzzle('${gp.id}')">
+          💠 挑戦する（${gp.n}×${gp.n}）${cleared?' ✅':''}</button>
+      </div>`;
+    } else {
+      html += `<div class="diff-block grand locked">
+        <div class="diff-head"><span class="diff-title">🔒 最最上級（8×8）</span></div>
+        <div class="master-lock">最上級をクリアすると出現！</div>
+      </div>`;
+    }
   }
 
   $('diff-list').innerHTML = html;
@@ -384,8 +411,8 @@ function isGiven(r,c){ return gGrid[r][c] > 0; }
 function buildGrid(){
   const N=cur.n;
   const grid=$('grid');
-  grid.style.setProperty('--fp-cell', (N===4?'58px':N===5?'50px':'42px'));
-  grid.style.setProperty('--fp-gap', (N===4?'24px':N===5?'22px':'18px'));
+  grid.style.setProperty('--fp-cell', (N===4?'58px':N===5?'50px':N===6?'42px':'34px'));
+  grid.style.setProperty('--fp-gap', (N===4?'24px':N===5?'22px':N===6?'18px':'14px'));
   const G=N+(N-1);
   const sizes=[]; for(let i=0;i<G;i++) sizes.push(i%2===0?'var(--fp-cell)':'var(--fp-gap)');
   grid.style.gridTemplateColumns=sizes.join(' ');
