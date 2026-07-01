@@ -24,8 +24,9 @@
   .btn-back { background:#ffffff18; color:#cfe; font-size:13px; padding:8px 18px; border:1px solid #ffffff22; align-self:flex-start; }
   .btn-check { align-self:center; background:linear-gradient(135deg,#7af5b0,#2fb974); color:#06331f; font-size:17px; font-weight:900; padding:12px 34px; margin:6px 0 2px; box-shadow:0 4px 12px rgba(47,185,116,.4); }
   .btn-clear { align-self:center; background:#8c4a4a; color:#fff; font-size:14px; padding:9px 22px; border:1px solid #c76a6a; margin-top:2px; }
-  .btn-memomode { align-self:center; background:#26406a; color:#cfe; font-size:14px; padding:9px 22px; border:1px solid #3a5a8c; margin:2px 0; }
-  .btn-memomode.active { background:#56d2ff; color:#06243a; border-color:#56d2ff; }
+  .undo-row { display:flex; gap:10px; justify-content:center; margin:4px 0 2px; }
+  .btn-undo { background:#26406a; color:#cfe; font-size:14px; padding:9px 20px; border:1px solid #3a5a8c; }
+  .btn-undo:disabled { opacity:.4; cursor:default; }
 
   /* 難易度選択 */
   .diff-block { background:#16264a; border-radius:16px; padding:14px; box-shadow: inset 0 0 0 1px #ffffff14; }
@@ -118,12 +119,15 @@
       <span class="play-reward" id="playReward"></span>
     </div>
     <div class="grid-wrap"><div class="fp-grid" id="grid"></div></div>
-    <button class="btn btn-memomode" id="memoModeBtn" onclick="toggleMemoMode(this)">✏️ 仮置きメモ: OFF</button>
     <div class="pad" id="pad"></div>
+    <div class="undo-row">
+      <button class="btn btn-undo" id="undoBtn" onclick="undo()">↶ もどす</button>
+      <button class="btn btn-undo" id="redoBtn" onclick="redo()">すすむ ↷</button>
+    </div>
     <button class="btn btn-check" onclick="judge()">✅ 答え合わせをする</button>
     <button class="btn btn-clear" onclick="clearAll()">🧹 ぜんぶ消す</button>
     <div class="play-msg" id="playMsg"></div>
-    <div class="play-tip">マスをタップ → 数字を入れる。「⌫」で消す。<br>不等号は「とがった方が小さい」よ。</div>
+    <div class="play-tip">マスをタップ → 数字を入れる。「⌫」で消す。<br>同じマスに数字を2つ以上入れると「仮置きメモ」になるよ。<br>不等号は「とがった方が小さい」よ。</div>
     <div class="memo-wrap">
       <div class="memo-label">📝 メモ</div>
       <textarea id="memo" class="memo" placeholder="計算や候補を自由に書けるよ（自動で保存されます）"></textarea>
@@ -338,21 +342,29 @@ function renderSelect(){
 //  パズル画面
 // ============================================================
 let cur = null;       // 現在のパズル
-let vals = null;      // 確定入力の2次元配列（givenは0扱い、固定）
-let cand = null;      // 仮置きメモ（候補）の2次元配列（各マスは数字の配列）
+let gGrid = null;     // 最初から与えられた数字（0=なし）
+let marks = null;     // 各マスに入れた数字の配列（1個=確定・2個以上=仮置き）
 let sel = null;       // 選択中 {r,c}
-let memoMode = false; // 仮置きメモモード（ON中は数字を候補として入れる）
+let history = [];     // 作業履歴（marksのスナップショット）
+let histPos = 0;      // 履歴の現在位置
+
+function snapshot(){ return marks.map(row=>row.map(a=>a.slice())); }
+function pushHistory(){ history = history.slice(0, histPos+1); history.push(snapshot()); histPos = history.length-1; updateUndoRedo(); }
+function updateUndoRedo(){ const u=$('undoBtn'), r=$('redoBtn'); if(u) u.disabled = histPos<=0; if(r) r.disabled = histPos>=history.length-1; }
+function applyHistory(){ marks = history[histPos].map(row=>row.map(a=>a.slice())); repaintAll(); sel=null; document.querySelectorAll('.fp-cell.sel,.fp-cell.bad').forEach(e=>e.classList.remove('sel','bad')); $('playMsg').textContent=''; $('playMsg').className='play-msg'; updateUndoRedo(); }
+function undo(){ if(histPos>0){ histPos--; applyHistory(); } }
+function redo(){ if(histPos<history.length-1){ histPos++; applyHistory(); } }
+function repaintAll(){ const N=cur.n; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!isGiven(r,c)) paintCell(r,c); }
 
 function openPuzzle(id){
   cur = PUZZLES.find(p=>p.id===id);
   if(!cur) return;
   const N=cur.n;
-  vals = Array.from({length:N},()=>Array(N).fill(0));
-  cand = Array.from({length:N},()=>Array.from({length:N},()=>[]));
-  cur.givens.forEach(([r,c,v])=>{ vals[r][c]=v; });
+  gGrid = Array.from({length:N},()=>Array(N).fill(0));
+  cur.givens.forEach(([r,c,v])=>{ gGrid[r][c]=v; });
+  marks = Array.from({length:N},()=>Array.from({length:N},()=>[]));
   sel = null;
-  memoMode = false;
-  const mb=$('memoModeBtn'); if(mb){ mb.classList.remove('active'); mb.textContent='✏️ 仮置きメモ: OFF'; }
+  history = [snapshot()]; histPos = 0;
   $('playTitle').textContent = `${cur.label} ${cur.num}（${N}×${N}）`;
   $('playReward').textContent = loadProg().cleared[cur.id] ? '✅ クリア済み' : `初クリア 🌱+${cur.reward}`;
   $('playMsg').textContent=''; $('playMsg').className='play-msg';
@@ -362,10 +374,11 @@ function openPuzzle(id){
   memo.oninput = ()=> setMemo(cur.id, memo.value);
   buildGrid();
   buildPad();
+  updateUndoRedo();
   showScreen('play-screen');
 }
 
-function isGiven(r,c){ return cur.givens.some(g=>g[0]===r&&g[1]===c); }
+function isGiven(r,c){ return gGrid[r][c] > 0; }
 
 function buildGrid(){
   const N=cur.n;
@@ -384,8 +397,8 @@ function buildGrid(){
     if(gr%2===0 && gc%2===0){
       const r=gr/2, c=gc/2;
       el.dataset.r=r; el.dataset.c=c;
-      if(isGiven(r,c)){ el.className='fp-cell given'; el.textContent=vals[r][c]; }
-      else { el.className='fp-cell editable'; el.textContent = vals[r][c]||''; el.onclick=()=>selectCell(r,c,el); }
+      if(isGiven(r,c)){ el.className='fp-cell given'; el.textContent=gGrid[r][c]; }
+      else { el.className='fp-cell editable'; el.textContent = ''; el.onclick=()=>selectCell(r,c,el); }
     } else if(gr%2===0 && gc%2===1){
       const r=gr/2, c=(gc-1)/2, s=hmap[r+','+c];
       el.className='fp-sign fp-h'; el.textContent = s||'';
@@ -413,40 +426,31 @@ function selectCell(r,c,el){
 
 function getCellEl(r,c){ return [...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r && +e.dataset.c===c); }
 
-// マスの見た目を更新（確定値＝大きい数字／仮置き＝小さい候補）
+// マスの見た目を更新（1個＝大きい確定数字／2個以上＝小さい仮置き）
 function paintCell(r,c){
   const el=getCellEl(r,c); if(!el) return;
-  if(vals[r][c]){ el.classList.remove('has-cand'); el.textContent=vals[r][c]; }
-  else if(cand[r][c] && cand[r][c].length){
+  const m=marks[r][c];
+  if(m.length===1){ el.classList.remove('has-cand'); el.textContent=m[0]; }
+  else if(m.length>=2){
     el.classList.add('has-cand');
-    el.innerHTML='<div class="fp-cand">'+cand[r][c].slice().sort((a,b)=>a-b).map(n=>'<span>'+n+'</span>').join('')+'</div>';
+    el.innerHTML='<div class="fp-cand">'+m.slice().sort((a,b)=>a-b).map(n=>'<span>'+n+'</span>').join('')+'</div>';
   } else { el.classList.remove('has-cand'); el.textContent=''; }
-}
-
-// 仮置きメモモードの ON/OFF
-function toggleMemoMode(btn){
-  memoMode=!memoMode;
-  if(btn){ btn.classList.toggle('active',memoMode); btn.textContent = memoMode?'✏️ 仮置きメモ: ON':'✏️ 仮置きメモ: OFF'; }
 }
 
 function setVal(v){
   if(!sel) { flash('まずマスをタップしてね','ng'); return; }
   const {r,c}=sel;
   if(isGiven(r,c)) return;
-  if(memoMode){
-    // 仮置き（候補）モード
-    if(v===0){ cand[r][c]=[]; }             // ⌫：候補を全部消す
-    else {
-      vals[r][c]=0;                          // 確定値があれば消して候補に切り替え
-      const arr=cand[r][c], i=arr.indexOf(v);
-      if(i>=0) arr.splice(i,1); else arr.push(v); // 同じ数字をもう一度押すと消える
-    }
-  } else {
-    vals[r][c]=v;                            // 確定入力（0で消去）
-    cand[r][c]=[];                           // 確定したら候補は消す
+  const arr=marks[r][c];
+  if(v===0){ marks[r][c]=[]; }               // ⌫：そのマスを空に
+  else {
+    const i=arr.indexOf(v);
+    if(i>=0) arr.splice(i,1);                 // 同じ数字をもう一度押すと消える
+    else arr.push(v);                         // 追加（2個以上になったら自動で仮置き表示）
   }
   paintCell(r,c);
   clearBad();
+  pushHistory();
   checkState();
 }
 
@@ -454,20 +458,23 @@ function setVal(v){
 function clearAll(){
   if(!cur) return;
   const N=cur.n;
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!isGiven(r,c)){ vals[r][c]=0; cand[r][c]=[]; }
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!isGiven(r,c)) marks[r][c]=[];
   document.querySelectorAll('.fp-cell.editable').forEach(el=>{ el.textContent=''; el.classList.remove('sel','bad','has-cand'); });
   sel=null;
   $('playMsg').textContent=''; $('playMsg').className='play-msg';
+  pushHistory();
 }
 
 function flash(msg,kind){ $('playMsg').textContent=msg; $('playMsg').className='play-msg '+(kind||''); }
 function clearBad(){ document.querySelectorAll('.fp-cell.bad').forEach(e=>e.classList.remove('bad')); }
+// そのマスの「確定した数字」（与え数字／1個だけ入れたマス）。仮置き(2個以上)や空は0
+function gridVal(r,c){ if(gGrid[r][c]) return gGrid[r][c]; const m=marks[r][c]; return m.length===1 ? m[0] : 0; }
 
 // 自動チェック：完成して正解ならすぐお祝い（まちがいの指摘はしない＝答え合わせボタンで）
 function checkState(){
   const N=cur.n;
   let filled=0;
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(vals[r][c]) filled++;
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(gridVal(r,c)) filled++;
   if(filled === N*N && findViolations().length===0) win();
 }
 
@@ -477,8 +484,8 @@ function judge(){
   clearBad();
   const N=cur.n;
   let filled=0;
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(vals[r][c]) filled++;
-  if(filled < N*N){ flash('まだ空いているマスがあるよ。ぜんぶ数字を入れてね','ng'); return; }
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(gridVal(r,c)) filled++;
+  if(filled < N*N){ flash('まだ空いているマスがあるよ（仮置きは確定にしてね）','ng'); return; }
   const bad = findViolations();
   if(bad.length===0){ win(); }
   else {
@@ -490,12 +497,12 @@ function judge(){
 // ルール違反のマスを返す（行/列の重複・不等号違反）
 function findViolations(){
   const N=cur.n; const bad=new Set(); const key=(r,c)=>r+','+c;
-  // 行・列の重複
-  for(let r=0;r<N;r++){ const seen={}; for(let c=0;c<N;c++){ const v=vals[r][c]; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(r,seen[v])); } else seen[v]=c; } }
-  for(let c=0;c<N;c++){ const seen={}; for(let r=0;r<N;r++){ const v=vals[r][c]; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(seen[v],c)); } else seen[v]=r; } }
-  // 不等号
-  cur.h.forEach(([r,c,s])=>{ const a=vals[r][c], b=vals[r][c+1]; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r,c+1)); } });
-  cur.v.forEach(([r,c,s])=>{ const a=vals[r][c], b=vals[r+1][c]; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r+1,c)); } });
+  // 行・列の重複（空/仮置き=0 はスキップ）
+  for(let r=0;r<N;r++){ const seen={}; for(let c=0;c<N;c++){ const v=gridVal(r,c); if(!v) continue; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(r,seen[v])); } else seen[v]=c; } }
+  for(let c=0;c<N;c++){ const seen={}; for(let r=0;r<N;r++){ const v=gridVal(r,c); if(!v) continue; if(seen[v]!=null){ bad.add(key(r,c)); bad.add(key(seen[v],c)); } else seen[v]=r; } }
+  // 不等号（両側が確定しているときだけ判定）
+  cur.h.forEach(([r,c,s])=>{ const a=gridVal(r,c), b=gridVal(r,c+1); if(!a||!b) return; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r,c+1)); } });
+  cur.v.forEach(([r,c,s])=>{ const a=gridVal(r,c), b=gridVal(r+1,c); if(!a||!b) return; if((s==='<'&&!(a<b))||(s==='>'&&!(a>b))){ bad.add(key(r,c)); bad.add(key(r+1,c)); } });
   // given は赤くしない
   return [...bad].map(k=>k.split(',').map(Number)).filter(([r,c])=>!isGiven(r,c));
 }
