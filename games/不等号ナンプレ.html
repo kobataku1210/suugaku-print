@@ -23,6 +23,8 @@
   .btn-home { background:#ffffff22; color:#fff; font-size:13px; padding:9px 22px; border:1px solid #ffffff33; align-self:center; }
   .btn-back { background:#ffffff18; color:#cfe; font-size:13px; padding:8px 18px; border:1px solid #ffffff22; align-self:flex-start; }
   .btn-clear { align-self:center; background:#8c4a4a; color:#fff; font-size:14px; padding:9px 22px; border:1px solid #c76a6a; margin-top:2px; }
+  .btn-memomode { align-self:center; background:#26406a; color:#cfe; font-size:14px; padding:9px 22px; border:1px solid #3a5a8c; margin:2px 0; }
+  .btn-memomode.active { background:#56d2ff; color:#06243a; border-color:#56d2ff; }
 
   /* 難易度選択 */
   .diff-block { background:#16264a; border-radius:16px; padding:14px; box-shadow: inset 0 0 0 1px #ffffff14; }
@@ -58,6 +60,11 @@
   .fp-cell.editable { background:#fbf7ec; color:#1a2a4a; cursor:pointer; box-shadow: inset 0 0 0 2px #ffffff22; }
   .fp-cell.editable.sel { box-shadow: inset 0 0 0 3px #ffd200; background:#fffbe8; }
   .fp-cell.editable.bad { background:#ffd9d9; }
+  /* 仮置きメモ（候補数字を小さくマス内に並べる） */
+  .fp-cell.has-cand { padding:2px; }
+  .fp-cand { display:grid; grid-template-columns:repeat(3,1fr); gap:0; width:100%; height:100%;
+    align-items:center; justify-items:center; font-size:calc(var(--fp-cell)*0.24); font-weight:700;
+    font-family:'Hiragino Sans',sans-serif; color:#3f66a0; line-height:1; }
   .fp-sign { display:flex; align-items:center; justify-content:center; color:#ffd86b; font-weight:900;
     font-size:calc(var(--fp-gap)*0.95); font-family:'Times New Roman',serif; }
   .fp-x { }
@@ -110,6 +117,7 @@
       <span class="play-reward" id="playReward"></span>
     </div>
     <div class="grid-wrap"><div class="fp-grid" id="grid"></div></div>
+    <button class="btn btn-memomode" id="memoModeBtn" onclick="toggleMemoMode(this)">✏️ 仮置きメモ: OFF</button>
     <div class="pad" id="pad"></div>
     <button class="btn btn-clear" onclick="clearAll()">🧹 ぜんぶ消す</button>
     <div class="play-msg" id="playMsg"></div>
@@ -328,16 +336,21 @@ function renderSelect(){
 //  パズル画面
 // ============================================================
 let cur = null;       // 現在のパズル
-let vals = null;      // 入力値の2次元配列（givenは0扱い、固定）
+let vals = null;      // 確定入力の2次元配列（givenは0扱い、固定）
+let cand = null;      // 仮置きメモ（候補）の2次元配列（各マスは数字の配列）
 let sel = null;       // 選択中 {r,c}
+let memoMode = false; // 仮置きメモモード（ON中は数字を候補として入れる）
 
 function openPuzzle(id){
   cur = PUZZLES.find(p=>p.id===id);
   if(!cur) return;
   const N=cur.n;
   vals = Array.from({length:N},()=>Array(N).fill(0));
+  cand = Array.from({length:N},()=>Array.from({length:N},()=>[]));
   cur.givens.forEach(([r,c,v])=>{ vals[r][c]=v; });
   sel = null;
+  memoMode = false;
+  const mb=$('memoModeBtn'); if(mb){ mb.classList.remove('active'); mb.textContent='✏️ 仮置きメモ: OFF'; }
   $('playTitle').textContent = `${cur.label} ${cur.num}（${N}×${N}）`;
   $('playReward').textContent = loadProg().cleared[cur.id] ? '✅ クリア済み' : `初クリア 🌱+${cur.reward}`;
   $('playMsg').textContent=''; $('playMsg').className='play-msg';
@@ -396,14 +409,41 @@ function selectCell(r,c,el){
   sel={r,c};
 }
 
+function getCellEl(r,c){ return [...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r && +e.dataset.c===c); }
+
+// マスの見た目を更新（確定値＝大きい数字／仮置き＝小さい候補）
+function paintCell(r,c){
+  const el=getCellEl(r,c); if(!el) return;
+  if(vals[r][c]){ el.classList.remove('has-cand'); el.textContent=vals[r][c]; }
+  else if(cand[r][c] && cand[r][c].length){
+    el.classList.add('has-cand');
+    el.innerHTML='<div class="fp-cand">'+cand[r][c].slice().sort((a,b)=>a-b).map(n=>'<span>'+n+'</span>').join('')+'</div>';
+  } else { el.classList.remove('has-cand'); el.textContent=''; }
+}
+
+// 仮置きメモモードの ON/OFF
+function toggleMemoMode(btn){
+  memoMode=!memoMode;
+  if(btn){ btn.classList.toggle('active',memoMode); btn.textContent = memoMode?'✏️ 仮置きメモ: ON':'✏️ 仮置きメモ: OFF'; }
+}
+
 function setVal(v){
   if(!sel) { flash('まずマスをタップしてね','ng'); return; }
   const {r,c}=sel;
   if(isGiven(r,c)) return;
-  vals[r][c]=v;
-  // DOM更新
-  const el=[...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r && +e.dataset.c===c);
-  if(el) el.textContent = v||'';
+  if(memoMode){
+    // 仮置き（候補）モード
+    if(v===0){ cand[r][c]=[]; }             // ⌫：候補を全部消す
+    else {
+      vals[r][c]=0;                          // 確定値があれば消して候補に切り替え
+      const arr=cand[r][c], i=arr.indexOf(v);
+      if(i>=0) arr.splice(i,1); else arr.push(v); // 同じ数字をもう一度押すと消える
+    }
+  } else {
+    vals[r][c]=v;                            // 確定入力（0で消去）
+    cand[r][c]=[];                           // 確定したら候補は消す
+  }
+  paintCell(r,c);
   clearBad();
   checkState();
 }
@@ -412,8 +452,8 @@ function setVal(v){
 function clearAll(){
   if(!cur) return;
   const N=cur.n;
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!isGiven(r,c)) vals[r][c]=0;
-  document.querySelectorAll('.fp-cell.editable').forEach(el=>{ el.textContent=''; el.classList.remove('sel','bad'); });
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!isGiven(r,c)){ vals[r][c]=0; cand[r][c]=[]; }
+  document.querySelectorAll('.fp-cell.editable').forEach(el=>{ el.textContent=''; el.classList.remove('sel','bad','has-cand'); });
   sel=null;
   $('playMsg').textContent=''; $('playMsg').className='play-msg';
 }
