@@ -22,6 +22,7 @@
   .btn:active { transform: scale(.96); }
   .btn-home { background:#ffffff22; color:#fff; font-size:13px; padding:9px 22px; border:1px solid #ffffff33; align-self:center; }
   .btn-back { background:#ffffff18; color:#cfe; font-size:13px; padding:8px 18px; border:1px solid #ffffff22; align-self:flex-start; }
+  .btn-check { align-self:center; background:linear-gradient(135deg,#7af5b0,#2fb974); color:#06331f; font-size:17px; font-weight:900; padding:12px 34px; margin:6px 0 2px; box-shadow:0 4px 12px rgba(47,185,116,.4); }
   .btn-clear { align-self:center; background:#8c4a4a; color:#fff; font-size:14px; padding:9px 22px; border:1px solid #c76a6a; margin-top:2px; }
   .btn-memomode { align-self:center; background:#26406a; color:#cfe; font-size:14px; padding:9px 22px; border:1px solid #3a5a8c; margin:2px 0; }
   .btn-memomode.active { background:#56d2ff; color:#06243a; border-color:#56d2ff; }
@@ -119,6 +120,7 @@
     <div class="grid-wrap"><div class="fp-grid" id="grid"></div></div>
     <button class="btn btn-memomode" id="memoModeBtn" onclick="toggleMemoMode(this)">✏️ 仮置きメモ: OFF</button>
     <div class="pad" id="pad"></div>
+    <button class="btn btn-check" onclick="judge()">✅ 答え合わせをする</button>
     <button class="btn btn-clear" onclick="clearAll()">🧹 ぜんぶ消す</button>
     <div class="play-msg" id="playMsg"></div>
     <div class="play-tip">マスをタップ → 数字を入れる。「⌫」で消す。<br>不等号は「とがった方が小さい」よ。</div>
@@ -461,16 +463,28 @@ function clearAll(){
 function flash(msg,kind){ $('playMsg').textContent=msg; $('playMsg').className='play-msg '+(kind||''); }
 function clearBad(){ document.querySelectorAll('.fp-cell.bad').forEach(e=>e.classList.remove('bad')); }
 
-// 入力状態をチェック：埋まったら正誤判定
+// 自動チェック：完成して正解ならすぐお祝い（まちがいの指摘はしない＝答え合わせボタンで）
 function checkState(){
   const N=cur.n;
   let filled=0;
   for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(vals[r][c]) filled++;
-  if(filled < N*N){ $('playMsg').textContent=''; $('playMsg').className='play-msg'; return; }
-  // 全部埋まった → 検証
+  if(filled === N*N && findViolations().length===0) win();
+}
+
+// 「答え合わせ」ボタン：空きマス・正誤を判定
+function judge(){
+  if(!cur) return;
+  clearBad();
+  const N=cur.n;
+  let filled=0;
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(vals[r][c]) filled++;
+  if(filled < N*N){ flash('まだ空いているマスがあるよ。ぜんぶ数字を入れてね','ng'); return; }
   const bad = findViolations();
   if(bad.length===0){ win(); }
-  else { bad.forEach(([r,c])=>{ const el=[...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r&&+e.dataset.c===c); if(el) el.classList.add('bad'); }); flash('まだ条件を満たしていないよ。赤いマスを見直そう','ng'); }
+  else {
+    bad.forEach(([r,c])=>{ const el=getCellEl(r,c); if(el) el.classList.add('bad'); });
+    flash('❌ まちがいがあるよ（赤いマス）。見直してみよう','ng');
+  }
 }
 
 // ルール違反のマスを返す（行/列の重複・不等号違反）
