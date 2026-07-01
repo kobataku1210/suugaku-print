@@ -61,6 +61,7 @@
   .fp-cell.given { background:#24395f; color:#bcd3f5; }
   .fp-cell.editable { background:#fbf7ec; color:#1a2a4a; cursor:pointer; box-shadow: inset 0 0 0 2px #ffffff22; }
   .fp-cell.editable.sel { box-shadow: inset 0 0 0 3px #ffd200; background:#fffbe8; }
+  .fp-cell.given.sel { box-shadow: inset 0 0 0 3px #ffd200; }
   .fp-cell.editable.bad { background:#ffd9d9; }
   /* 仮置きメモ（候補数字を小さくマス内に並べる） */
   .fp-cell.has-cand { padding:2px; }
@@ -418,11 +419,34 @@ function buildPad(){
   $('pad').innerHTML=html;
 }
 
-function selectCell(r,c,el){
+function cellElAt(r,c){ return [...document.querySelectorAll('#grid .fp-cell')].find(e=>e.dataset.r!=null && +e.dataset.r===r && +e.dataset.c===c); }
+function selectAt(r,c){
   document.querySelectorAll('.fp-cell.sel').forEach(e=>e.classList.remove('sel'));
-  el.classList.add('sel');
-  sel={r,c};
+  const el=cellElAt(r,c); if(!el) return;
+  el.classList.add('sel'); sel={r,c};
 }
+function selectCell(r,c,el){ selectAt(r,c); }
+// 矢印キーで選択マスを移動
+function moveSel(dr,dc){
+  const N=cur.n;
+  if(!sel){ selectAt(0,0); return; }
+  const r=Math.max(0,Math.min(N-1, sel.r+dr));
+  const c=Math.max(0,Math.min(N-1, sel.c+dc));
+  selectAt(r,c);
+}
+// キーボード操作（数字＝入力／矢印＝移動／Backspace＝消す／Ctrl+Z,Y＝もどす・すすむ）
+document.addEventListener('keydown', e=>{
+  const play=$('play-screen');
+  if(!play || !play.classList.contains('active') || !cur) return;
+  if(document.activeElement && document.activeElement.id==='memo') return; // メモ入力中は除外
+  if((e.ctrlKey||e.metaKey) && (e.key==='z'||e.key==='Z')){ e.preventDefault(); if(e.shiftKey) redo(); else undo(); return; }
+  if((e.ctrlKey||e.metaKey) && (e.key==='y'||e.key==='Y')){ e.preventDefault(); redo(); return; }
+  const N=cur.n;
+  const moves={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+  if(moves[e.key]){ e.preventDefault(); moveSel(moves[e.key][0], moves[e.key][1]); return; }
+  if(e.key==='Backspace'||e.key==='Delete'||e.key==='0'){ e.preventDefault(); if(sel) setVal(0); return; }
+  if(e.key.length===1 && e.key>='1' && e.key<=String(N)){ e.preventDefault(); if(sel) setVal(parseInt(e.key,10)); return; }
+});
 
 function getCellEl(r,c){ return [...document.querySelectorAll('.fp-cell.editable')].find(e=>+e.dataset.r===r && +e.dataset.c===c); }
 
