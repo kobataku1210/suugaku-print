@@ -5154,9 +5154,14 @@
             }
           ],
           "miniTestPassword": "8747",
-          "studentBestName": null,
-          "studentBestTime": null,
-          "studentBestList": []
+          "studentBestName": "6組K君",
+          "studentBestTime": 9.3,
+          "studentBestList": [
+            {
+              "name": "6組K君",
+              "time": 9.3
+            }
+          ]
         },
         {
           "title": "ルートをふくむ式の展開",
@@ -5563,6 +5568,13 @@
   "cardMatchStudentBestTime": 9,
   "news": [
     {
+      "id": "1782961884619-fjjq4",
+      "type": "auto",
+      "icon": "🏅",
+      "title": "6組K君 が第2章「ルートをふくむ積と商」を 9.3秒 で更新！",
+      "date": "2026-07-02T03:11:24.565Z"
+    },
+    {
       "id": "1779168227742-554kq",
       "type": "auto",
       "icon": "🏅",
@@ -5624,13 +5636,6 @@
       "icon": "🏅",
       "title": "6組S君 が第1章「式の乗法」を 4.6秒 で更新！",
       "date": "2026-05-19T05:22:17.771Z"
-    },
-    {
-      "id": "1779071478210-8tusl",
-      "type": "auto",
-      "icon": "🏅",
-      "title": "3組O君 が第1章「式の展開」を 4秒 で更新！",
-      "date": "2026-05-18T02:31:18.210Z"
     }
   ],
   "wallProblems": [
