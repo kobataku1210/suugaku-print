@@ -493,7 +493,7 @@ function setVal(v){
   const {r,c}=sel;
   if(isGiven(r,c)) return;
   const arr=marks[r][c];
-  if(v===0){ marks[r][c]=[]; }               // ⌫：そのマスを空に
+  if(v===0){ if(arr.length) arr.pop(); }      // ⌫：数字を1つずつ消す
   else {
     const i=arr.indexOf(v);
     if(i>=0) arr.splice(i,1);                 // 同じ数字をもう一度押すと消える
