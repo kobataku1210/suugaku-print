@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22w';
+const APP_VERSION = '2026-06-22x';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -49,39 +49,6 @@ const PREVIEW_MODE = _wantsPreview && _previewUnlocked();
     }
     localStorage.setItem('mathPreviewUntil', String(Date.now() + PREVIEW_TTL_MS));
     window.location.reload();
-  };
-
-  window.submitTeacherPeas = async function() {
-    const pw    = document.getElementById('teacher-pw').value;
-    const count = parseInt(document.getElementById('teacher-pea-count').value);
-    const errEl = document.getElementById('teacher-modal-error');
-    if (await _h(pw) !== H) {
-      errEl.textContent = 'パスワードが違います';
-      errEl.style.display = 'block';
-      return;
-    }
-    if (!count || count < 1 || count > 1000) {
-      errEl.textContent = '1〜1000の数を入力してください';
-      errEl.style.display = 'block';
-      return;
-    }
-    addPeas(count);
-    const p = getProgress();
-    const cups = p.peaCupCount || 0;
-    const cur  = p.peaCount    || 0;
-    const cupLabel = `${cups + 1}杯目`;
-    const card = document.getElementById('teacher-modal-card');
-    card.classList.add('modal-success');
-    card.innerHTML = `
-      <div class="modal-success-icon">🌱</div>
-      <div class="modal-success-text">+${count}個 追加！</div>
-      <div class="modal-success-stars">${cupLabel}：${cur} / 45個</div>
-    `;
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => bounceAndAddPea(), i * 200);
-    }
-    if (count >= 3) showConfetti();
-    setTimeout(() => closeTeacherModal(), 2000);
   };
 
   window.submitMiniTestPassword = async function() {
@@ -439,83 +406,9 @@ function createBowlWidget() {
     w.classList.add('bowl-bounce');
     w.addEventListener('animationend', () => w.classList.remove('bowl-bounce'), { once: true });
   };
-  // 先生用：お椀を長押し(約3秒)で「こっそり追加」窓を開く（生徒には見えない隠し操作）
-  let _bowlHoldTimer = null;
-  const startHold = (e) => {
-    clearTimeout(_bowlHoldTimer);
-    _bowlHoldTimer = setTimeout(() => { showHiddenPeaAdd(); }, 3000);
-  };
-  const cancelHold = () => { clearTimeout(_bowlHoldTimer); _bowlHoldTimer = null; };
-  w.addEventListener('pointerdown', startHold);
-  w.addEventListener('pointerup', cancelHold);
-  w.addEventListener('pointerleave', cancelHold);
-  w.addEventListener('pointercancel', cancelHold);
   document.body.appendChild(w);
   updateBowlWidget(false);
   createCompletedBowlsPanel();
-}
-
-// ===== 先生用：こっそりグリンピース追加（お椀長押しで出現・パスワードなし） =====
-function showHiddenPeaAdd() {
-  if (document.getElementById('hidden-pea-overlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'hidden-pea-overlay';
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-card" id="hidden-pea-card">
-      <div class="modal-lock">🌱</div>
-      <div class="modal-level">グリンピースを追加</div>
-      <p class="modal-desc">先生用パスワードと追加する個数を入力してください</p>
-      <input type="password" id="hidden-pea-pw" class="modal-input"
-             placeholder="パスワード" autocomplete="off" style="margin-bottom:0.6rem">
-      <input type="number" id="hidden-pea-count" class="modal-input"
-             placeholder="個数（例：10）" min="1" max="1000" autocomplete="off">
-      <div id="hidden-pea-error" class="modal-error"></div>
-      <div class="modal-btns">
-        <button class="modal-btn-cancel" onclick="closeHiddenPeaAdd()">とじる</button>
-        <button class="modal-btn-submit" onclick="submitHiddenPeaAdd()">追加する！</button>
-      </div>
-    </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeHiddenPeaAdd(); });
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add('show'));
-  const pwInp = document.getElementById('hidden-pea-pw');
-  if (pwInp) {
-    pwInp.focus();
-    pwInp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHiddenPeaAdd(); });
-  }
-  const inp = document.getElementById('hidden-pea-count');
-  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHiddenPeaAdd(); });
-}
-function closeHiddenPeaAdd() {
-  const o = document.getElementById('hidden-pea-overlay');
-  if (o) { o.classList.remove('show'); setTimeout(() => o.remove(), 250); }
-}
-async function submitHiddenPeaAdd() {
-  const pw    = (document.getElementById('hidden-pea-pw') || {}).value || '';
-  const count = parseInt((document.getElementById('hidden-pea-count') || {}).value, 10);
-  const errEl = document.getElementById('hidden-pea-error');
-  const showErr = (m) => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
-  // パスワード照合
-  if (typeof verifyTeacherPw !== 'function' || !(await verifyTeacherPw(pw))) {
-    showErr('パスワードが違います');
-    return;
-  }
-  if (!count || count < 1 || count > 1000) {
-    showErr('1〜1000の数を入力してください');
-    return;
-  }
-  addPeas(count);
-  const card = document.getElementById('hidden-pea-card');
-  if (card) {
-    card.classList.add('modal-success');
-    card.innerHTML = `
-      <div class="modal-success-icon">🌱</div>
-      <div class="modal-success-text">+${count}個 追加！</div>`;
-  }
-  for (let i = 0; i < Math.min(count, 10); i++) setTimeout(() => bounceAndAddPea(), i * 150);
-  if (count >= 3) showConfetti();
-  setTimeout(() => closeHiddenPeaAdd(), 1500);
 }
 
 function updateBowlWidget(animate) {
@@ -543,34 +436,6 @@ function updateBowlWidget(animate) {
       🌱 ${count} / 45個
     </div>
   `;
-}
-
-// ===== 先生グリンピース追加モーダル =====
-function showTeacherPeaModal() {
-  const overlay = document.createElement('div');
-  overlay.id = 'teacher-modal-overlay';
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-card" id="teacher-modal-card">
-      <div class="modal-lock">🎓</div>
-      <div class="modal-level">グリンピースを追加</div>
-      <p class="modal-desc">先生用パスワードと追加する個数を入力してください</p>
-      <input type="password" id="teacher-pw" class="modal-input"
-             placeholder="パスワード" autocomplete="off" style="margin-bottom:0.7rem">
-      <input type="number" id="teacher-pea-count" class="modal-input"
-             placeholder="追加する個数（例：1000）" min="1" max="1000" style="margin-bottom:0.3rem">
-      <div id="teacher-modal-error" class="modal-error"></div>
-      <div class="modal-btns">
-        <button class="modal-btn-cancel" onclick="closeTeacherModal()">キャンセル</button>
-        <button class="modal-btn-submit" onclick="submitTeacherPeas()">追加する！</button>
-      </div>
-      <button class="modal-pw-list-btn" onclick="showMiniTestPasswords()">📋 小テストPW一覧</button>
-    </div>
-  `;
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeTeacherModal(); });
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add('show'));
-  document.getElementById('teacher-pw').focus();
 }
 
 function showMiniTestPasswords() {
