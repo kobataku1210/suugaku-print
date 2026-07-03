@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>かたまりチャレンジ (プレビュー)</title>
+<style>
+:root {
+  --bg1: #1a1a2e;
+  --bg2: #302b63;
+  --gold: #ffd166;
+  --gold-lt: #fff3b8;
+  --green: #06d6a0;
+  --red: #ef476f;
+  --blue: #4cc9f0;
+  --purple: #b39ddb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow-x: hidden; }
+body {
+  font-family: 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+  background: radial-gradient(ellipse at top, var(--bg2), var(--bg1) 70%);
+  color: #fff;
+  min-height: 100vh;
+  padding: 12px;
+  user-select: none;
+}
+.screen { display: none; max-width: 480px; margin: 0 auto; padding: 20px 12px; }
+.screen.active { display: block; }
+
+/* ========= タイトル ========= */
+.badge { background: rgba(255,209,102,0.15); color: var(--gold); padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 12px; letter-spacing: 2px; margin-bottom: 8px; }
+h1 { font-size: 32px; text-align: center; color: var(--gold); text-shadow: 0 0 24px rgba(255,209,102,0.5); margin: 10px 0; letter-spacing: 3px; }
+.subtitle { text-align: center; color: #ccc; font-size: 13px; margin-bottom: 22px; line-height: 1.7; }
+.btn {
+  display: block; margin: 12px auto; padding: 14px 30px;
+  background: linear-gradient(180deg, var(--gold), #f0a500);
+  color: #000; font-size: 18px; font-weight: 900; letter-spacing: 3px;
+  border: none; border-radius: 30px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255,209,102,0.4);
+  transition: transform 0.15s;
+}
+.btn:hover, .btn:active { transform: translateY(-2px) scale(1.03); }
+.btn.secondary { background: linear-gradient(180deg, #4a5568, #2d3748); color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+
+/* ========= ステップ表示 ========= */
+.step-header {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,209,102,0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.step-label { color: var(--gold); font-size: 12px; letter-spacing: 3px; margin-bottom: 4px; }
+.step-title { font-size: 20px; font-weight: 900; }
+
+/* ========= 問題式 ========= */
+.eq-box {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 30px 20px;
+  margin: 24px 0;
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cambria Math', 'Times New Roman', serif;
+  font-size: 42px;
+  letter-spacing: 3px;
+}
+.token { padding: 6px 10px; border-radius: 8px; }
+.token.tappable {
+  cursor: pointer;
+  border: 3px dashed rgba(255,209,102,0.5);
+  color: var(--gold-lt);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,209,102,0.5); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(255,209,102,0); }
+}
+.token.tappable:hover { background: rgba(255,209,102,0.15); }
+.token.selected { border: 3px solid var(--gold); background: rgba(255,209,102,0.25); animation: none; color: #fff; }
+.token.wrong { border: 3px solid var(--red); background: rgba(239,71,111,0.25); animation: shake 0.4s; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+.sup { font-size: 0.65em; vertical-align: super; }
+
+/* ========= 入力欄 ========= */
+.input-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 12px 0; font-size: 32px; font-family: 'Cambria Math', serif; }
+.input-row input {
+  width: 100px; padding: 10px 14px;
+  font-size: 32px; text-align: center;
+  background: rgba(255,255,255,0.1);
+  border: 3px solid var(--gold);
+  border-radius: 12px;
+  color: var(--gold-lt);
+  font-family: 'Cambria Math', serif;
+}
+.input-row input:focus { outline: none; background: rgba(255,255,255,0.2); }
+.hint { color: #aaa; font-size: 12px; text-align: center; margin: 8px 0; }
+.check-btn {
+  display: block; margin: 20px auto; padding: 14px 40px;
+  background: linear-gradient(180deg, var(--green), #059669);
+  color: #fff; font-size: 18px; font-weight: 900; letter-spacing: 2px;
+  border: none; border-radius: 30px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(6,214,160,0.4);
+}
+.check-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ========= フィードバック ========= */
+.feedback { text-align: center; padding: 20px; border-radius: 16px; margin: 20px 0; animation: slideIn 0.4s; }
+.feedback.ok { background: rgba(6,214,160,0.15); border: 2px solid var(--green); }
+.feedback.ng { background: rgba(239,71,111,0.15); border: 2px solid var(--red); }
+.fb-icon { font-size: 64px; }
+.fb-msg { font-size: 20px; font-weight: 900; margin-top: 8px; }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ========= プレビュー用ラベル ========= */
+.preview-tag { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 10px; letter-spacing: 2px; z-index: 100; }
+.note { color: #ffc; font-size: 12px; text-align: center; padding: 10px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; margin: 20px 0; }
+</style>
+</head>
+<body>
+<div class="preview-tag">🚧 プレビュー版</div>
+
+<!-- ========= タイトル ========= -->
+<div id="title" class="screen active">
+  <div style="text-align:center; margin-top:24px">
+    <div class="badge">PREVIEW</div>
+    <h1>かたまりチャレンジ</h1>
+    <div class="subtitle">
+      式の <b style="color:var(--gold)">かたまり</b> をタップして、<br>
+      2 ステップで <b style="color:var(--gold)">x</b> を求めよう！
+    </div>
+    <button class="btn" onclick="showProblem(0)">🚀 問題 ①「x² = 9」</button>
+    <button class="btn" onclick="showProblem(1)">🚀 問題 ②「3x² - 24 = 0」</button>
+    <button class="btn" onclick="showProblem(2)">🚀 問題 ③「(x+1)² = 36」</button>
+    <div class="note">
+      ※ プレビューでは 3 タイプの流れを試せます。<br>
+      本番では 10〜20 問連続 + スコアランキングを予定。
+    </div>
+  </div>
+</div>
+
+<!-- ========= STEP 1: かたまりを見つける ========= -->
+<div id="step1" class="screen">
+  <div class="step-header">
+    <div class="step-label">STEP 1 / 3</div>
+    <div class="step-title">🎯 かたまりをタップ！</div>
+  </div>
+  <div id="eq-step1" class="eq-box"></div>
+  <div class="hint">💡 ヒント: これから「1 つのかたまり」として見る部分は？</div>
+</div>
+
+<!-- ========= STEP 2: かたまりの値を入力 ========= -->
+<div id="step2" class="screen">
+  <div class="step-header">
+    <div class="step-label">STEP 2 / 3</div>
+    <div class="step-title">✏️ かたまり の値を入力</div>
+  </div>
+  <div id="eq-step2" class="eq-box"></div>
+  <div class="input-row">
+    <span id="katamari-label"></span>
+    <span>=</span>
+    <input id="input2" type="text" inputmode="numeric" placeholder="?" autocomplete="off">
+  </div>
+  <div id="hint2" class="hint"></div>
+  <button class="check-btn" onclick="checkStep2()">✅ 確認</button>
+</div>
+
+<!-- ========= STEP 3: x を入力 ========= -->
+<div id="step3" class="screen">
+  <div class="step-header">
+    <div class="step-label">STEP 3 / 3</div>
+    <div class="step-title">🎉 x を求めよう！</div>
+  </div>
+  <div id="eq-step3" class="eq-box"></div>
+  <div class="input-row">
+    <span>x =</span>
+    <input id="input3" type="text" placeholder="?" autocomplete="off" style="width:180px">
+  </div>
+  <div class="hint">
+    💡 ± の書き方: <b>±3</b>  /  <b>±2√2</b>  /  <b>5,-7</b> (答えが 2 つ違う値のとき)
+  </div>
+  <button class="check-btn" onclick="checkStep3()">✅ 確認</button>
+</div>
+
+<!-- ========= 結果 ========= -->
+<div id="result" class="screen">
+  <div id="fb" class="feedback"></div>
+  <div id="explain" style="text-align:center; margin:20px 0; font-size:14px; color:#ccc; line-height:1.8"></div>
+  <button class="btn" onclick="location.reload()">🏠 タイトルに戻る</button>
+</div>
+
+<script>
+// ============= 問題定義 =============
+const PROBLEMS = [
+  {
+    // ① x² = 9
+    equation: [
+      { token: 'x', sup: '2', isKatamari: true },
+      { token: ' = ' },
+      { token: '9' },
+    ],
+    katamari: 'x²',
+    step2Target: 9,      // かたまり = 9
+    step2Hint: '式のとおり、そのまま！',
+    answer: '±3',
+    answerAlts: ['+-3', '±3', '+3,-3', '-3,+3', '3,-3', '-3,3'],
+    explain: '<b>x²</b> = 9 のとき、両辺の平方根をとって <b>x = ±3</b>'
+  },
+  {
+    // ② 3x² - 24 = 0
+    equation: [
+      { token: '3' },
+      { token: 'x', sup: '2', isKatamari: true },
+      { token: ' − 24 = 0' },
+    ],
+    katamari: 'x²',
+    step2Target: 8,
+    step2Hint: '3x² = 24 に移項してから、両辺を 3 で割る！',
+    answer: '±2√2',
+    answerAlts: ['+-2√2', '±2√2', '±2root2', '±2rt2', '+2√2,-2√2', '-2√2,+2√2'],
+    explain: '3x² - 24 = 0<br>→ 3x² = 24<br>→ <b>x² = 8</b><br>→ x = ±√8 = <b>±2√2</b>'
+  },
+  {
+    // ③ (x+1)² = 36
+    equation: [
+      { token: '(x+1)', sup: '2', isKatamari: true },
+      { token: ' = 36' },
+    ],
+    katamari: '(x+1)',
+    step2Target: '±6',
+    step2Alts: ['+-6', '±6', '+6,-6', '-6,+6', '6,-6'],
+    step2Hint: '(x+1) を 1 つのかたまりとして √ の中から出す！',
+    answer: '5,-7',
+    answerAlts: ['5,-7', '-7,5', '5, -7', '-7, 5'],
+    explain: '(x+1)² = 36 → x+1 = ±6<br>x+1 = 6 → <b>x = 5</b><br>x+1 = -6 → <b>x = -7</b>'
+  },
+];
+
+let current = null;
+let currentIdx = 0;
+
+// ============= 画面切り替え =============
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showProblem(idx) {
+  currentIdx = idx;
+  current = PROBLEMS[idx];
+  renderStep1();
+  show('step1');
+}
+
+// ============= STEP 1: タップで検出 =============
+function renderStep1() {
+  const eq = document.getElementById('eq-step1');
+  eq.innerHTML = '';
+  current.equation.forEach((part, i) => {
+    const span = document.createElement('span');
+    span.className = 'token' + (part.isKatamari ? ' tappable' : '');
+    span.innerHTML = part.token + (part.sup ? `<span class="sup">${part.sup}</span>` : '');
+    if (part.isKatamari) {
+      span.onclick = () => tapKatamari(span, true);
+    } else {
+      span.onclick = () => tapKatamari(span, false);
+    }
+    eq.appendChild(span);
+  });
+}
+
+function tapKatamari(el, isCorrect) {
+  if (isCorrect) {
+    el.classList.add('selected');
+    el.classList.remove('tappable');
+    setTimeout(() => {
+      renderStep2();
+      show('step2');
+    }, 500);
+  } else {
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 500);
+  }
+}
+
+// ============= STEP 2: 値入力 =============
+function renderStep2() {
+  const eq = document.getElementById('eq-step2');
+  eq.innerHTML = '';
+  current.equation.forEach(part => {
+    const span = document.createElement('span');
+    span.className = 'token' + (part.isKatamari ? ' selected' : '');
+    span.innerHTML = part.token + (part.sup ? `<span class="sup">${part.sup}</span>` : '');
+    eq.appendChild(span);
+  });
+  document.getElementById('katamari-label').textContent = current.katamari;
+  document.getElementById('hint2').textContent = '💡 ' + current.step2Hint;
+  const input = document.getElementById('input2');
+  input.value = '';
+  input.focus();
+}
+
+function checkStep2() {
+  const val = document.getElementById('input2').value.trim();
+  const target = String(current.step2Target);
+  const alts = current.step2Alts || [target];
+  const ok = alts.includes(val) || val === target;
+  if (ok) {
+    show('step3');
+    renderStep3();
+  } else {
+    document.getElementById('hint2').innerHTML = '❌ もう一度！正解は <b>' + target + '</b>';
+    document.getElementById('hint2').style.color = 'var(--red)';
+  }
+}
+
+// ============= STEP 3: 答え入力 =============
+function renderStep3() {
+  const eq = document.getElementById('eq-step3');
+  eq.innerHTML = '<span style="font-size:36px">' + current.katamari + ' = ' + current.step2Target + '</span>';
+  const input = document.getElementById('input3');
+  input.value = '';
+  input.focus();
+}
+
+function checkStep3() {
+  const val = document.getElementById('input3').value.trim().replace(/\s/g, '');
+  const alts = current.answerAlts;
+  const ok = alts.some(a => a.replace(/\s/g, '') === val);
+  const fb = document.getElementById('fb');
+  const ex = document.getElementById('explain');
+  if (ok) {
+    fb.className = 'feedback ok';
+    fb.innerHTML = '<div class="fb-icon">🎉</div><div class="fb-msg">正解！</div>';
+    ex.innerHTML = '<b>解説</b><br>' + current.explain;
+  } else {
+    fb.className = 'feedback ng';
+    fb.innerHTML = '<div class="fb-icon">💦</div><div class="fb-msg">おしい！</div>';
+    ex.innerHTML = '<b>正解は:</b> x = <span style="color:var(--gold);font-size:20px">' + current.answer + '</span><br><br>' + current.explain;
+  }
+  show('result');
+}
+</script>
+</body>
+</html>

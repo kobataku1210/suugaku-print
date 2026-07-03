@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>かたまりチャレンジ</title>
+<style>
+:root {
+  --bg1: #0f0c29;
+  --bg2: #302b63;
+  --bg3: #24243e;
+  --gold: #ffd166;
+  --gold-lt: #fff3b8;
+  --gold-dk: #d4a017;
+  --green: #06d6a0;
+  --green-dk: #059669;
+  --red: #ef476f;
+  --blue: #4cc9f0;
+  --blue-lt: #a5e3f7;
+  --purple: #b39ddb;
+  --text: #f5f5f5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { min-height: 100%; overflow-x: hidden; }
+body {
+  font-family: 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+  background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 8px;
+  user-select: none;
+}
+.container { max-width: 480px; margin: 0 auto; }
+.screen { display: none; padding: 16px 8px; }
+.screen.active { display: block; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== タイトル ===== */
+.title-emoji-big { font-size: 76px; text-align: center; margin: 20px 0 8px; filter: drop-shadow(0 0 20px var(--gold)); animation: bob 2.5s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.title-name { font-size: clamp(28px, 8vw, 44px); font-weight: 900; text-align: center; color: var(--gold-lt); text-shadow: 0 0 24px rgba(255,215,100,0.6), 0 2px 0 #000; letter-spacing: 5px; margin-bottom: 6px; }
+.title-tag { font-size: 13px; color: #ddd; text-align: center; padding: 10px 16px; margin: 16px auto 24px; max-width: 380px; line-height: 1.7; background: rgba(255,255,255,0.06); border-radius: 12px; border: 1px solid rgba(255,215,100,0.2); }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 440px; margin: 8px auto; }
+.mode-card { background: rgba(255,255,255,0.08); border: 2px solid rgba(255,215,100,0.3); border-radius: 16px; padding: 18px 10px; text-align: center; cursor: pointer; transition: transform 0.15s, border-color 0.2s, background 0.2s; }
+.mode-card:hover, .mode-card:active { transform: scale(1.03); border-color: var(--gold); background: rgba(255,215,100,0.12); }
+.mode-card-icon { font-size: 36px; }
+.mode-card-name { font-size: 16px; font-weight: 900; margin-top: 4px; letter-spacing: 2px; }
+.mode-card-sub { font-size: 11px; opacity: 0.7; margin-top: 4px; line-height: 1.4; }
+.section-title { text-align: center; font-size: 13px; color: #ccc; margin: 14px 0 8px; letter-spacing: 4px; }
+.difficulty-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; max-width: 440px; margin: 0 auto; }
+.diff-btn { background: rgba(255,255,255,0.06); border: 2px solid rgba(255,215,100,0.2); border-radius: 12px; padding: 12px 4px; color: #ccc; font-size: 14px; font-weight: 900; cursor: pointer; transition: all 0.2s; }
+.diff-btn.active { background: rgba(255,209,102,0.25); border-color: var(--gold); color: var(--gold-lt); box-shadow: 0 4px 14px rgba(255,209,102,0.3); }
+.diff-btn:hover { transform: translateY(-2px); }
+.diff-btn-name { font-size: 15px; }
+.diff-btn-sub { font-size: 10px; opacity: 0.7; margin-top: 4px; }
+
+/* ===== HUD ===== */
+.hud { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 13px; }
+.hud-item { display: flex; align-items: center; gap: 4px; }
+.hud-label { color: #999; font-size: 11px; }
+.hud-value { font-weight: 900; color: var(--gold-lt); font-size: 16px; }
+.hud-value.streak { color: var(--red); }
+
+/* ===== ステップヘッダー ===== */
+.step-header { background: rgba(255,255,255,0.08); border-left: 4px solid var(--gold); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.step-label { color: var(--gold); font-size: 11px; letter-spacing: 3px; margin-bottom: 2px; }
+.step-title { font-size: 18px; font-weight: 900; }
+
+/* ===== 進行ボックス ===== */
+.progress-box { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px 12px; margin: 12px 0; min-height: 130px; text-align: center; }
+.step-line { padding: 8px 6px; font-family: 'Cambria Math', 'Times New Roman', serif; font-size: clamp(22px, 6.2vw, 32px); letter-spacing: 2px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; }
+.step-line.completed { color: #ccc; opacity: 0.9; }
+.step-line.current { color: var(--gold-lt); }
+.step-arrow { color: var(--gold); font-size: 20px; margin: 2px 0; }
+
+/* トークン */
+.token { padding: 4px 8px; border-radius: 8px; display: inline-block; transition: all 0.2s; }
+/* かたまり: 金色系 */
+.token.tappable-kat { cursor: pointer; border: 3px dashed rgba(255,209,102,0.6); color: var(--gold-lt); animation: pulseGold 1.4s ease-in-out infinite; padding: 2px 8px; }
+@keyframes pulseGold { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,209,102,0.5); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(255,209,102,0); } }
+.token.tappable-kat:hover { background: rgba(255,209,102,0.15); }
+.token.selected-kat { border: 2px solid var(--gold); background: rgba(255,209,102,0.15); animation: none; padding: 2px 8px; color: #fff; }
+/* 移項する項: 青系 */
+.token.tappable-move { cursor: pointer; border: 3px dashed rgba(76,201,240,0.6); color: var(--blue-lt); animation: pulseBlue 1.4s ease-in-out infinite; padding: 2px 8px; }
+@keyframes pulseBlue { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76,201,240,0.5); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(76,201,240,0); } }
+.token.tappable-move:hover { background: rgba(76,201,240,0.15); }
+.token.consumed-move { text-decoration: line-through; opacity: 0.4; color: #888; padding: 2px 8px; }
+/* エラー */
+.token.wrong { border: 3px solid var(--red); background: rgba(239,71,111,0.25); animation: shake 0.4s; color: var(--red); }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.sup { font-size: 0.65em; vertical-align: super; }
+
+/* 入力欄 */
+.step-input { min-width: 100px; max-width: 220px; padding: 6px 12px; font-size: clamp(22px, 6vw, 30px); text-align: center; background: rgba(255,255,255,0.1); border: 3px solid var(--gold); border-radius: 10px; color: var(--gold-lt); font-family: 'Cambria Math', serif; font-weight: 700; }
+.step-input:focus { outline: none; background: rgba(255,255,255,0.2); box-shadow: 0 0 0 4px rgba(255,209,102,0.3); }
+
+/* キーパッド */
+.keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-width: 400px; margin: 10px auto; }
+.key { padding: 12px 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-size: 18px; font-family: 'Cambria Math', serif; cursor: pointer; transition: all 0.15s; }
+.key:hover, .key:active { background: rgba(255,209,102,0.2); transform: scale(0.95); }
+
+.hint { color: #aaa; font-size: 12px; text-align: center; margin: 8px 12px; line-height: 1.6; }
+.hint.error { color: var(--red); font-weight: 700; }
+
+.check-btn { display: block; margin: 16px auto; padding: 14px 40px; background: linear-gradient(180deg, var(--green), var(--green-dk)); color: #fff; font-size: 18px; font-weight: 900; letter-spacing: 2px; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 6px 20px rgba(6,214,160,0.4); transition: all 0.2s; }
+.check-btn:hover, .check-btn:active { transform: translateY(-2px) scale(1.02); }
+
+.feedback-inline { padding: 12px; border-radius: 12px; margin: 10px 12px; text-align: center; font-weight: 700; animation: slideIn 0.3s; }
+.feedback-inline.ok { background: rgba(6,214,160,0.15); border: 2px solid var(--green); color: var(--green); }
+.feedback-inline.ng { background: rgba(239,71,111,0.15); border: 2px solid var(--red); color: var(--red); }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* リザルト */
+.result-icon { font-size: 80px; text-align: center; margin: 20px 0; filter: drop-shadow(0 0 20px var(--gold)); }
+.result-title { font-size: 32px; text-align: center; font-weight: 900; color: var(--gold-lt); margin-bottom: 20px; letter-spacing: 3px; }
+.result-stats { background: rgba(255,255,255,0.06); border-radius: 16px; padding: 16px; margin: 16px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.result-stat { text-align: center; }
+.result-stat-label { font-size: 11px; color: #aaa; letter-spacing: 2px; }
+.result-stat-value { font-size: 28px; font-weight: 900; color: var(--gold-lt); margin-top: 4px; }
+.result-rank { font-size: 22px; text-align: center; font-weight: 900; color: var(--gold); margin: 10px 0; }
+.retry-btn { display: block; margin: 20px auto; padding: 14px 30px; background: linear-gradient(180deg, var(--gold), var(--gold-dk)); color: #000; font-size: 18px; font-weight: 900; letter-spacing: 3px; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 6px 20px rgba(255,209,102,0.4); }
+
+.tiny-btn { display: inline-block; padding: 6px 12px; margin: 4px 4px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; color: #ccc; font-size: 12px; cursor: pointer; }
+.tiny-btn:hover { background: rgba(255,209,102,0.2); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ========= タイトル画面 ========= -->
+<div id="titleScreen" class="screen active">
+  <div class="title-emoji-big">🧊</div>
+  <div class="title-name">かたまりチャレンジ</div>
+  <div class="title-tag">
+    移項したり、<b style="color:var(--gold)">かたまり</b> を見つけたりして、<br>
+    段階的に <span style="color:var(--gold)">x</span> を求めよう！
+  </div>
+
+  <div class="section-title">難易度</div>
+  <div class="difficulty-buttons">
+    <button class="diff-btn active" data-diff="easy" onclick="setDiff('easy')">
+      <div class="diff-btn-name">🌱 初級</div>
+      <div class="diff-btn-sub">x² = 数</div>
+    </button>
+    <button class="diff-btn" data-diff="medium" onclick="setDiff('medium')">
+      <div class="diff-btn-name">🔥 中級</div>
+      <div class="diff-btn-sub">3x² や 移項</div>
+    </button>
+    <button class="diff-btn" data-diff="hard" onclick="setDiff('hard')">
+      <div class="diff-btn-name">💎 難関</div>
+      <div class="diff-btn-sub">(x+1)²</div>
+    </button>
+  </div>
+
+  <div class="section-title">モード</div>
+  <div class="mode-grid">
+    <button class="mode-card" onclick="startGame('practice')">
+      <div class="mode-card-icon">🎯</div>
+      <div class="mode-card-name">練習</div>
+      <div class="mode-card-sub">好きなだけ<br>解ける</div>
+    </button>
+    <button class="mode-card" onclick="startGame('timeattack')">
+      <div class="mode-card-icon">⏱️</div>
+      <div class="mode-card-name">10問チャレンジ</div>
+      <div class="mode-card-sub">時間を計って<br>10 問解こう</div>
+    </button>
+  </div>
+</div>
+
+<!-- ========= ゲーム画面 ========= -->
+<div id="gameScreen" class="screen">
+  <div class="hud">
+    <div class="hud-item"><span class="hud-label">問題</span><span class="hud-value" id="problemNum">1</span><span class="hud-label" id="totalProblemsLabel">/ ∞</span></div>
+    <div class="hud-item"><span class="hud-label">✅</span><span class="hud-value" id="scoreVal">0</span></div>
+    <div class="hud-item"><span class="hud-label">🔥</span><span class="hud-value streak" id="streakVal">0</span></div>
+    <div class="hud-item" id="timerStat" style="display:none"><span class="hud-label">⏱</span><span class="hud-value" id="timerVal">0</span></div>
+  </div>
+
+  <div class="step-header">
+    <div class="step-label" id="stepLabel">STEP 1 / 2</div>
+    <div class="step-title" id="stepTitle">🎯 かたまり をタップ！</div>
+  </div>
+
+  <div id="progressBox" class="progress-box"></div>
+
+  <div id="keypad" class="keypad"></div>
+  <div id="hintArea" class="hint">💡</div>
+  <button class="check-btn" id="submitBtn" onclick="onSubmit()">✅ 確認</button>
+  <div id="feedbackArea"></div>
+
+  <div style="text-align:center; margin-top:20px">
+    <button class="tiny-btn" onclick="returnToTitle()">🏠 タイトルへ</button>
+  </div>
+</div>
+
+<!-- ========= リザルト ========= -->
+<div id="resultScreen" class="screen">
+  <div class="result-icon" id="resultIcon">🏆</div>
+  <div class="result-title" id="resultTitle">クリア！</div>
+  <div class="result-stats">
+    <div class="result-stat"><div class="result-stat-label">正解数</div><div class="result-stat-value" id="statCorrect">0</div></div>
+    <div class="result-stat"><div class="result-stat-label">まちがい</div><div class="result-stat-value" id="statWrong">0</div></div>
+    <div class="result-stat"><div class="result-stat-label">最大連続</div><div class="result-stat-value" id="statStreak">0</div></div>
+    <div class="result-stat"><div class="result-stat-label" id="timeLabel">タイム</div><div class="result-stat-value" id="statTime">-</div></div>
+  </div>
+  <div class="result-rank" id="resultRank"></div>
+  <button class="retry-btn" onclick="location.reload()">🔄 もう一度</button>
+</div>
+
+</div>
+
+<script>
+// ================================================================
+// 問題定義（サブ難易度別に tier 分割）
+// ================================================================
+function mkEqEasy(n) { return [{ t: 'x', sup: '2', k: true }, { t: ` = ${n}` }]; }
+function mkEqMedNM(a, c) { return [{ t: String(a) }, { t: 'x', sup: '2', k: true }, { t: ` = ${c}` }]; }
+function mkEqMedM(a, c) { return [{ t: String(a) }, { t: 'x', sup: '2', k: true }, { t: ` − ${c}`, m: true }, { t: ' = 0' }]; }
+function mkEqAfterM(a, c) { return [{ t: String(a) }, { t: 'x', sup: '2', k: true }, { t: ` = ${c}` }]; }
+function mkEqHard(sign, a, rhs) { return [{ t: `(x${sign}${a})`, sup: '2', k: true }, { t: ` = ${rhs}` }]; }
+
+// ---- 初級 ----
+const EASY_T1 = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144].map(n => ({
+  eq: mkEqEasy(n), katamari: 'x²', katamariVal: String(n), ans: `±${Math.sqrt(n)}`, steps: ['x'],
+}));
+const EASY_T2 = [[2, '±√2'], [3, '±√3'], [5, '±√5'], [6, '±√6'], [7, '±√7'], [10, '±√10'], [11, '±√11'], [13, '±√13'], [15, '±√15']].map(([n, ans]) => ({
+  eq: mkEqEasy(n), katamari: 'x²', katamariVal: String(n), ans, steps: ['x'],
+}));
+const EASY_T3 = [[8, '±2√2'], [12, '±2√3'], [18, '±3√2'], [20, '±2√5'], [50, '±5√2'], [27, '±3√3']].map(([n, ans]) => ({
+  eq: mkEqEasy(n), katamari: 'x²', katamariVal: String(n), ans, steps: ['x'],
+}));
+
+// ---- 中級 ----
+const MEDIUM_T1 = [[2, 4, '±2'], [2, 9, '±3'], [2, 16, '±4'], [2, 25, '±5'], [3, 4, '±2'], [3, 9, '±3'], [3, 16, '±4'], [4, 9, '±3'], [4, 16, '±4'], [5, 9, '±3'], [5, 4, '±2']].map(([a, target, ans]) => ({
+  eq: mkEqMedNM(a, a * target), katamari: 'x²', katamariVal: String(target),
+  katamariHint: `両辺を ${a} で割ろう！`, ans, steps: ['tap-kat', 'kat', 'x'],
+}));
+const MEDIUM_T2 = [[2, 5, '±√5'], [2, 8, '±2√2'], [3, 5, '±√5'], [3, 8, '±2√2'], [3, 12, '±2√3']].map(([a, target, ans]) => ({
+  eq: mkEqMedNM(a, a * target), katamari: 'x²', katamariVal: String(target),
+  katamariHint: `両辺を ${a} で割ろう！`, ans, steps: ['tap-kat', 'kat', 'x'],
+}));
+const MEDIUM_T3 = [[2, 8, 4, '±2'], [2, 18, 9, '±3'], [2, 32, 16, '±4'], [3, 12, 4, '±2'], [3, 27, 9, '±3'], [3, 48, 16, '±4'], [5, 45, 9, '±3'], [5, 20, 4, '±2']].map(([a, c, target, ans]) => ({
+  eq: mkEqMedM(a, c), eqAfterMove: mkEqAfterM(a, c),
+  katamari: 'x²', katamariVal: String(target),
+  moveHint: `定数の項を右辺に移項しよう！`, katamariHint: `両辺を ${a} で割ろう！`,
+  ans, steps: ['tap-move', 'tap-kat', 'kat', 'x'],
+}));
+const MEDIUM_T4 = [[3, 24, 8, '±2√2'], [2, 24, 12, '±2√3']].map(([a, c, target, ans]) => ({
+  eq: mkEqMedM(a, c), eqAfterMove: mkEqAfterM(a, c),
+  katamari: 'x²', katamariVal: String(target),
+  moveHint: `定数の項を右辺に移項しよう！`, katamariHint: `両辺を ${a} で割ろう！`,
+  ans, steps: ['tap-move', 'tap-kat', 'kat', 'x'],
+}));
+
+// ---- 難関 ----
+const HARD_T1 = [
+  ['+', 1, 4, '±2', '1,-3'], ['+', 1, 9, '±3', '2,-4'], ['+', 1, 16, '±4', '3,-5'], ['+', 1, 25, '±5', '4,-6'], ['+', 1, 36, '±6', '5,-7'],
+  ['-', 1, 4, '±2', '3,-1'], ['-', 1, 9, '±3', '4,-2'], ['-', 1, 16, '±4', '5,-3'],
+].map(([sign, a, rhs, katVal, ans]) => ({
+  eq: mkEqHard(sign, a, rhs), katamari: `(x${sign}${a})`, katamariVal: katVal,
+  katamariHint: `両辺の平方根をとろう！`, ans, steps: ['tap-kat', 'kat', 'x'],
+}));
+const HARD_T2 = [
+  ['+', 2, 9, '±3', '1,-5'], ['+', 2, 16, '±4', '2,-6'], ['+', 2, 25, '±5', '3,-7'],
+  ['+', 3, 16, '±4', '1,-7'], ['+', 3, 25, '±5', '2,-8'],
+  ['-', 2, 9, '±3', '5,-1'], ['-', 2, 16, '±4', '6,-2'],
+].map(([sign, a, rhs, katVal, ans]) => ({
+  eq: mkEqHard(sign, a, rhs), katamari: `(x${sign}${a})`, katamariVal: katVal,
+  katamariHint: `両辺の平方根をとろう！`, ans, steps: ['tap-kat', 'kat', 'x'],
+}));
+const HARD_T3 = [
+  ['+', 4, 25, '±5', '1,-9'], ['-', 3, 25, '±5', '8,-2'],
+].map(([sign, a, rhs, katVal, ans]) => ({
+  eq: mkEqHard(sign, a, rhs), katamari: `(x${sign}${a})`, katamariVal: katVal,
+  katamariHint: `両辺の平方根をとろう！`, ans, steps: ['tap-kat', 'kat', 'x'],
+}));
+
+// tier 配列 (易 → 難 の順)
+const TIERS = {
+  easy:   [EASY_T1, EASY_T2, EASY_T3],
+  medium: [MEDIUM_T1, MEDIUM_T2, MEDIUM_T3, MEDIUM_T4],
+  hard:   [HARD_T1, HARD_T2, HARD_T3],
+};
+
+// ================================================================
+// State
+// ================================================================
+let selectedDiff = 'easy';
+let mode = 'practice';
+let queue = [];
+let current = null;
+let currentStepIdx = 0;
+let problemNum = 1;
+let correctCount = 0, wrongCount = 0, streak = 0, maxStreak = 0;
+let currentStepAttempts = 0;
+let taStart = 0, timerHandle = null, elapsed = 0;
+const TA_TOTAL = 10;
+
+// 各ステップの完了状態
+let moveDone = false;    // tap-move ステップ完了
+let katTapDone = false;  // tap-kat ステップ完了
+let katValueStr = null;  // kat 入力済み値
+
+// ================================================================
+// 全角/半角 正規化
+// ================================================================
+function normalizeInput(val) {
+  return String(val)
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[Ａ-Ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[ａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[！-／：-＠［-｀｛-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[−―ー–—]/g, '-')
+    .replace(/[\s　]/g, '')
+    .replace(/\+-/g, '±').replace(/-\+/g, '±')
+    .replace(/root/gi, '√').replace(/rt/gi, '√').replace(/sqrt/gi, '√')
+    .replace(/(\d)\*√/g, '$1√').replace(/(\d)・√/g, '$1√');
+}
+
+function isEqualAnswer(userVal, correct) {
+  const u = normalizeInput(userVal);
+  const c = normalizeInput(correct);
+  if (u === c) return true;
+  if (c.startsWith('±')) {
+    const body = c.slice(1);
+    if (['+' + body + ',-' + body, '-' + body + ',+' + body, body + ',-' + body, '-' + body + ',' + body].includes(u)) return true;
+  }
+  if (c.includes(',')) {
+    const cSet = c.split(',').map(s => s.trim()).sort().join(',');
+    const uSet = u.split(',').map(s => s.trim()).sort().join(',');
+    if (cSet === uSet) return true;
+  }
+  return false;
+}
+
+// ================================================================
+// タイトル / 難易度
+// ================================================================
+function setDiff(d) {
+  selectedDiff = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === d));
+}
+function returnToTitle() {
+  if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+  show('titleScreen');
+}
+
+// ================================================================
+// ゲーム開始
+// ================================================================
+function startGame(m) {
+  mode = m;
+  problemNum = 1; correctCount = 0; wrongCount = 0;
+  streak = 0; maxStreak = 0; elapsed = 0;
+
+  if (mode === 'timeattack') {
+    queue = makeQueue(selectedDiff, true, TA_TOTAL);
+    document.getElementById('totalProblemsLabel').textContent = `/ ${TA_TOTAL}`;
+    document.getElementById('timerStat').style.display = 'flex';
+    document.getElementById('timeLabel').textContent = 'タイム';
+    taStart = Date.now();
+    timerHandle = setInterval(updateTimer, 100);
+  } else {
+    queue = makeQueue(selectedDiff, false);
+    document.getElementById('totalProblemsLabel').textContent = '/ ∞';
+    document.getElementById('timerStat').style.display = 'none';
+  }
+  document.getElementById('scoreVal').textContent = '0';
+  document.getElementById('streakVal').textContent = '0';
+  show('gameScreen');
+  nextProblem();
+}
+
+function updateTimer() { elapsed = Math.floor((Date.now() - taStart) / 1000); document.getElementById('timerVal').textContent = elapsed; }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
+
+// ================================================================
+// キュー生成（サブ難易度階層シャッフル）
+// 各 tier を内部でシャッフルし、易 → 難 の順に並べる。
+// タイムアタックの場合は tier サイズに比例して 10 問に配分。
+// ================================================================
+function makeQueue(diff, isTA, count) {
+  const tiers = TIERS[diff];
+  if (!isTA) {
+    // 練習モード: 各 tier を内部シャッフル → 易→難 順に連結
+    const q = [];
+    tiers.forEach(tier => {
+      const shuffled = [...tier];
+      shuffle(shuffled);
+      q.push(...shuffled);
+    });
+    return q;
+  }
+  // タイムアタック: 層別サンプリング
+  return pickStratified(tiers, count);
+}
+
+function pickStratified(tiers, count) {
+  const total = tiers.reduce((s, t) => s + t.length, 0);
+  const allocs = tiers.map(t => Math.round(count * t.length / total));
+  // 合計を count に合わせる
+  let diff = count - allocs.reduce((s, a) => s + a, 0);
+  let i = 0;
+  while (diff !== 0 && i < 100) {
+    if (diff > 0) { allocs[i % tiers.length]++; diff--; }
+    else if (allocs[i % tiers.length] > 0) { allocs[i % tiers.length]--; diff++; }
+    i++;
+  }
+  const result = [];
+  tiers.forEach((tier, idx) => {
+    const shuffled = [...tier];
+    shuffle(shuffled);
+    result.push(...shuffled.slice(0, Math.min(allocs[idx], tier.length)));
+  });
+  return result;
+}
+
+// ================================================================
+// 次の問題
+// ================================================================
+function nextProblem() {
+  if (mode === 'timeattack' && problemNum > TA_TOTAL) { endGame(); return; }
+  if (queue.length === 0) { queue = makeQueue(selectedDiff, false); }
+  current = queue.shift();
+  currentStepIdx = 0;
+  currentStepAttempts = 0;
+  moveDone = false;
+  katTapDone = false;
+  katValueStr = null;
+  document.getElementById('problemNum').textContent = problemNum;
+  document.getElementById('feedbackArea').innerHTML = '';
+  renderCurrent();
+}
+
+// ================================================================
+// 描画
+// ================================================================
+function makeArrow() {
+  const arr = document.createElement('div');
+  arr.className = 'step-arrow'; arr.textContent = '↓';
+  return arr;
+}
+
+function makeEqLine(eqArr, opts) {
+  // opts: { kMode: 'tappable'|'selected'|null, mMode: 'tappable'|'consumed'|null,
+  //         onTapK: function, onTapM: function, isCurrent: bool }
+  const line = document.createElement('div');
+  line.className = 'step-line ' + (opts.isCurrent ? 'current' : 'completed');
+  eqArr.forEach(part => {
+    const span = document.createElement('span');
+    let cls = 'token';
+    if (part.k) {
+      if (opts.kMode === 'tappable') cls += ' tappable-kat';
+      else if (opts.kMode === 'selected') cls += ' selected-kat';
+    }
+    if (part.m) {
+      if (opts.mMode === 'tappable') cls += ' tappable-move';
+      else if (opts.mMode === 'consumed') cls += ' consumed-move';
+    }
+    span.className = cls;
+    span.innerHTML = part.t + (part.sup ? `<span class="sup">${part.sup}</span>` : '');
+    if (opts.kMode === 'tappable' && opts.onTapK) {
+      span.onclick = () => opts.onTapK(span, !!part.k);
+    } else if (opts.mMode === 'tappable' && opts.onTapM) {
+      span.onclick = () => opts.onTapM(span, !!part.m);
+    }
+    line.appendChild(span);
+  });
+  return line;
+}
+
+function makeInputLine(labelText, isCurrent) {
+  const line = document.createElement('div');
+  line.className = 'step-line ' + (isCurrent ? 'current' : 'completed');
+  const lab = document.createElement('span');
+  lab.textContent = labelText + ' =';
+  line.appendChild(lab);
+  const input = document.createElement('input');
+  input.id = 'currentInput'; input.type = 'text'; input.placeholder = '?';
+  input.className = 'step-input'; input.autocomplete = 'off';
+  input.addEventListener('keypress', e => { if (e.key === 'Enter') onSubmit(); });
+  line.appendChild(input);
+  return line;
+}
+
+function makeValueLine(labelText, valueText) {
+  const line = document.createElement('div');
+  line.className = 'step-line completed';
+  const lab = document.createElement('span');
+  lab.textContent = labelText + ' = ';
+  line.appendChild(lab);
+  const val = document.createElement('span');
+  val.style.color = 'var(--green)'; val.style.fontWeight = '700';
+  val.textContent = valueText;
+  line.appendChild(val);
+  return line;
+}
+
+function renderCurrent() {
+  const box = document.getElementById('progressBox');
+  box.innerHTML = '';
+  const step = current.steps[currentStepIdx];
+  const hasMoveStep = current.steps.includes('tap-move');
+  const hasKatTapStep = current.steps.includes('tap-kat');
+  const hasKatStep = current.steps.includes('kat');
+
+  // ---- 1行目: 初期の式 ----
+  const row1Opts = { isCurrent: step === 'tap-move' };
+  if (hasMoveStep) {
+    if (step === 'tap-move') {
+      row1Opts.mMode = 'tappable';
+      row1Opts.onTapM = onTapMove;
+    } else {
+      row1Opts.mMode = 'consumed';
+    }
+    // 移項問題では、初期の式で kat のハイライトはまだしない
+  } else if (hasKatTapStep && step === 'tap-kat') {
+    // 非移項問題で tap-kat の時: 初期の式で kat をタップさせる
+    row1Opts.kMode = 'tappable';
+    row1Opts.onTapK = onTapKat;
+  } else if (hasKatTapStep && currentStepIdx > current.steps.indexOf('tap-kat')) {
+    // tap-kat 完了後
+    row1Opts.kMode = 'selected';
+  } else if (!hasKatTapStep && current.eq.some(p => p.k)) {
+    // 初級（tap-kat 無し）: kat を強調表示
+    row1Opts.kMode = 'selected';
+  }
+  const row1 = makeEqLine(current.eq, row1Opts);
+  box.appendChild(row1);
+
+  // ---- 2行目: 移項後の式（tap-move 系のみ、tap-move 完了後） ----
+  if (hasMoveStep && moveDone) {
+    box.appendChild(makeArrow());
+    const row2Opts = { isCurrent: step === 'tap-kat' };
+    if (step === 'tap-kat') {
+      row2Opts.kMode = 'tappable';
+      row2Opts.onTapK = onTapKat;
+    } else if (katTapDone) {
+      row2Opts.kMode = 'selected';
+    }
+    const row2 = makeEqLine(current.eqAfterMove, row2Opts);
+    box.appendChild(row2);
+  }
+
+  // ---- 3行目: かたまり = 値（kat ステップ用） ----
+  if (hasKatStep) {
+    if (step === 'kat') {
+      box.appendChild(makeArrow());
+      box.appendChild(makeInputLine(current.katamari, true));
+    } else if (katValueStr !== null) {
+      box.appendChild(makeArrow());
+      box.appendChild(makeValueLine(current.katamari, katValueStr));
+    }
+  }
+
+  // ---- 4行目: x = 値（x ステップ用・入力欄） ----
+  if (step === 'x') {
+    box.appendChild(makeArrow());
+    box.appendChild(makeInputLine('x', true));
+  }
+
+  // フォーカス
+  if (step === 'kat' || step === 'x') {
+    setTimeout(() => { const inp = document.getElementById('currentInput'); if (inp) inp.focus(); }, 100);
+  }
+
+  // ステップヘッダー / ヒント / キーパッド更新
+  updateStepUI(step);
+}
+
+function updateStepUI(step) {
+  const total = current.steps.length;
+  document.getElementById('stepLabel').textContent = `STEP ${currentStepIdx + 1} / ${total}`;
+  const titles = {
+    'tap-move': '🎯 移項する項をタップ！',
+    'tap-kat': '🎯 かたまり をタップ！',
+    'kat': `✏️ ${current.katamari} の値は？`,
+    'x': '🎉 x を求めよう！'
+  };
+  document.getElementById('stepTitle').textContent = titles[step];
+
+  const keypad = document.getElementById('keypad');
+  const submitBtn = document.getElementById('submitBtn');
+  if (step === 'tap-move' || step === 'tap-kat') {
+    keypad.style.display = 'none';
+    submitBtn.style.display = 'none';
+  } else {
+    keypad.style.display = 'grid';
+    submitBtn.style.display = 'block';
+    buildKeypad(step === 'x');
+  }
+
+  const hint = document.getElementById('hintArea');
+  hint.className = 'hint';
+  if (step === 'tap-move') hint.innerHTML = '💡 ' + (current.moveHint || '定数を右辺に移項しよう！');
+  else if (step === 'tap-kat') hint.innerHTML = '💡 「1 つのかたまり」として見るのはどこ？';
+  else if (step === 'kat') hint.innerHTML = '💡 ' + (current.katamariHint || 'そのままの数を入れよう');
+  else hint.innerHTML = '💡 表記例:  <b>±3</b>  ／  <b>±2√2</b>  ／  <b>5,-7</b>';
+}
+
+// ================================================================
+// タップ処理
+// ================================================================
+function onTapMove(el, isCorrect) {
+  if (isCorrect) {
+    moveDone = true;
+    setTimeout(() => { currentStepIdx++; currentStepAttempts = 0; renderCurrent(); }, 400);
+  } else {
+    el.classList.add('wrong');
+    document.getElementById('hintArea').innerHTML = '❌ そこじゃない！ 右辺に移す項はどれ？';
+    document.getElementById('hintArea').className = 'hint error';
+    setTimeout(() => el.classList.remove('wrong'), 500);
+  }
+}
+
+function onTapKat(el, isCorrect) {
+  if (isCorrect) {
+    katTapDone = true;
+    setTimeout(() => { currentStepIdx++; currentStepAttempts = 0; renderCurrent(); }, 400);
+  } else {
+    el.classList.add('wrong');
+    document.getElementById('hintArea').innerHTML = '❌ そこじゃない！「まとめて 1 つ」と見られる部分は？';
+    document.getElementById('hintArea').className = 'hint error';
+    setTimeout(() => el.classList.remove('wrong'), 500);
+  }
+}
+
+// ================================================================
+// 入力送信
+// ================================================================
+function onSubmit() {
+  const inp = document.getElementById('currentInput');
+  if (!inp) return;
+  const val = inp.value;
+  const step = current.steps[currentStepIdx];
+  const target = step === 'kat' ? current.katamariVal : current.ans;
+
+  if (isEqualAnswer(val, target)) {
+    if (step === 'kat') {
+      katValueStr = normalizeInput(val);
+    }
+    currentStepIdx++;
+    currentStepAttempts = 0;
+    if (currentStepIdx >= current.steps.length) {
+      onProblemComplete(true);
+    } else {
+      renderCurrent();
+    }
+  } else {
+    currentStepAttempts++;
+    const hint = document.getElementById('hintArea');
+    hint.className = 'hint error';
+    if (currentStepAttempts >= 3) {
+      const correctText = step === 'kat' ? current.katamariVal : current.ans;
+      hint.innerHTML = `💡 正解は <b style="color:var(--gold)">${correctText}</b>`;
+    } else {
+      const base = step === 'kat' ? (current.katamariHint || 'そのままの数を入れよう') : '';
+      hint.innerHTML = '❌ もう一度！　' + base;
+    }
+    if (currentStepAttempts >= 5) {
+      onProblemComplete(false);
+    }
+  }
+}
+
+function onProblemComplete(ok) {
+  const fb = document.getElementById('feedbackArea');
+  if (ok) {
+    correctCount++; streak++;
+    if (streak > maxStreak) maxStreak = streak;
+    fb.innerHTML = `<div class="feedback-inline ok">🎉 正解！  x = ${normalizeInput(current.ans)}</div>`;
+  } else {
+    wrongCount++; streak = 0;
+    fb.innerHTML = `<div class="feedback-inline ng">💦 惜しい！ 正解は x = ${current.ans}</div>`;
+  }
+  document.getElementById('scoreVal').textContent = correctCount;
+  document.getElementById('streakVal').textContent = streak;
+  setTimeout(() => { problemNum++; nextProblem(); }, ok ? 1400 : 2600);
+}
+
+// ================================================================
+// キーパッド
+// ================================================================
+function buildKeypad(includeSpecials) {
+  const pad = document.getElementById('keypad');
+  pad.innerHTML = '';
+  const keys = includeSpecials ? ['±', '√', ',', '-', '⌫', 'C'] : ['1', '2', '3', '4', '⌫', 'C'];
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'key'; b.textContent = k;
+    b.onclick = () => {
+      const inp = document.getElementById('currentInput');
+      if (!inp) return;
+      if (k === '⌫') inp.value = inp.value.slice(0, -1);
+      else if (k === 'C') inp.value = '';
+      else inp.value += k;
+      inp.focus();
+    };
+    pad.appendChild(b);
+  });
+}
+
+// ================================================================
+// リザルト
+// ================================================================
+function endGame() {
+  if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+  document.getElementById('statCorrect').textContent = correctCount;
+  document.getElementById('statWrong').textContent = wrongCount;
+  document.getElementById('statStreak').textContent = maxStreak;
+  if (mode === 'timeattack') document.getElementById('statTime').textContent = elapsed + '秒';
+  else document.getElementById('statTime').textContent = '-';
+  const rate = correctCount / Math.max(correctCount + wrongCount, 1);
+  let rank, icon, title;
+  if (rate >= 0.95) { rank = '⭐ 神！'; icon = '👑'; title = 'パーフェクト!'; }
+  else if (rate >= 0.8) { rank = '✨ すごい！'; icon = '🏆'; title = 'クリア!'; }
+  else if (rate >= 0.6) { rank = '💪 いい感じ！'; icon = '🎯'; title = 'クリア!'; }
+  else { rank = '📚 もう一回！'; icon = '💦'; title = 'おしい！'; }
+  document.getElementById('resultRank').textContent = rank;
+  document.getElementById('resultIcon').textContent = icon;
+  document.getElementById('resultTitle').textContent = title;
+  show('resultScreen');
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
