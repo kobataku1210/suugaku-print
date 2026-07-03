@@ -386,8 +386,8 @@ function loadProgress(){
 }
 function saveProgress(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){} }
 // プレビュー（先生）はすべてのステージを見られる
-const PREVIEW = (new URLSearchParams(location.search).get('preview') === '1')
-  || (function(){ try { return localStorage.getItem('mathPreviewUnlocked') === '1'; } catch(e){ return false; } })();
+// プレビュー（先生）判定：有効期限つきトークンのみ。生徒が ?preview=1 では入れない
+const PREVIEW = (function(){ try { return Date.now() < parseInt(localStorage.getItem('mathPreviewUntil')||'0',10); } catch(e){ return false; } })();
 function isUnlocked(i, prog){ return PREVIEW || i===0 || prog.cleared[i-1]===true; }
 // ステージ名（末尾＝真の隠し／その手前＝隠し／さらに手前＝最終）
 function stageLabel(i){

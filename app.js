@@ -7,13 +7,21 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22v';
+const APP_VERSION = '2026-06-22w';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
 // 生徒が URL を打っても認証できないため通常モードのまま。
 const _wantsPreview = new URLSearchParams(window.location.search).get('preview') === 'draft';
-const PREVIEW_MODE = _wantsPreview && localStorage.getItem('mathPreviewUnlocked') === '1';
+// プレビュー解除は「有効期限つき」。先生が使っても数時間で自動解除され、
+// 共用端末に残り続けて生徒が入れてしまうのを防ぐ。
+const PREVIEW_TTL_MS = 3 * 60 * 60 * 1000; // 3時間
+try { localStorage.removeItem('mathPreviewUnlocked'); } catch (e) {} // 旧・無期限フラグは廃止
+function _previewUnlocked() {
+  try { return Date.now() < parseInt(localStorage.getItem('mathPreviewUntil') || '0', 10); }
+  catch (e) { return false; }
+}
+const PREVIEW_MODE = _wantsPreview && _previewUnlocked();
 
 // ===== パスワード認証（クロージャで隠蔽・コンソールからアクセス不可） =====
 (function() {
@@ -39,7 +47,7 @@ const PREVIEW_MODE = _wantsPreview && localStorage.getItem('mathPreviewUnlocked'
       err.style.display = 'block';
       return;
     }
-    localStorage.setItem('mathPreviewUnlocked', '1');
+    localStorage.setItem('mathPreviewUntil', String(Date.now() + PREVIEW_TTL_MS));
     window.location.reload();
   };
 
@@ -3968,7 +3976,7 @@ if (_wantsPreview && !PREVIEW_MODE) {
 if (PREVIEW_MODE) {
   const banner = document.createElement('div');
   banner.id = 'preview-banner';
-  banner.innerHTML = '👁 プレビューモード（下書き章も表示中）<button onclick="localStorage.removeItem(\'mathPreviewUnlocked\'); window.location.search=\'\'">通常モードに戻る</button>';
+  banner.innerHTML = '👁 プレビューモード（下書き章も表示中・数時間で自動解除）<button onclick="localStorage.removeItem(\'mathPreviewUntil\'); window.location.search=\'\'">通常モードに戻る</button>';
   banner.style.cssText = `
     position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
     background: linear-gradient(135deg, #f7971e, #ffd200);
