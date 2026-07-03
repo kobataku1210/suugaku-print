@@ -7,12 +7,12 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-06-22y';
+const APP_VERSION = '2026-06-22z';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
 // 生徒が URL を打っても認証できないため通常モードのまま。
-const _wantsPreview = new URLSearchParams(window.location.search).get('preview') === 'draft';
+const _wantsPreview = new URLSearchParams(window.location.search).get('preview') === 'pv7q3z';
 // プレビュー解除は「有効期限つき」。先生が使っても数時間で自動解除され、
 // 共用端末に残り続けて生徒が入れてしまうのを防ぐ。
 const PREVIEW_TTL_MS = 3 * 60 * 60 * 1000; // 3時間
