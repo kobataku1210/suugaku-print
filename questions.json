@@ -5878,7 +5878,8 @@
     "rootBreak": false,
     "numSort": false,
     "primeFactor": false,
-    "logCarpenter": false
+    "logCarpenter": false,
+    "sqrtEquation": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [
