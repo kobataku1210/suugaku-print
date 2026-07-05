@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>平方根の方程式</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #fff;
+    user-select: none;
+    background: linear-gradient(180deg, #0a1c28 0%, #05121a 100%);
+    touch-action: manipulation;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル / 設定 / 結果 共通 ===== */
+  #title-screen, #setup-screen, #result-screen {
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  #setup-screen {
+    justify-content: flex-start;
+    padding-top: 32px;
+  }
+  .title-logo {
+    font-size: clamp(32px, 7vw, 56px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 3px 0 #26a69a, 0 6px 20px rgba(38,166,154,0.5);
+  }
+  .title-sub {
+    font-size: clamp(12px, 2.3vw, 16px);
+    background: linear-gradient(90deg, #26a69a, #4dd0e1);
+    padding: 6px 22px;
+    border-radius: 999px;
+    font-weight: bold;
+    letter-spacing: 3px;
+  }
+  .title-desc {
+    font-size: 14px; color: #ddd; text-align: center;
+    max-width: 380px; line-height: 1.7;
+    background: rgba(255,255,255,0.06);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(77,208,225,0.3);
+  }
+  .title-emoji { font-size: 64px; }
+
+  .btn {
+    border: none;
+    background: linear-gradient(180deg, #26a69a, #00695c);
+    color: white;
+    font-weight: bold;
+    font-size: 17px;
+    padding: 14px 40px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(38,166,154,0.5);
+    cursor: pointer;
+    letter-spacing: 3px;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-go { font-size: 22px; padding: 16px 56px; }
+  .btn-back {
+    background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid #555;
+    padding: 8px 20px; font-size: 13px; letter-spacing: 2px;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: #fff; color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* ===== 設定 ===== */
+  .setup-block {
+    width: min(90vw, 460px);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(77,208,225,0.25);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+  .setup-block h4 {
+    font-size: 15px; color: #4dd0e1; letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-left: 4px solid #26a69a; padding-left: 8px;
+  }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 12px 22px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 999px; font-size: 15px; cursor: pointer;
+    font-weight: bold; color: #ccc;
+  }
+  .chip.selected {
+    background: #26a69a; border-color: #4dd0e1; color: #fff;
+    box-shadow: 0 0 12px rgba(77,208,225,0.5);
+  }
+
+  /* ===== ゲーム画面 ===== */
+  #game-screen {
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+  #hud {
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    font-weight: bold;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #hud .stat {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; letter-spacing: 1px;
+  }
+  #hud .stat .num {
+    font-size: 22px;
+    font-family: 'Consolas','Menlo',monospace;
+    color: #4dd0e1;
+  }
+  #hud .stat .label {
+    font-size: 10px;
+    background: rgba(77,208,225,0.2);
+    color: #4dd0e1;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 2px;
+  }
+
+  .game-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    padding: 24px 18px;
+    overflow-y: auto;
+  }
+
+  /* 方程式カード */
+  .equation-card {
+    background: linear-gradient(180deg, #fffceb 0%, #ffe7b8 100%);
+    border: 3px solid #8b5a2b;
+    border-radius: 18px;
+    padding: 20px 40px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    text-align: center;
+    animation: eqPop 0.4s ease-out;
+  }
+  @keyframes eqPop {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .equation-card .formula {
+    font-size: clamp(40px, 10vw, 68px);
+    font-weight: 900;
+    color: #1a0e2a;
+    line-height: 1.2;
+    letter-spacing: 3px;
+    font-family: 'Cambria Math', 'Cambria', serif;
+  }
+  .equation-card .formula sup { font-size: 0.6em; vertical-align: super; }
+
+  /* 解答テンプレート(穴埋め) */
+  .answer-template {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 900;
+    color: #fff;
+    font-family: 'Cambria Math', 'Cambria', serif;
+    flex-wrap: wrap;
+  }
+  .answer-template .sqrt-sym {
+    font-size: 1.15em;
+  }
+  .answer-template .sqrt-body {
+    border-top: 3px solid currentColor;
+    padding: 0 6px;
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ans-input {
+    width: 78px;
+    height: 58px;
+    padding: 4px;
+    font-size: clamp(24px, 5vw, 34px);
+    font-weight: 900;
+    text-align: center;
+    border: 3px solid #4dd0e1;
+    border-radius: 10px;
+    background: #fff;
+    color: #0a1828;
+    font-family: 'Cambria Math', serif;
+    outline: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+  .ans-input:focus {
+    border-color: #ffdd5a;
+    box-shadow: 0 0 14px rgba(255,221,90,0.6);
+  }
+  .ans-input.wrong {
+    border-color: #f44336;
+    animation: shakeInput 0.3s;
+  }
+  @keyframes shakeInput {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .hint-msg {
+    color: #ff8a80;
+    font-weight: bold;
+    font-size: clamp(14px, 2.6vw, 18px);
+    min-height: 1.4em;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .hint-msg.correct { color: #b2ff59; }
+
+  /* ===== 結果画面 ===== */
+  .rs-time-label {
+    font-size: 12px; color: #4dd0e1;
+    letter-spacing: 3px; font-weight: bold;
+  }
+  .rs-time {
+    font-size: clamp(40px, 9vw, 68px);
+    font-weight: 900;
+    color: #ffdd5a;
+    font-family: 'Consolas','Menlo',monospace;
+    letter-spacing: 4px;
+    text-shadow: 0 4px 16px rgba(255,221,90,0.5);
+    margin: 4px 0;
+  }
+  #rs-best {
+    background: linear-gradient(135deg, #ffd56a, #ff8a2a);
+    color: #2a1810;
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-weight: 900; font-size: 13px;
+    letter-spacing: 2px;
+    display: inline-block;
+  }
+  #rs-time-bonus-banner {
+    background: linear-gradient(135deg, #ffd56a, #ff8a2a);
+    color: #2a1810;
+    padding: 8px 22px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: clamp(14px, 2.6vw, 18px);
+    letter-spacing: 2px;
+    box-shadow: 0 4px 14px rgba(255,138,42,0.6);
+    animation: bonusPulse 0.8s ease-in-out infinite alternate;
+    display: none;
+    margin: 6px auto;
+  }
+  @keyframes bonusPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+  }
+  .rs-peas {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: #fff;
+    padding: 14px 36px;
+    border-radius: 16px;
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 900;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    letter-spacing: 2px;
+    animation: peasPop 0.6s ease-out;
+    display: inline-block;
+  }
+  @keyframes peasPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .rs-stat {
+    background: rgba(255,255,255,0.08);
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #ddd;
+  }
+  .rs-stat strong { color: #4dd0e1; font-size: 20px; margin: 0 3px; }
+  .rs-buttons {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <div id="title-screen" class="screen active">
+    <div class="title-emoji">📐</div>
+    <div class="title-logo">平方根の方程式</div>
+    <div class="title-sub">SQUARE-ROOT EQUATION</div>
+    <div class="title-desc">
+      <b style="color:#4dd0e1">x² = 9 → ±3</b> や <b style="color:#4dd0e1">x² = 12 → ±2√3</b> …<br>
+      <strong>方程式を解いて穴を埋めよう!</strong>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-go" onclick="gotoSetup('practice')">🌱 練習</button>
+      <button class="btn btn-go" style="background:linear-gradient(180deg,#ff8a2a,#e05a00);box-shadow:0 4px 14px rgba(255,138,42,0.55)" onclick="gotoSetup('timeattack')">⏱ タイムアタック</button>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="setup-screen" class="screen">
+    <div class="title-logo" style="font-size:clamp(24px,5vw,36px)">難易度を選ぶ</div>
+    <div id="setup-mode-label" style="font-size:14px;color:#4dd0e1;letter-spacing:2px"></div>
+
+    <div class="setup-block">
+      <h4>レベル(全5問)</h4>
+      <div class="chip-group" id="level-chips">
+        <div class="chip selected" data-val="easy">🟢 初級</div>
+        <div class="chip" data-val="medium">🟡 中級</div>
+        <div class="chip" data-val="hard">🔴 上級</div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px;line-height:1.5">
+        🟢 初級: x² = 完全平方数 (答え: ±整数)<br>
+        🟡 中級: x² = 平方因数を含む数 (答え: ±a√b)<br>
+        🔴 上級: 無理数解 / 係数付き / (x−a)² 形など
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-back" onclick="showScreen('title-screen')">戻る</button>
+      <button class="btn btn-go" onclick="startGame()">開始!</button>
+    </div>
+  </div>
+
+  <!-- ゲーム -->
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="stat" id="hud-time-row" style="display:none">
+        <span class="label">TIME</span><span class="num" id="hud-time">0.0</span>
+      </div>
+      <div class="stat"><span class="label">問題</span><span class="num" id="hud-progress">1/5</span></div>
+      <div class="stat"><span class="label">連続</span><span class="num" id="hud-streak">0</span></div>
+      <button class="btn btn-back" style="padding:4px 14px;font-size:12px" onclick="quitGame()">終了</button>
+    </div>
+
+    <div class="game-content">
+      <div class="equation-card" id="equation-card">
+        <div class="formula" id="equation">―</div>
+      </div>
+
+      <div class="answer-template" id="answer-template"></div>
+
+      <div class="hint-msg" id="hint-msg"></div>
+
+      <button class="btn btn-go" onclick="submitAnswer()">解答!</button>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-screen" class="screen">
+    <div class="title-emoji">🎉</div>
+    <div class="title-logo" style="font-size:clamp(30px,7vw,48px)" id="rs-title">クリア!</div>
+    <div id="rs-time-block" style="display:none;text-align:center">
+      <div class="rs-time-label">CLEAR TIME</div>
+      <div class="rs-time" id="rs-time">0.0秒</div>
+      <div id="rs-best"></div>
+    </div>
+    <div id="rs-time-bonus-banner">⚡ 時間ボーナス +<span id="rs-time-bonus">0</span> 🫛</div>
+    <div id="rs-peas-block" style="display:none;text-align:center">
+      <div class="rs-peas">🟢 +<span id="rs-peas">0</span> グリンピース!</div>
+      <div id="rs-peas-breakdown" style="display:none;font-size:0.85rem;color:#fff;opacity:0.85;margin-top:4px">
+        内訳: 基本 <strong id="rs-peas-base">0</strong> + 時間ボーナス <strong id="rs-peas-bonus-in">0</strong>
+      </div>
+    </div>
+    <div class="rs-stat">
+      正解 <strong id="rs-correct">0</strong> / 5&nbsp;&nbsp;
+      ミス <strong id="rs-wrong">0</strong> 回
+    </div>
+    <div class="rs-buttons">
+      <button class="btn" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="showScreen('setup-screen')">難易度変更</button>
+      <button class="btn btn-back" onclick="showScreen('title-screen')">タイトル</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== 問題プール ==========
+// type A: x = ± [n]           vals=[n]
+// type B: x = ± [a]√[b]        vals=[a,b]
+// type C: x = ± √[n]           vals=[n]
+// type D: x = [n1] , x = [n2]  vals=[n1,n2]  (順不同で正誤判定)
+const PROBLEMS = {
+  easy: [
+    { eq: 'x^2 = 9',   type: 'A', vals: [3] },
+    { eq: 'x^2 = 16',  type: 'A', vals: [4] },
+    { eq: 'x^2 = 25',  type: 'A', vals: [5] },
+    { eq: 'x^2 = 36',  type: 'A', vals: [6] },
+    { eq: 'x^2 = 49',  type: 'A', vals: [7] },
+    { eq: 'x^2 = 64',  type: 'A', vals: [8] },
+    { eq: 'x^2 = 81',  type: 'A', vals: [9] },
+    { eq: 'x^2 = 100', type: 'A', vals: [10] },
+    { eq: 'x^2 = 121', type: 'A', vals: [11] },
+  ],
+  medium: [
+    { eq: 'x^2 = 8',   type: 'B', vals: [2, 2] },
+    { eq: 'x^2 = 12',  type: 'B', vals: [2, 3] },
+    { eq: 'x^2 = 18',  type: 'B', vals: [3, 2] },
+    { eq: 'x^2 = 20',  type: 'B', vals: [2, 5] },
+    { eq: 'x^2 = 24',  type: 'B', vals: [2, 6] },
+    { eq: 'x^2 = 27',  type: 'B', vals: [3, 3] },
+    { eq: 'x^2 = 32',  type: 'B', vals: [4, 2] },
+    { eq: 'x^2 = 45',  type: 'B', vals: [3, 5] },
+    { eq: 'x^2 = 48',  type: 'B', vals: [4, 3] },
+    { eq: 'x^2 = 50',  type: 'B', vals: [5, 2] },
+    { eq: 'x^2 = 72',  type: 'B', vals: [6, 2] },
+    { eq: 'x^2 = 75',  type: 'B', vals: [5, 3] },
+    { eq: 'x^2 = 98',  type: 'B', vals: [7, 2] },
+  ],
+  hard: [
+    // 無理数解 (type C)
+    { eq: 'x^2 = 5',   type: 'C', vals: [5] },
+    { eq: 'x^2 = 7',   type: 'C', vals: [7] },
+    { eq: 'x^2 = 11',  type: 'C', vals: [11] },
+    { eq: 'x^2 = 13',  type: 'C', vals: [13] },
+    // 係数付き → type A(整数化できるもの)
+    { eq: '3x^2 = 27', type: 'A', vals: [3] },
+    { eq: '3x^2 = 48', type: 'A', vals: [4] },
+    { eq: '2x^2 = 8',  type: 'A', vals: [2] },
+    { eq: '2x^2 - 50 = 0', type: 'A', vals: [5] },
+    // (x±a)² 形 → type D(2つの解)
+    { eq: '(x - 2)^2 = 9',  type: 'D', vals: [5, -1] },
+    { eq: '(x + 1)^2 = 16', type: 'D', vals: [3, -5] },
+    { eq: '(x - 3)^2 = 25', type: 'D', vals: [8, -2] },
+    { eq: '(x + 2)^2 = 4',  type: 'D', vals: [0, -4] },
+    { eq: '(x - 1)^2 = 36', type: 'D', vals: [7, -5] },
+  ],
+};
+
+// タイムアタック目標タイム(秒) & 報酬
+const TIME_TARGETS = { easy: 30,  medium: 60,  hard: 90  };
+const BASE_PEAS    = { easy: 2,   medium: 3,   hard: 5   };
+const BONUS_PEAS   = { easy: 3,   medium: 7,   hard: 15  };
+const LEVEL_LABELS = { easy: '初級', medium: '中級', hard: '上級' };
+
+// ========== 画面遷移 ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function gotoSetup(mode) {
+  STATE.mode = mode;
+  const lbl = document.getElementById('setup-mode-label');
+  lbl.textContent = mode === 'timeattack' ? '⏱ タイムアタックモード' : '🌱 練習モード';
+  showScreen('setup-screen');
+}
+
+// ========== チップ選択 ==========
+function setupChips(groupId) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('#' + groupId + ' .chip').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+    });
+  });
+}
+setupChips('level-chips');
+
+function getChipValue(groupId) {
+  const sel = document.querySelector('#' + groupId + ' .chip.selected');
+  return sel ? sel.dataset.val : null;
+}
+
+// ========== 状態 ==========
+const STATE = {
+  mode: 'practice',
+  level: 'easy',
+  problems: [],
+  currentIdx: 0,
+  correct: 0,
+  wrong: 0,
+  streak: 0,
+  startTime: 0,
+  elapsedTime: 0,
+  rafId: null,
+  running: false,
+};
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ========== 方程式 HTML 変換 ==========
+function renderEqHtml(eq) {
+  return eq
+    .replace(/\^2/g, '<sup>2</sup>')
+    .replace(/-/g, '−');
+}
+
+// ========== 解答テンプレート ==========
+function renderTemplate(p) {
+  switch (p.type) {
+    case 'A': // x = ± [_]
+      return `x = ± <input class="ans-input" id="ans-0" type="number" inputmode="numeric">`;
+    case 'B': // x = ± [_]√[_]
+      return `x = ± <input class="ans-input" id="ans-0" type="number" inputmode="numeric">`
+           + `<span class="sqrt-sym">√</span>`
+           + `<span class="sqrt-body"><input class="ans-input" id="ans-1" type="number" inputmode="numeric"></span>`;
+    case 'C': // x = ± √[_]
+      return `x = ± <span class="sqrt-sym">√</span>`
+           + `<span class="sqrt-body"><input class="ans-input" id="ans-0" type="number" inputmode="numeric"></span>`;
+    case 'D': // x = [_] , x = [_]
+      return `x = <input class="ans-input" id="ans-0" type="number" inputmode="numeric" style="width:88px">`
+           + ` , x = <input class="ans-input" id="ans-1" type="number" inputmode="numeric" style="width:88px">`;
+  }
+  return '';
+}
+
+// ========== ゲーム開始 ==========
+function startGame() {
+  STATE.level = getChipValue('level-chips');
+  const pool = PROBLEMS[STATE.level] || [];
+  STATE.problems = shuffle(pool).slice(0, 5);
+  STATE.currentIdx = 0;
+  STATE.correct = 0;
+  STATE.wrong = 0;
+  STATE.streak = 0;
+  STATE.elapsedTime = 0;
+  STATE.running = true;
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+
+  document.getElementById('hud-time-row').style.display = (STATE.mode === 'timeattack') ? 'flex' : 'none';
+  document.getElementById('hud-time').textContent = '0.0';
+
+  showScreen('game-screen');
+
+  if (STATE.mode === 'timeattack') {
+    STATE.startTime = performance.now();
+    tickTimer();
+  }
+  showCurrentProblem();
+}
+
+function tickTimer() {
+  if (!STATE.running || STATE.mode !== 'timeattack') return;
+  STATE.elapsedTime = (performance.now() - STATE.startTime) / 1000;
+  document.getElementById('hud-time').textContent = STATE.elapsedTime.toFixed(1);
+  STATE.rafId = requestAnimationFrame(tickTimer);
+}
+
+function showCurrentProblem() {
+  const p = STATE.problems[STATE.currentIdx];
+  document.getElementById('equation').innerHTML = renderEqHtml(p.eq);
+  document.getElementById('answer-template').innerHTML = renderTemplate(p);
+  const hint = document.getElementById('hint-msg');
+  hint.textContent = '';
+  hint.className = 'hint-msg';
+  document.getElementById('hud-progress').textContent = `${STATE.currentIdx + 1}/5`;
+  document.getElementById('hud-streak').textContent = STATE.streak;
+
+  // Enter で送信、Tab で次入力(標準動作)
+  const inputs = document.querySelectorAll('.ans-input');
+  inputs.forEach((el, i) => {
+    el.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        submitAnswer();
+      }
+    });
+  });
+  setTimeout(() => {
+    const first = document.querySelector('.ans-input');
+    if (first) first.focus();
+  }, 100);
+
+  // カード演出リセット
+  const card = document.getElementById('equation-card');
+  card.style.animation = 'none'; void card.offsetWidth; card.style.animation = '';
+}
+
+function checkAnswer(values, p) {
+  if (p.type === 'D') {
+    // 2解、順不同
+    const exp = p.vals.slice().sort((a, b) => b - a);
+    const act = values.slice().sort((a, b) => b - a);
+    return exp[0] === act[0] && exp[1] === act[1];
+  }
+  return p.vals.every((v, i) => values[i] === v);
+}
+
+function submitAnswer() {
+  if (!STATE.running) return;
+  const p = STATE.problems[STATE.currentIdx];
+  const values = [];
+  for (let i = 0; i < p.vals.length; i++) {
+    const el = document.getElementById(`ans-${i}`);
+    if (!el) return;
+    const raw = el.value.trim();
+    if (raw === '') {
+      showHint('全部埋めてね!', false);
+      el.focus();
+      return;
+    }
+    const v = parseInt(raw, 10);
+    if (isNaN(v)) {
+      showHint('数字を入れてね', false);
+      el.focus();
+      return;
+    }
+    values.push(v);
+  }
+
+  if (checkAnswer(values, p)) {
+    STATE.correct++;
+    STATE.streak++;
+    document.getElementById('hud-streak').textContent = STATE.streak;
+    showHint('✓ せいかい!', true);
+    setTimeout(() => nextProblem(), 500);
+  } else {
+    STATE.wrong++;
+    STATE.streak = 0;
+    document.getElementById('hud-streak').textContent = 0;
+    showHint('❌ もう一度計算してみよう', false);
+    document.querySelectorAll('.ans-input').forEach(el => {
+      el.classList.add('wrong');
+      setTimeout(() => el.classList.remove('wrong'), 400);
+    });
+    // 最初の入力欄にフォーカス
+    const first = document.querySelector('.ans-input');
+    if (first) { first.focus(); first.select(); }
+  }
+}
+
+function showHint(msg, correct) {
+  const hint = document.getElementById('hint-msg');
+  hint.textContent = msg;
+  hint.className = 'hint-msg' + (correct ? ' correct' : '');
+}
+
+function nextProblem() {
+  STATE.currentIdx++;
+  if (STATE.currentIdx >= STATE.problems.length) {
+    endGame();
+  } else {
+    showCurrentProblem();
+  }
+}
+
+// ========== 終了 & 結果 ==========
+function endGame() {
+  STATE.running = false;
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+  if (STATE.mode === 'timeattack') {
+    STATE.elapsedTime = (performance.now() - STATE.startTime) / 1000;
+  }
+
+  const rsTitle    = document.getElementById('rs-title');
+  const timeBlock  = document.getElementById('rs-time-block');
+  const bonusBnr   = document.getElementById('rs-time-bonus-banner');
+  const peasBlock  = document.getElementById('rs-peas-block');
+  const breakdown  = document.getElementById('rs-peas-breakdown');
+  const bestEl     = document.getElementById('rs-best');
+
+  document.getElementById('rs-correct').textContent = STATE.correct;
+  document.getElementById('rs-wrong').textContent = STATE.wrong;
+
+  if (STATE.mode === 'timeattack') {
+    rsTitle.textContent = '🏁 ALL CLEAR!';
+    timeBlock.style.display = 'block';
+    document.getElementById('rs-time').textContent = STATE.elapsedTime.toFixed(1) + '秒';
+
+    // 自己ベスト
+    const key = `平方根の方程式_ベスト_${STATE.level}`;
+    const prev = parseFloat(localStorage.getItem(key) || 'Infinity');
+    if (STATE.elapsedTime < prev) {
+      localStorage.setItem(key, String(STATE.elapsedTime));
+      bestEl.style.display = 'inline-block';
+      bestEl.textContent = isFinite(prev)
+        ? `🏅 自己ベスト更新! (前 ${prev.toFixed(1)}秒)`
+        : '🏅 初クリア!';
+      bestEl.style.background = 'linear-gradient(135deg,#ffd56a,#ff8a2a)';
+      bestEl.style.color = '#2a1810';
+    } else {
+      bestEl.style.display = 'inline-block';
+      bestEl.textContent = `🏅 自己ベスト: ${prev.toFixed(1)}秒`;
+      bestEl.style.background = 'rgba(255,255,255,0.1)';
+      bestEl.style.color = '#fff';
+    }
+
+    // 報酬計算
+    const base = BASE_PEAS[STATE.level] || 0;
+    const target = TIME_TARGETS[STATE.level];
+    const gotBonus = STATE.elapsedTime <= target;
+    const bonus = gotBonus ? (BONUS_PEAS[STATE.level] || 0) : 0;
+    const totalPeas = base + bonus;
+    if (bonus > 0) {
+      bonusBnr.style.display = 'inline-block';
+      document.getElementById('rs-time-bonus').textContent = bonus;
+      breakdown.style.display = 'block';
+      document.getElementById('rs-peas-base').textContent = base;
+      document.getElementById('rs-peas-bonus-in').textContent = bonus;
+    } else {
+      bonusBnr.style.display = 'none';
+      breakdown.style.display = 'none';
+    }
+    // ピース加算(数学HPと共通)
+    if (totalPeas > 0) addPeasToHP(totalPeas);
+    peasBlock.style.display = 'block';
+    document.getElementById('rs-peas').textContent = totalPeas;
+  } else {
+    // 練習モード
+    rsTitle.textContent = '🌱 おつかれさま!';
+    timeBlock.style.display = 'none';
+    bonusBnr.style.display = 'none';
+    peasBlock.style.display = 'none';
+  }
+
+  showScreen('result-screen');
+}
+
+// 数学HPの localStorage(mathPrint_v2)にグリンピース加算
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) {
+      p.peaCount -= 45;
+      cups++;
+    }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
+}
+
+function quitGame() {
+  if (confirm('終了しますか?')) {
+    STATE.running = false;
+    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+    showScreen('title-screen');
+  }
+}
+</script>
+</body>
+</html>

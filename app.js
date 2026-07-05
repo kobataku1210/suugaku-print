@@ -1111,6 +1111,16 @@ const GAME_ITEMS = [
     category: 'sqrt',
   },
   {
+    title: '平方根の方程式',
+    desc: 'x² = 9 → ±3、x² = 12 → ±2√3… 穴埋め入力で方程式を復習!',
+    icon: '📐',
+    onclick: "window.location.href='games/平方根の方程式.html'",
+    gradient: 'linear-gradient(135deg, #26a69a, #00695c)',
+    isNew: true,
+    category: 'sqrt',
+    draftKey: 'sqrtEquation',
+  },
+  {
     title: 'ルート計算バトル',
     desc: '簡約・乗除・加減・有理化・三乗根を解いてモンスターを倒せ！平方根の総復習',
     icon: '⚔️',

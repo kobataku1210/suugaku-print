@@ -733,6 +733,7 @@
         <button class="chapter-tab" id="game-tab-cardmatch-sqrt" onclick="switchGameTab('cardmatch-sqrt')">√ カードマッチ（平方根）</button>
         <button class="chapter-tab" id="game-tab-sqrt-memory" onclick="switchGameTab('sqrt-memory')">🃏 平方根神経衰弱</button>
         <button class="chapter-tab" id="game-tab-rootgem" onclick="switchGameTab('rootgem')">💎 ルートの宝石</button>
+        <button class="chapter-tab" id="game-tab-sqrt-eq" onclick="switchGameTab('sqrt-eq')">📐 平方根の方程式</button>
       </div>
     </div>
 
@@ -946,6 +947,26 @@
         </ul>
       </div>
     </div><!-- /game-pane-rootgem -->
+
+    <!-- 平方根の方程式 -->
+    <div class="game-pane hidden" id="game-pane-sqrt-eq">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/平方根の方程式.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="sqrt-eq-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>平方根の方程式</b> は x² = a の形の方程式を穴埋めで復習するゲームです。</p>
+        <p>問題は自動生成されるため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>🟢 <b>初級</b>: x² = 完全平方数 → ±整数 (例: x²=9 → ±3)</li>
+          <li>🟡 <b>中級</b>: x² = 平方因数を含む数 → ±a√b (例: x²=12 → ±2√3)</li>
+          <li>🔴 <b>上級</b>: 無理数解 / 係数付き / (x−a)² 形 (例: x²=5、3x²=27、(x−2)²=9)</li>
+          <li>ルート記号は表示済み、数字だけ穴埋め</li>
+          <li>練習モード / タイムアタック(全5問、目標タイム内でボーナスピース)</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-sqrt-eq -->
   </div>
 
   <!-- 🧰 ツール管理ページ -->
@@ -1055,7 +1076,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1363,6 +1384,7 @@ async function loadQuestions() {
   renderNumSortPublishBar();
   renderPrimeFactorPublishBar();
   renderLogCarpenterPublishBar();
+  renderSqrtEqPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1761,6 +1783,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'numSort')       renderNumSortPublishBar();
   if (gameKey === 'primeFactor')   renderPrimeFactorPublishBar();
   if (gameKey === 'logCarpenter')  renderLogCarpenterPublishBar();
+  if (gameKey === 'sqrtEquation')  renderSqrtEqPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1778,6 +1801,10 @@ function renderPrimeFactorPublishBar() {
 
 function renderLogCarpenterPublishBar() {
   renderGamePublishBar('logCarpenter', '丸太から大きな四角形', 'log-carpenter-publish-bar');
+}
+
+function renderSqrtEqPublishBar() {
+  renderGamePublishBar('sqrtEquation', '平方根の方程式', 'sqrt-eq-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画
