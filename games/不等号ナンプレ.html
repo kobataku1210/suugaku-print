@@ -348,7 +348,7 @@ function renderSelect(){
 
   // 最上級・最最上級（各ステージごと）
   const mg = GROUPS.find(g=>g.key==='master');
-  const base = PUZZLES.filter(p=>(p.stage||1)===st && p.group!=='master' && p.group!=='grandmaster');
+  const base = PUZZLES.filter(p=>(p.stage||1)===st && p.group!=='master' && p.group!=='grandmaster' && p.group!=='special');
   const mp = PUZZLES.find(p=>p.group==='master' && (p.stage||1)===st);
   if(mp){
     const allCleared = base.every(p=>prog.cleared[p.id]);
