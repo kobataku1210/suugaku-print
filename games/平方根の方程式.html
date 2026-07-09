@@ -578,6 +578,7 @@ function tickTimer() {
 }
 
 function showCurrentProblem() {
+  STATE.locked = false; // 新しい問題では解答ロックを解除
   const p = STATE.problems[STATE.currentIdx];
   document.getElementById('equation').innerHTML = renderEqHtml(p.eq);
   document.getElementById('answer-template').innerHTML = renderTemplate(p);
@@ -618,7 +619,7 @@ function checkAnswer(values, p) {
 }
 
 function submitAnswer() {
-  if (!STATE.running) return;
+  if (!STATE.running || STATE.locked) return; // 正解後の連打（Enter連打）で二重に正解にならないようロック
   const p = STATE.problems[STATE.currentIdx];
   const values = [];
   for (let i = 0; i < p.vals.length; i++) {
@@ -640,6 +641,7 @@ function submitAnswer() {
   }
 
   if (checkAnswer(values, p)) {
+    STATE.locked = true; // 次の問題が出るまで再解答を受け付けない
     STATE.correct++;
     STATE.streak++;
     document.getElementById('hud-streak').textContent = STATE.streak;

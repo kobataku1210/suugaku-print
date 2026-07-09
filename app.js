@@ -1023,6 +1023,8 @@ const GAME_CATEGORIES = [
     gradient: 'linear-gradient(90deg, #ff8a2a, #e05a00)' },
   { id: 'sqrt',   label: '平方根',           icon: '√',
     gradient: 'linear-gradient(90deg, #2196f3, #0d47a1)' },
+  { id: 'quadratic', label: '二次方程式',    icon: '📐',
+    gradient: 'linear-gradient(90deg, #26a69a, #00695c)' },
 ];
 
 const GAME_ITEMS = [
@@ -1111,13 +1113,13 @@ const GAME_ITEMS = [
     category: 'sqrt',
   },
   {
-    title: '平方根の方程式',
+    title: '二次方程式の基礎',
     desc: 'x² = 9 → ±3、x² = 12 → ±2√3… 穴埋め入力で方程式を復習!',
     icon: '📐',
-    onclick: "window.location.href='games/平方根の方程式.html'",
+    onclick: "window.location.href='games/平方根の方程式.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #26a69a, #00695c)',
     isNew: true,
-    category: 'sqrt',
+    category: 'quadratic',
     draftKey: 'sqrtEquation',
   },
   {
