@@ -641,14 +641,18 @@ function spawnEnemy() {
   const inC = id => `<input class="ans-input ans-coef" id="${id}" type="text">`; // x係数(正の数)
 
   if (STATE.level === 'expert') {
-    // (ax+b)(cx+d)
-    const [f1, f2] = prob.f;
-    STATE.current = { kind: 'expert', f1, f2 };
+    // (ax+b)(cx+d) — 係数1の因数は後ろに回し、係数欄を出さない
+    let [f1, f2] = prob.f;
+    if (f1[0] === 1 && f2[0] !== 1) [f1, f2] = [f2, f1];
+    const bothCoef = (f2[0] !== 1);
+    STATE.current = { kind: 'expert', f1, f2, bothCoef };
     const a = f1[0] * f2[0];
     const b = f1[0] * f2[1] + f2[0] * f1[1];
     const c = f1[1] * f2[1];
     formulaHtml = fmtQuadA(a, b, c);
-    templateHtml = `= (${inC('ans-0')}x ${inS('ans-1')})(${inC('ans-2')}x ${inS('ans-3')})`;
+    templateHtml = bothCoef
+      ? `= (${inC('ans-0')}x ${inS('ans-1')})(${inC('ans-2')}x ${inS('ans-3')})`
+      : `= (${inC('ans-0')}x ${inS('ans-1')})(x ${inS('ans-2')})`;
   } else if (prob.p === prob.q) {
     // 平方型 (x+a)²
     STATE.current = { kind: 'square', p: prob.p, q: prob.q };
@@ -662,10 +666,6 @@ function spawnEnemy() {
 
   document.getElementById('enemy-formula').innerHTML = formulaHtml;
   document.getElementById('answer-template').innerHTML = templateHtml;
-  document.getElementById('input-note').textContent =
-    STATE.current.kind === 'expert'
-      ? '符号も入力! (例: +2、-3) / xの係数が1のときは空欄でOK'
-      : '符号も入力! (例: +2、-3)';
 
   const card = document.getElementById('enemy-card');
   card.classList.remove('destroyed', 'danger-close');
@@ -781,22 +781,39 @@ function submitAnswer() {
 
   if (cur.kind === 'expert') {
     // (ax+b)(cx+d): 係数は符号なし・定数は符号付き
-    const c0 = parseCoef(document.getElementById('ans-0').value);
-    const s0 = parseSigned(document.getElementById('ans-1').value);
-    const c1 = parseCoef(document.getElementById('ans-2').value);
-    const s1 = parseSigned(document.getElementById('ans-3').value);
-    if (c0 === null || c1 === null) {
-      showHint('xの係数は 1以上の数字で入力してね (例: 2)', false);
-      return;
-    }
-    if (s0 === null || s1 === null) {
-      showHint('数の部分は符号(+か−)を付けて入力してね! (例: +2、-3)', false);
-      return;
-    }
     const f1 = cur.f1, f2 = cur.f2;
-    correct =
-      (c0 === f1[0] && s0 === f1[1] && c1 === f2[0] && s1 === f2[1]) ||
-      (c0 === f2[0] && s0 === f2[1] && c1 === f1[0] && s1 === f1[1]);
+    if (cur.bothCoef) {
+      // 4穴: (□x □)(□x □) — 因数の順番は入れ替えOK
+      const c0 = parseCoef(document.getElementById('ans-0').value);
+      const s0 = parseSigned(document.getElementById('ans-1').value);
+      const c1 = parseCoef(document.getElementById('ans-2').value);
+      const s1 = parseSigned(document.getElementById('ans-3').value);
+      if (c0 === null || c1 === null) {
+        showHint('xの係数は 1以上の数字で入力してね (例: 2)', false);
+        return;
+      }
+      if (s0 === null || s1 === null) {
+        showHint('数の部分は符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+        return;
+      }
+      correct =
+        (c0 === f1[0] && s0 === f1[1] && c1 === f2[0] && s1 === f2[1]) ||
+        (c0 === f2[0] && s0 === f2[1] && c1 === f1[0] && s1 === f1[1]);
+    } else {
+      // 3穴: (□x □)(x □) — 係数1の因数は後ろ固定
+      const c0 = parseCoef(document.getElementById('ans-0').value);
+      const s0 = parseSigned(document.getElementById('ans-1').value);
+      const s1 = parseSigned(document.getElementById('ans-2').value);
+      if (c0 === null) {
+        showHint('xの係数は 1以上の数字で入力してね (例: 2)', false);
+        return;
+      }
+      if (s0 === null || s1 === null) {
+        showHint('数の部分は符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+        return;
+      }
+      correct = (c0 === f1[0] && s0 === f1[1] && s1 === f2[1]);
+    }
     const A = f1[0] * f2[0], C = f1[1] * f2[1];
     const B = f1[0] * f2[1] + f2[0] * f1[1];
     wrongMsg = `❌ たすきがけ! かけて ${A * C}(x²の係数×定数)、たして ${B} になる2数で分けよう`;
