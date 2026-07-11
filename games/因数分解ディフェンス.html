@@ -233,6 +233,29 @@
     box-shadow: 0 0 40px rgba(255,60,60,0.7);
   }
 
+  /* 初級の段階ヒント */
+  .auto-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,221,90,0.95);
+    color: #2a1810;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-size: clamp(14px, 2.8vw, 18px);
+    font-weight: 900;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    z-index: 7;
+    white-space: nowrap;
+    animation: hintIn 0.35s ease-out;
+  }
+  @keyframes hintIn {
+    0% { transform: translateX(-50%) translateY(14px); opacity: 0; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+
   /* 撃破エフェクト */
   .boom {
     position: absolute;
@@ -423,14 +446,15 @@
       <div id="enemy-card">
         <div class="formula" id="enemy-formula">―</div>
       </div>
+      <div id="auto-hint" class="auto-hint" style="display:none"></div>
     </div>
 
     <div id="input-area">
       <div class="answer-template">
-        = (x + <input class="ans-input" id="ans-0" type="number" inputmode="numeric">)(x + <input class="ans-input" id="ans-1" type="number" inputmode="numeric">)
+        = (x <input class="ans-input" id="ans-0" type="text" placeholder="±?">)(x <input class="ans-input" id="ans-1" type="text" placeholder="±?">)
       </div>
       <div class="input-row2">
-        <span class="minus-note">マイナスは −を付けて入力 (例: -3)</span>
+        <span class="minus-note">符号も入力! (例: +2、-3)</span>
         <button class="btn" style="padding:10px 34px;font-size:16px" onclick="submitAnswer()">撃つ!</button>
       </div>
       <div class="hint-msg" id="hint-msg"></div>
@@ -478,12 +502,16 @@ const PROBLEM_POOL = [
 
 // レベル別: 迫ってくる時間(秒) と 撃破ごとの加速率
 const LEVEL_CONF = {
-  easy:   { duration: 30, ramp: 0.98, label: '初級' },
+  easy:   { duration: 45, ramp: 0.99, label: '初級' },
   medium: { duration: 20, ramp: 0.97, label: '中級' },
   hard:   { duration: 13, ramp: 0.96, label: '上級' },
 };
 const MIN_DURATION_RATIO = 0.5;   // 加速の下限(基準の50%まで)
 const WRONG_PENALTY = 0.08;       // ミスすると 8% 迫る
+
+// 初級のみ: 接近度に応じた段階ヒント
+const HINT1_AT = 0.35;   // 「たして◯かけて◯」を出す
+const HINT2_AT = 0.65;   // 片方の答えを教える
 
 // 撃破数 → グリンピース
 const PEAS_DIVISOR = { easy: 4, medium: 3, hard: 2 };
@@ -583,11 +611,16 @@ function startGame() {
 function spawnEnemy() {
   STATE.current = pickProblem();
   STATE.progress = 0;
+  STATE.revealIdx = Math.random() < 0.5 ? 0 : 1;  // ヒントで教える方
   const { p, q } = STATE.current;
   document.getElementById('enemy-formula').innerHTML = fmtQuad(p + q, p * q);
   const card = document.getElementById('enemy-card');
   card.classList.remove('destroyed', 'danger-close');
   card.style.opacity = '1';
+  // 段階ヒントリセット
+  const ah = document.getElementById('auto-hint');
+  ah.style.display = 'none';
+  ah.textContent = '';
   // 入力リセット
   const a0 = document.getElementById('ans-0');
   const a1 = document.getElementById('ans-1');
@@ -596,6 +629,28 @@ function spawnEnemy() {
   document.getElementById('hint-msg').textContent = '';
   document.getElementById('hint-msg').className = 'hint-msg';
   setTimeout(() => a0.focus(), 60);
+}
+
+// 符号付き表示 (+2 / −3)
+function fmtSigned(v) {
+  return v >= 0 ? `+${v}` : `−${Math.abs(v)}`;
+}
+
+// 初級のみ: 接近度に応じてヒントを更新
+function updateAutoHint() {
+  if (STATE.level !== 'easy' || !STATE.current) return;
+  const t = STATE.progress;
+  const ah = document.getElementById('auto-hint');
+  const { p, q } = STATE.current;
+  const b = p + q, c = p * q;
+  if (t >= HINT2_AT) {
+    const reveal = STATE.revealIdx === 0 ? p : q;
+    ah.textContent = `💡 たして ${b}、かけて ${c} ─ 片方は ${fmtSigned(reveal)} !`;
+    ah.style.display = 'block';
+  } else if (t >= HINT1_AT) {
+    ah.textContent = `💡 たして ${b}、かけて ${c} になる2つの数`;
+    ah.style.display = 'block';
+  }
 }
 
 // ========== メインループ(接近) ==========
@@ -611,6 +666,7 @@ function tick() {
     return;
   }
   renderEnemy();
+  updateAutoHint();
   STATE.rafId = requestAnimationFrame(tick);
 }
 
@@ -633,6 +689,16 @@ function renderEnemy() {
 }
 
 // ========== 解答 ==========
+// 符号付き数値のパース: 「+2」「-3」形式のみ受け付ける(全角も半角に直す)
+function parseSigned(raw) {
+  const s = raw.trim()
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/＋/g, '+')
+    .replace(/[−－ーｰ‐]/g, '-');
+  if (!/^[+-]\d+$/.test(s)) return null;
+  return parseInt(s, 10);
+}
+
 function submitAnswer() {
   if (!STATE.running || !STATE.current) return;
   const a0 = document.getElementById('ans-0');
@@ -643,9 +709,10 @@ function submitAnswer() {
     (r0 === '' ? a0 : a1).focus();
     return;
   }
-  const v0 = parseInt(r0, 10), v1 = parseInt(r1, 10);
-  if (isNaN(v0) || isNaN(v1)) {
-    showHint('数字を入れてね', false);
+  const v0 = parseSigned(r0), v1 = parseSigned(r1);
+  if (v0 === null || v1 === null) {
+    showHint('符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+    (v0 === null ? a0 : a1).focus();
     return;
   }
   const { p, q } = STATE.current;
