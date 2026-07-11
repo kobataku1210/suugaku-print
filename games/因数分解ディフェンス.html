@@ -290,6 +290,8 @@
     font-family: 'Cambria Math', 'Cambria', serif;
     flex-wrap: wrap;
   }
+  .answer-template sup { font-size: 0.6em; vertical-align: super; }
+  .ans-input.ans-coef { width: 62px; border-color: #80cbc4; }
   .ans-input {
     width: 80px;
     height: 54px;
@@ -424,6 +426,7 @@
         <div class="chip selected" data-val="easy">🟢 初級 (ゆっくり)</div>
         <div class="chip" data-val="medium">🟡 中級 (ふつう)</div>
         <div class="chip" data-val="hard">🔴 上級 (はやい)</div>
+        <div class="chip" data-val="expert">🟣 最上級 (高校範囲・ゆっくり)</div>
       </div>
       <div class="best-line" id="best-line"></div>
     </div>
@@ -450,9 +453,7 @@
     </div>
 
     <div id="input-area">
-      <div class="answer-template">
-        = (x <input class="ans-input" id="ans-0" type="text">)(x <input class="ans-input" id="ans-1" type="text">)
-      </div>
+      <div class="answer-template" id="answer-template"></div>
       <div class="input-row2">
         <span class="minus-note">符号も入力! (例: +2、-3)</span>
         <button class="btn" style="padding:10px 34px;font-size:16px" onclick="submitAnswer()">撃つ!</button>
@@ -500,11 +501,31 @@ const PROBLEM_POOL = [
   { p: 3, q: -3 }, { p: 4, q: -4 }, { p: 5, q: -5 }, { p: 6, q: -6 },
 ];
 
+// 最上級: x²の係数が1でない高校範囲 (ax+b)(cx+d) — x係数は正・各因数は既約
+const EXPERT_POOL = [
+  { f: [[2, 1], [1, 1]] },   // 2x²+3x+1
+  { f: [[2, 1], [1, 3]] },   // 2x²+7x+3
+  { f: [[2, 1], [1, 2]] },   // 2x²+5x+2
+  { f: [[3, 1], [1, 2]] },   // 3x²+7x+2
+  { f: [[3, 2], [1, 1]] },   // 3x²+5x+2
+  { f: [[2, 3], [1, -1]] },  // 2x²+x−3
+  { f: [[2, -1], [1, -2]] }, // 2x²−5x+2
+  { f: [[3, 1], [1, -1]] },  // 3x²−2x−1
+  { f: [[2, -1], [1, 3]] },  // 2x²+5x−3
+  { f: [[3, -2], [1, 1]] },  // 3x²+x−2
+  { f: [[5, 2], [1, 1]] },   // 5x²+7x+2
+  { f: [[2, 1], [3, 2]] },   // 6x²+7x+2
+  { f: [[2, 1], [3, 1]] },   // 6x²+5x+1
+  { f: [[2, -1], [2, 3]] },  // 4x²+4x−3
+  { f: [[2, -1], [3, -2]] }, // 6x²−7x+2
+];
+
 // レベル別: 迫ってくる時間(秒) と 撃破ごとの加速率
 const LEVEL_CONF = {
   easy:   { duration: 45, ramp: 0.99, label: '初級' },
   medium: { duration: 20, ramp: 0.97, label: '中級' },
   hard:   { duration: 13, ramp: 0.96, label: '上級' },
+  expert: { duration: 40, ramp: 0.99, label: '最上級' },
 };
 const MIN_DURATION_RATIO = 0.5;   // 加速の下限(基準の50%まで)
 const WRONG_PENALTY = 0.08;       // ミスすると 8% 迫る
@@ -514,11 +535,11 @@ const HINT1_AT = 0.35;   // 「たして◯かけて◯」を出す
 const HINT2_AT = 0.65;   // 片方の答えを教える
 
 // 撃破数 → グリンピース
-const PEAS_DIVISOR = { easy: 4, medium: 3, hard: 2 };
+const PEAS_DIVISOR = { easy: 4, medium: 3, hard: 2, expert: 1 };
 
 // ========== 式の表示 ==========
-function fmtQuad(b, c) {
-  let s = 'x<sup>2</sup>';
+function fmtQuadA(a, b, c) {
+  let s = (a === 1 ? '' : a) + 'x<sup>2</sup>';
   if (b === 1)       s += ' + x';
   else if (b === -1) s += ' − x';
   else if (b > 0)    s += ` + ${b}x`;
@@ -527,6 +548,7 @@ function fmtQuad(b, c) {
   else if (c < 0) s += ` − ${-c}`;
   return s;
 }
+function fmtQuad(b, c) { return fmtQuadA(1, b, c); }
 
 // ========== 画面遷移 ==========
 function showScreen(id) {
@@ -576,9 +598,10 @@ const STATE = {
 };
 
 function pickProblem() {
+  const pool = STATE.level === 'expert' ? EXPERT_POOL : PROBLEM_POOL;
   let p, tries = 0;
   do {
-    p = PROBLEM_POOL[Math.floor(Math.random() * PROBLEM_POOL.length)];
+    p = pool[Math.floor(Math.random() * pool.length)];
     tries++;
   } while (STATE.recent.includes(p) && tries < 20);
   STATE.recent.push(p);
@@ -609,11 +632,37 @@ function startGame() {
 }
 
 function spawnEnemy() {
-  STATE.current = pickProblem();
+  const prob = pickProblem();
   STATE.progress = 0;
   STATE.revealIdx = Math.random() < 0.5 ? 0 : 1;  // ヒントで教える方
-  const { p, q } = STATE.current;
-  document.getElementById('enemy-formula').innerHTML = fmtQuad(p + q, p * q);
+
+  let formulaHtml, templateHtml;
+  const inS = id => `<input class="ans-input" id="${id}" type="text">`;          // 符号付き数
+  const inC = id => `<input class="ans-input ans-coef" id="${id}" type="text">`; // x係数(正の数)
+
+  if (STATE.level === 'expert') {
+    // (ax+b)(cx+d)
+    const [f1, f2] = prob.f;
+    STATE.current = { kind: 'expert', f1, f2 };
+    const a = f1[0] * f2[0];
+    const b = f1[0] * f2[1] + f2[0] * f1[1];
+    const c = f1[1] * f2[1];
+    formulaHtml = fmtQuadA(a, b, c);
+    templateHtml = `= (${inC('ans-0')}x ${inS('ans-1')})(${inC('ans-2')}x ${inS('ans-3')})`;
+  } else if (prob.p === prob.q) {
+    // 平方型 (x+a)²
+    STATE.current = { kind: 'square', p: prob.p, q: prob.q };
+    formulaHtml = fmtQuad(prob.p + prob.q, prob.p * prob.q);
+    templateHtml = `= (x ${inS('ans-0')})<sup>2</sup>`;
+  } else {
+    STATE.current = { kind: 'normal', p: prob.p, q: prob.q };
+    formulaHtml = fmtQuad(prob.p + prob.q, prob.p * prob.q);
+    templateHtml = `= (x ${inS('ans-0')})(x ${inS('ans-1')})`;
+  }
+
+  document.getElementById('enemy-formula').innerHTML = formulaHtml;
+  document.getElementById('answer-template').innerHTML = templateHtml;
+
   const card = document.getElementById('enemy-card');
   card.classList.remove('destroyed', 'danger-close');
   card.style.opacity = '1';
@@ -621,14 +670,12 @@ function spawnEnemy() {
   const ah = document.getElementById('auto-hint');
   ah.style.display = 'none';
   ah.textContent = '';
-  // 入力リセット
-  const a0 = document.getElementById('ans-0');
-  const a1 = document.getElementById('ans-1');
-  a0.value = ''; a1.value = '';
-  a0.classList.remove('wrong'); a1.classList.remove('wrong');
   document.getElementById('hint-msg').textContent = '';
   document.getElementById('hint-msg').className = 'hint-msg';
-  setTimeout(() => a0.focus(), 60);
+  setTimeout(() => {
+    const first = document.getElementById('ans-0');
+    if (first) first.focus();
+  }, 60);
 }
 
 // 符号付き表示 (+2 / −3)
@@ -699,27 +746,77 @@ function parseSigned(raw) {
   return parseInt(s, 10);
 }
 
+// xの係数(正の数)のパース: 「2」形式のみ(全角も半角に直す)
+function parseCoef(raw) {
+  const s = raw.trim()
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+  if (!/^\d+$/.test(s)) return null;
+  const v = parseInt(s, 10);
+  return v >= 1 ? v : null;
+}
+
 function submitAnswer() {
   if (!STATE.running || !STATE.current) return;
-  const a0 = document.getElementById('ans-0');
-  const a1 = document.getElementById('ans-1');
-  const r0 = a0.value.trim(), r1 = a1.value.trim();
-  if (r0 === '' || r1 === '') {
-    showHint('2つとも埋めてね!', false);
-    (r0 === '' ? a0 : a1).focus();
-    return;
-  }
-  const v0 = parseSigned(r0), v1 = parseSigned(r1);
-  if (v0 === null || v1 === null) {
-    showHint('符号(+か−)を付けて入力してね! (例: +2、-3)', false);
-    (v0 === null ? a0 : a1).focus();
-    return;
-  }
-  const { p, q } = STATE.current;
-  const exp = [p, q].sort((a, b) => a - b);
-  const got = [v0, v1].sort((a, b) => a - b);
+  const cur = STATE.current;
+  const inputs = Array.from(document.querySelectorAll('.ans-input'));
 
-  if (exp[0] === got[0] && exp[1] === got[1]) {
+  // 空チェック
+  for (const el of inputs) {
+    if (el.value.trim() === '') {
+      showHint('全部埋めてね!', false);
+      el.focus();
+      return;
+    }
+  }
+
+  let correct = false;
+  let wrongMsg = '';
+
+  if (cur.kind === 'expert') {
+    // (ax+b)(cx+d): 係数は符号なし・定数は符号付き
+    const c0 = parseCoef(document.getElementById('ans-0').value);
+    const s0 = parseSigned(document.getElementById('ans-1').value);
+    const c1 = parseCoef(document.getElementById('ans-2').value);
+    const s1 = parseSigned(document.getElementById('ans-3').value);
+    if (c0 === null || c1 === null) {
+      showHint('xの係数は 1以上の数字で入力してね (例: 2)', false);
+      return;
+    }
+    if (s0 === null || s1 === null) {
+      showHint('数の部分は符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+      return;
+    }
+    const f1 = cur.f1, f2 = cur.f2;
+    correct =
+      (c0 === f1[0] && s0 === f1[1] && c1 === f2[0] && s1 === f2[1]) ||
+      (c0 === f2[0] && s0 === f2[1] && c1 === f1[0] && s1 === f1[1]);
+    const A = f1[0] * f2[0], C = f1[1] * f2[1];
+    const B = f1[0] * f2[1] + f2[0] * f1[1];
+    wrongMsg = `❌ たすきがけ! かけて ${A * C}(x²の係数×定数)、たして ${B} になる2数で分けよう`;
+  } else if (cur.kind === 'square') {
+    // (x+a)²
+    const v0 = parseSigned(document.getElementById('ans-0').value);
+    if (v0 === null) {
+      showHint('符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+      return;
+    }
+    correct = (v0 === cur.p);
+    wrongMsg = `❌ たして ${cur.p + cur.q}、かけて ${cur.p * cur.q} ─ 同じ数が2つ!`;
+  } else {
+    // (x+p)(x+q)
+    const v0 = parseSigned(document.getElementById('ans-0').value);
+    const v1 = parseSigned(document.getElementById('ans-1').value);
+    if (v0 === null || v1 === null) {
+      showHint('符号(+か−)を付けて入力してね! (例: +2、-3)', false);
+      return;
+    }
+    const exp = [cur.p, cur.q].sort((a, b) => a - b);
+    const got = [v0, v1].sort((a, b) => a - b);
+    correct = (exp[0] === got[0] && exp[1] === got[1]);
+    wrongMsg = `❌ たして ${cur.p + cur.q}、かけて ${cur.p * cur.q} になる2つの数!`;
+  }
+
+  if (correct) {
     // 撃破!
     STATE.kills++;
     document.getElementById('hud-kills').textContent = STATE.kills;
@@ -744,13 +841,12 @@ function submitAnswer() {
     // ミス → ペナルティで迫る
     STATE.wrong++;
     STATE.progress = Math.min(0.99, STATE.progress + WRONG_PENALTY);
-    const b = p + q, c = p * q;
-    showHint(`❌ たして ${b}、かけて ${c} になる2つの数!`, false);
-    [a0, a1].forEach(el => {
+    showHint(wrongMsg, false);
+    inputs.forEach(el => {
       el.classList.add('wrong');
       setTimeout(() => el.classList.remove('wrong'), 400);
     });
-    a0.focus(); a0.select();
+    inputs[0].focus(); inputs[0].select();
   }
 }
 
