@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>因数分解ディフェンス</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #fff;
+    user-select: none;
+    background: radial-gradient(ellipse at 50% 30%, #2a1a4a 0%, #120a24 55%, #08040f 100%);
+    touch-action: manipulation;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル / 結果 共通 ===== */
+  #title-screen, #gameover-screen {
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .title-logo {
+    font-size: clamp(30px, 7vw, 54px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 3px 0 #7e57c2, 0 6px 20px rgba(126,87,194,0.5);
+  }
+  .title-sub {
+    font-size: clamp(12px, 2.3vw, 16px);
+    background: linear-gradient(90deg, #7e57c2, #ab47bc);
+    padding: 6px 22px;
+    border-radius: 999px;
+    font-weight: bold;
+    letter-spacing: 3px;
+  }
+  .title-desc {
+    font-size: 14px; color: #ddd; text-align: center;
+    max-width: 400px; line-height: 1.8;
+    background: rgba(255,255,255,0.06);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(171,71,188,0.35);
+  }
+  .title-desc sup { font-size: 0.7em; }
+  .title-emoji { font-size: 64px; }
+
+  .btn {
+    border: none;
+    background: linear-gradient(180deg, #7e57c2, #4527a0);
+    color: white;
+    font-weight: bold;
+    font-size: 17px;
+    padding: 14px 40px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(126,87,194,0.5);
+    cursor: pointer;
+    letter-spacing: 3px;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-go { font-size: 22px; padding: 16px 56px; }
+  .btn-back {
+    background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid #555;
+    padding: 8px 20px; font-size: 13px; letter-spacing: 2px;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: #fff; color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* レベル選択 */
+  .setup-block {
+    width: min(90vw, 460px);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(171,71,188,0.3);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+  .setup-block h4 {
+    font-size: 15px; color: #ce93d8; letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-left: 4px solid #7e57c2; padding-left: 8px;
+  }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 12px 22px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 999px; font-size: 15px; cursor: pointer;
+    font-weight: bold; color: #ccc;
+  }
+  .chip.selected {
+    background: #7e57c2; border-color: #ce93d8; color: #fff;
+    box-shadow: 0 0 12px rgba(206,147,216,0.5);
+  }
+  .best-line {
+    font-size: 12px; color: #ce93d8;
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+
+  /* ===== ゲーム画面 ===== */
+  #game-screen {
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+  #hud {
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    font-weight: bold;
+    gap: 10px;
+    flex-wrap: wrap;
+    z-index: 10;
+  }
+  #hud .stat {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; letter-spacing: 1px;
+  }
+  #hud .stat .num {
+    font-size: 22px;
+    font-family: 'Consolas','Menlo',monospace;
+    color: #ce93d8;
+  }
+  #hud .stat .label {
+    font-size: 10px;
+    background: rgba(206,147,216,0.2);
+    color: #ce93d8;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 2px;
+  }
+
+  /* 危険メーター */
+  #danger-bar-wrap {
+    height: 10px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+    z-index: 10;
+  }
+  #danger-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #ffdd5a 55%, #ff5252 85%);
+    transition: width 0.1s linear;
+  }
+
+  /* フィールド(式が迫ってくるエリア) */
+  #field {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 700px;
+  }
+  /* 星背景 */
+  #field::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,255,255,0.5) 0, transparent 100%),
+      radial-gradient(1px 1px at 70% 15%, rgba(255,255,255,0.4) 0, transparent 100%),
+      radial-gradient(2px 2px at 85% 60%, rgba(255,255,255,0.3) 0, transparent 100%),
+      radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.4) 0, transparent 100%),
+      radial-gradient(1.5px 1.5px at 55% 45%, rgba(255,255,255,0.35) 0, transparent 100%),
+      radial-gradient(1px 1px at 25% 50%, rgba(255,255,255,0.3) 0, transparent 100%);
+    pointer-events: none;
+  }
+  /* 危険時の赤ビネット */
+  #danger-vignette {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 120px rgba(255,40,40,0);
+    transition: box-shadow 0.2s;
+    z-index: 5;
+  }
+  #danger-vignette.warn {
+    box-shadow: inset 0 0 120px rgba(255,40,40,0.55);
+    animation: vignettePulse 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes vignettePulse {
+    0% { box-shadow: inset 0 0 100px rgba(255,40,40,0.4); }
+    100% { box-shadow: inset 0 0 150px rgba(255,40,40,0.7); }
+  }
+
+  /* 迫ってくる式カード */
+  #enemy-card {
+    background: linear-gradient(180deg, #fffceb 0%, #ffe7b8 100%);
+    border: 3px solid #8b5a2b;
+    border-radius: 18px;
+    padding: 16px 32px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    text-align: center;
+    will-change: transform;
+  }
+  #enemy-card .formula {
+    font-size: clamp(28px, 7vw, 48px);
+    font-weight: 900;
+    color: #1a0e2a;
+    line-height: 1.2;
+    letter-spacing: 2px;
+    font-family: 'Cambria Math', 'Cambria', serif;
+    white-space: nowrap;
+  }
+  #enemy-card .formula sup { font-size: 0.6em; vertical-align: super; }
+  #enemy-card.destroyed {
+    animation: explode 0.4s ease-out forwards;
+  }
+  @keyframes explode {
+    0%   { filter: brightness(1); opacity: 1; }
+    30%  { filter: brightness(2.5); }
+    100% { transform: scale(1.6) rotate(6deg); opacity: 0; filter: brightness(3); }
+  }
+  #enemy-card.danger-close {
+    border-color: #ff5252;
+    box-shadow: 0 0 40px rgba(255,60,60,0.7);
+  }
+
+  /* 撃破エフェクト */
+  .boom {
+    position: absolute;
+    font-size: 60px;
+    pointer-events: none;
+    z-index: 6;
+    animation: boomPop 0.5s ease-out forwards;
+  }
+  @keyframes boomPop {
+    0% { transform: scale(0.4); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* 入力エリア(下部固定) */
+  #input-area {
+    background: rgba(0,0,0,0.65);
+    padding: 14px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    z-index: 10;
+  }
+  .answer-template {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: clamp(24px, 5.5vw, 34px);
+    font-weight: 900;
+    color: #fff;
+    font-family: 'Cambria Math', 'Cambria', serif;
+    flex-wrap: wrap;
+  }
+  .ans-input {
+    width: 80px;
+    height: 54px;
+    padding: 4px;
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 900;
+    text-align: center;
+    border: 3px solid #ce93d8;
+    border-radius: 10px;
+    background: #fff;
+    color: #1c1030;
+    font-family: 'Cambria Math', serif;
+    outline: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+  .ans-input:focus {
+    border-color: #ffdd5a;
+    box-shadow: 0 0 14px rgba(255,221,90,0.6);
+  }
+  .ans-input.wrong {
+    border-color: #f44336;
+    animation: shakeInput 0.3s;
+  }
+  @keyframes shakeInput {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .input-row2 {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .minus-note {
+    font-size: 11px; color: #999;
+    letter-spacing: 1px;
+  }
+  .hint-msg {
+    color: #ff8a80;
+    font-weight: bold;
+    font-size: clamp(13px, 2.4vw, 16px);
+    min-height: 1.3em;
+    text-align: center;
+    letter-spacing: 1px;
+    line-height: 1.5;
+  }
+  .hint-msg.correct { color: #b2ff59; }
+
+  /* ===== ゲームオーバー ===== */
+  .go-title {
+    font-size: clamp(36px, 9vw, 64px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #ff5252;
+    text-shadow: 0 4px 0 #6a0000, 0 8px 24px rgba(255,60,60,0.5);
+    animation: goDrop 0.5s ease-out;
+  }
+  @keyframes goDrop {
+    0% { transform: translateY(-40px) scale(1.4); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .go-kill-label {
+    font-size: 12px; color: #ce93d8;
+    letter-spacing: 3px; font-weight: bold;
+  }
+  .go-kills {
+    font-size: clamp(48px, 12vw, 84px);
+    font-weight: 900;
+    color: #ffdd5a;
+    font-family: 'Consolas','Menlo',monospace;
+    letter-spacing: 4px;
+    text-shadow: 0 4px 16px rgba(255,221,90,0.5);
+    line-height: 1.1;
+  }
+  .go-kills .unit { font-size: 0.4em; color: #fff; }
+  #go-best {
+    background: linear-gradient(135deg, #ffd56a, #ff8a2a);
+    color: #2a1810;
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-weight: 900; font-size: 13px;
+    letter-spacing: 2px;
+    display: inline-block;
+  }
+  .go-peas {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: #fff;
+    padding: 12px 32px;
+    border-radius: 16px;
+    font-size: clamp(24px, 5.5vw, 38px);
+    font-weight: 900;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    letter-spacing: 2px;
+    animation: peasPop 0.6s ease-out;
+    display: inline-block;
+  }
+  @keyframes peasPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .go-stat {
+    background: rgba(255,255,255,0.08);
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #ddd;
+  }
+  .go-stat strong { color: #ce93d8; font-size: 20px; margin: 0 3px; }
+  .go-buttons {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <div id="title-screen" class="screen active">
+    <div class="title-emoji">🛡️</div>
+    <div class="title-logo">因数分解ディフェンス</div>
+    <div class="title-sub">FACTOR DEFENSE</div>
+    <div class="title-desc">
+      式がどんどん迫ってくる!<br>
+      <b style="color:#ce93d8">因数分解して撃ち落とせ!</b><br>
+      画面いっぱいまで迫られたら…ゲームオーバー!
+    </div>
+
+    <div class="setup-block">
+      <h4>スピードを選ぶ</h4>
+      <div class="chip-group" id="level-chips">
+        <div class="chip selected" data-val="easy">🟢 初級 (ゆっくり)</div>
+        <div class="chip" data-val="medium">🟡 中級 (ふつう)</div>
+        <div class="chip" data-val="hard">🔴 上級 (はやい)</div>
+      </div>
+      <div class="best-line" id="best-line"></div>
+    </div>
+
+    <button class="btn btn-go" onclick="startGame()">スタート!</button>
+  </div>
+
+  <!-- ゲーム -->
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="stat"><span class="label">撃破</span><span class="num" id="hud-kills">0</span></div>
+      <div class="stat"><span class="label">ベスト</span><span class="num" id="hud-best">0</span></div>
+      <div class="stat"><span class="label">スピード</span><span class="num" id="hud-level" style="font-size:15px">―</span></div>
+      <button class="btn btn-back" style="padding:4px 14px;font-size:12px" onclick="quitGame()">終了</button>
+    </div>
+    <div id="danger-bar-wrap"><div id="danger-bar"></div></div>
+
+    <div id="field">
+      <div id="danger-vignette"></div>
+      <div id="enemy-card">
+        <div class="formula" id="enemy-formula">―</div>
+      </div>
+    </div>
+
+    <div id="input-area">
+      <div class="answer-template">
+        = (x + <input class="ans-input" id="ans-0" type="number" inputmode="numeric">)(x + <input class="ans-input" id="ans-1" type="number" inputmode="numeric">)
+      </div>
+      <div class="input-row2">
+        <span class="minus-note">マイナスは −を付けて入力 (例: -3)</span>
+        <button class="btn" style="padding:10px 34px;font-size:16px" onclick="submitAnswer()">撃つ!</button>
+      </div>
+      <div class="hint-msg" id="hint-msg"></div>
+    </div>
+  </div>
+
+  <!-- ゲームオーバー -->
+  <div id="gameover-screen" class="screen">
+    <div class="go-title">GAME OVER</div>
+    <div style="text-align:center">
+      <div class="go-kill-label">撃破数</div>
+      <div class="go-kills"><span id="go-kills">0</span><span class="unit"> 体</span></div>
+      <div id="go-best" style="margin-top:6px"></div>
+    </div>
+    <div class="go-peas" id="go-peas-block" style="display:none">🟢 +<span id="go-peas">0</span> グリンピース!</div>
+    <div class="go-stat">
+      ミス <strong id="go-wrong">0</strong> 回&nbsp;&nbsp;
+      スピード <strong id="go-level">―</strong>
+    </div>
+    <div class="go-buttons">
+      <button class="btn" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="backToTitle()">レベル変更</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== 問題プール ==========
+// すべて (x+p)(x+q) の形で答えられる (平方型は p=q、x²−b² は q=−p)
+const PROBLEM_POOL = [
+  // 符号すべて+
+  { p: 1, q: 2 }, { p: 2, q: 3 }, { p: 3, q: 4 }, { p: 2, q: 4 },
+  { p: 3, q: 5 }, { p: 2, q: 5 }, { p: 4, q: 5 }, { p: 3, q: 7 },
+  { p: 1, q: 6 }, { p: 2, q: 7 },
+  // 符号ミックス
+  { p: -2, q: -3 }, { p: -3, q: -4 }, { p: 3, q: -2 }, { p: -3, q: 2 },
+  { p: 4, q: -2 }, { p: -5, q: 3 }, { p: 5, q: -2 }, { p: -6, q: 2 },
+  { p: -3, q: -5 }, { p: 7, q: -3 }, { p: -2, q: -6 }, { p: 4, q: -3 },
+  // 平方型 (同じ数2つ)
+  { p: 2, q: 2 }, { p: 3, q: 3 }, { p: 4, q: 4 }, { p: -3, q: -3 }, { p: -5, q: -5 },
+  // x²−b² 型
+  { p: 3, q: -3 }, { p: 4, q: -4 }, { p: 5, q: -5 }, { p: 6, q: -6 },
+];
+
+// レベル別: 迫ってくる時間(秒) と 撃破ごとの加速率
+const LEVEL_CONF = {
+  easy:   { duration: 30, ramp: 0.98, label: '初級' },
+  medium: { duration: 20, ramp: 0.97, label: '中級' },
+  hard:   { duration: 13, ramp: 0.96, label: '上級' },
+};
+const MIN_DURATION_RATIO = 0.5;   // 加速の下限(基準の50%まで)
+const WRONG_PENALTY = 0.08;       // ミスすると 8% 迫る
+
+// 撃破数 → グリンピース
+const PEAS_DIVISOR = { easy: 4, medium: 3, hard: 2 };
+
+// ========== 式の表示 ==========
+function fmtQuad(b, c) {
+  let s = 'x<sup>2</sup>';
+  if (b === 1)       s += ' + x';
+  else if (b === -1) s += ' − x';
+  else if (b > 0)    s += ` + ${b}x`;
+  else if (b < 0)    s += ` − ${-b}x`;
+  if (c > 0)      s += ` + ${c}`;
+  else if (c < 0) s += ` − ${-c}`;
+  return s;
+}
+
+// ========== 画面遷移 ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ========== チップ選択 ==========
+function setupChips(groupId) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('#' + groupId + ' .chip').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+      updateBestLine();
+    });
+  });
+}
+setupChips('level-chips');
+
+function getChipValue(groupId) {
+  const sel = document.querySelector('#' + groupId + ' .chip.selected');
+  return sel ? sel.dataset.val : null;
+}
+
+function bestKey(level) { return `因数分解ディフェンス_ベスト_${level}`; }
+
+function updateBestLine() {
+  const lv = getChipValue('level-chips');
+  const best = parseInt(localStorage.getItem(bestKey(lv)) || '0', 10);
+  document.getElementById('best-line').textContent =
+    best > 0 ? `🏅 このスピードのベスト: ${best} 体撃破` : 'まだ記録なし ─ 初挑戦!';
+}
+updateBestLine();
+
+// ========== 状態 ==========
+const STATE = {
+  level: 'easy',
+  duration: 30,       // 現在の1体あたり接近時間(秒)
+  progress: 0,        // 0=遠い, 1=到達(ゲームオーバー)
+  lastTick: 0,
+  rafId: null,
+  running: false,
+  kills: 0,
+  wrong: 0,
+  current: null,      // {p, q}
+  recent: [],
+};
+
+function pickProblem() {
+  let p, tries = 0;
+  do {
+    p = PROBLEM_POOL[Math.floor(Math.random() * PROBLEM_POOL.length)];
+    tries++;
+  } while (STATE.recent.includes(p) && tries < 20);
+  STATE.recent.push(p);
+  if (STATE.recent.length > 5) STATE.recent.shift();
+  return p;
+}
+
+// ========== ゲーム開始 ==========
+function startGame() {
+  STATE.level = getChipValue('level-chips') || STATE.level;
+  const conf = LEVEL_CONF[STATE.level];
+  STATE.duration = conf.duration;
+  STATE.kills = 0;
+  STATE.wrong = 0;
+  STATE.recent = [];
+  STATE.running = true;
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+
+  document.getElementById('hud-kills').textContent = '0';
+  document.getElementById('hud-level').textContent = conf.label;
+  document.getElementById('hud-best').textContent =
+    parseInt(localStorage.getItem(bestKey(STATE.level)) || '0', 10);
+
+  showScreen('game-screen');
+  spawnEnemy();
+  STATE.lastTick = performance.now();
+  tick();
+}
+
+function spawnEnemy() {
+  STATE.current = pickProblem();
+  STATE.progress = 0;
+  const { p, q } = STATE.current;
+  document.getElementById('enemy-formula').innerHTML = fmtQuad(p + q, p * q);
+  const card = document.getElementById('enemy-card');
+  card.classList.remove('destroyed', 'danger-close');
+  card.style.opacity = '1';
+  // 入力リセット
+  const a0 = document.getElementById('ans-0');
+  const a1 = document.getElementById('ans-1');
+  a0.value = ''; a1.value = '';
+  a0.classList.remove('wrong'); a1.classList.remove('wrong');
+  document.getElementById('hint-msg').textContent = '';
+  document.getElementById('hint-msg').className = 'hint-msg';
+  setTimeout(() => a0.focus(), 60);
+}
+
+// ========== メインループ(接近) ==========
+function tick() {
+  if (!STATE.running) return;
+  const now = performance.now();
+  const dt = (now - STATE.lastTick) / 1000;
+  STATE.lastTick = now;
+  STATE.progress += dt / STATE.duration;
+
+  if (STATE.progress >= 1) {
+    gameOver();
+    return;
+  }
+  renderEnemy();
+  STATE.rafId = requestAnimationFrame(tick);
+}
+
+function renderEnemy() {
+  const t = STATE.progress;
+  // 遠く(小さい)→手前(大きい)へ: easing でラストの伸びを強調
+  const scale = 0.25 + Math.pow(t, 1.6) * 2.4;
+  const card = document.getElementById('enemy-card');
+  card.style.transform = `scale(${scale})`;
+  // 危険演出
+  const vign = document.getElementById('danger-vignette');
+  if (t > 0.72) {
+    vign.classList.add('warn');
+    card.classList.add('danger-close');
+  } else {
+    vign.classList.remove('warn');
+    card.classList.remove('danger-close');
+  }
+  document.getElementById('danger-bar').style.width = (t * 100) + '%';
+}
+
+// ========== 解答 ==========
+function submitAnswer() {
+  if (!STATE.running || !STATE.current) return;
+  const a0 = document.getElementById('ans-0');
+  const a1 = document.getElementById('ans-1');
+  const r0 = a0.value.trim(), r1 = a1.value.trim();
+  if (r0 === '' || r1 === '') {
+    showHint('2つとも埋めてね!', false);
+    (r0 === '' ? a0 : a1).focus();
+    return;
+  }
+  const v0 = parseInt(r0, 10), v1 = parseInt(r1, 10);
+  if (isNaN(v0) || isNaN(v1)) {
+    showHint('数字を入れてね', false);
+    return;
+  }
+  const { p, q } = STATE.current;
+  const exp = [p, q].sort((a, b) => a - b);
+  const got = [v0, v1].sort((a, b) => a - b);
+
+  if (exp[0] === got[0] && exp[1] === got[1]) {
+    // 撃破!
+    STATE.kills++;
+    document.getElementById('hud-kills').textContent = STATE.kills;
+    showHint('✓ 撃破!', true);
+    const card = document.getElementById('enemy-card');
+    card.classList.add('destroyed');
+    spawnBoom();
+    // 加速(下限あり)
+    const base = LEVEL_CONF[STATE.level].duration;
+    STATE.duration = Math.max(base * MIN_DURATION_RATIO,
+                              STATE.duration * LEVEL_CONF[STATE.level].ramp);
+    // 接近を一時停止して次を出す
+    STATE.running = false;
+    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+    setTimeout(() => {
+      STATE.running = true;
+      spawnEnemy();
+      STATE.lastTick = performance.now();
+      tick();
+    }, 450);
+  } else {
+    // ミス → ペナルティで迫る
+    STATE.wrong++;
+    STATE.progress = Math.min(0.99, STATE.progress + WRONG_PENALTY);
+    const b = p + q, c = p * q;
+    showHint(`❌ たして ${b}、かけて ${c} になる2つの数!`, false);
+    [a0, a1].forEach(el => {
+      el.classList.add('wrong');
+      setTimeout(() => el.classList.remove('wrong'), 400);
+    });
+    a0.focus(); a0.select();
+  }
+}
+
+function spawnBoom() {
+  const field = document.getElementById('field');
+  const el = document.createElement('div');
+  el.className = 'boom';
+  el.textContent = '💥';
+  field.appendChild(el);
+  setTimeout(() => el.remove(), 500);
+}
+
+function showHint(msg, correct) {
+  const hint = document.getElementById('hint-msg');
+  hint.textContent = msg;
+  hint.className = 'hint-msg' + (correct ? ' correct' : '');
+}
+
+// ========== ゲームオーバー ==========
+function gameOver() {
+  STATE.running = false;
+  if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+
+  document.getElementById('go-kills').textContent = STATE.kills;
+  document.getElementById('go-wrong').textContent = STATE.wrong;
+  document.getElementById('go-level').textContent = LEVEL_CONF[STATE.level].label;
+
+  // ベスト更新
+  const key = bestKey(STATE.level);
+  const prev = parseInt(localStorage.getItem(key) || '0', 10);
+  const bestEl = document.getElementById('go-best');
+  if (STATE.kills > prev) {
+    localStorage.setItem(key, String(STATE.kills));
+    bestEl.textContent = prev > 0 ? `🏅 ベスト更新! (前 ${prev} 体)` : '🏅 初記録!';
+    bestEl.style.background = 'linear-gradient(135deg,#ffd56a,#ff8a2a)';
+    bestEl.style.color = '#2a1810';
+  } else {
+    bestEl.textContent = `🏅 ベスト: ${prev} 体`;
+    bestEl.style.background = 'rgba(255,255,255,0.1)';
+    bestEl.style.color = '#fff';
+  }
+
+  // グリンピース(撃破数に応じて)
+  const peas = Math.floor(STATE.kills / (PEAS_DIVISOR[STATE.level] || 4));
+  const peasBlock = document.getElementById('go-peas-block');
+  if (peas > 0) {
+    addPeasToHP(peas);
+    peasBlock.style.display = 'inline-block';
+    document.getElementById('go-peas').textContent = peas;
+  } else {
+    peasBlock.style.display = 'none';
+  }
+
+  showScreen('gameover-screen');
+}
+
+// 数学HPの localStorage(mathPrint_v2)にグリンピース加算
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) {
+      p.peaCount -= 45;
+      cups++;
+    }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
+}
+
+function backToTitle() {
+  updateBestLine();
+  showScreen('title-screen');
+}
+
+function quitGame() {
+  if (confirm('終了しますか?')) {
+    STATE.running = false;
+    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+    backToTitle();
+  }
+}
+
+// Enter で解答
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('game-screen').classList.contains('active')) {
+    e.preventDefault();
+    submitAnswer();
+  }
+});
+</script>
+</body>
+</html>

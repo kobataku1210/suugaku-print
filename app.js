@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // app.js
 // ============================================================
 
@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-07-11a';
+const APP_VERSION = '2026-07-11b';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1123,14 +1123,14 @@ const GAME_ITEMS = [
     draftKey: 'sqrtEquation',
   },
   {
-    title: '因数分解コンボ',
-    desc: 'STEP1で因数分解 → STEP2でそのまま方程式を解く! 二次方程式のじゅんび',
-    icon: '🧩',
-    onclick: "window.location.href='games/因数分解コンボ.html?_v=' + APP_VERSION",
+    title: '因数分解ディフェンス',
+    desc: '式がどんどん迫ってくる! 因数分解して撃ち落とせ! 二次方程式のじゅんび',
+    icon: '🛡️',
+    onclick: "window.location.href='games/因数分解ディフェンス.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #7e57c2, #4527a0)',
     isNew: true,
     category: 'quadratic',
-    draftKey: 'factorCombo',
+    draftKey: 'factorDefense',
   },
   {
     title: 'ルート計算バトル',
