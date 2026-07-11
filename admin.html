@@ -734,6 +734,7 @@
         <button class="chapter-tab" id="game-tab-sqrt-memory" onclick="switchGameTab('sqrt-memory')">🃏 平方根神経衰弱</button>
         <button class="chapter-tab" id="game-tab-rootgem" onclick="switchGameTab('rootgem')">💎 ルートの宝石</button>
         <button class="chapter-tab" id="game-tab-sqrt-eq" onclick="switchGameTab('sqrt-eq')">📐 平方根の方程式</button>
+        <button class="chapter-tab" id="game-tab-factor-combo" onclick="switchGameTab('factor-combo')">🧩 因数分解コンボ</button>
       </div>
     </div>
 
@@ -967,6 +968,25 @@
         </ul>
       </div>
     </div><!-- /game-pane-sqrt-eq -->
+
+    <!-- 因数分解コンボ -->
+    <div class="game-pane hidden" id="game-pane-factor-combo">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/因数分解コンボ.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="factor-combo-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>因数分解コンボ</b> は、因数分解と二次方程式をつなげる2ステップ形式のゲームです。</p>
+        <p>問題は自動生成されるため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li><b>STEP1</b>: x²+5x+6 = (x+□)(x+□) を穴埋め（ヒントは「たして5、かけて6」方式）</li>
+          <li><b>STEP2</b>: 同じ式 = 0 の解を入力 → 符号が反対になることを体感</li>
+          <li>🟢 <b>初級</b>: 符号すべて+ / 🟡 <b>中級</b>: 符号ミックス / 🔴 <b>上級</b>: 平方型(x+a)²・x²−b²型</li>
+          <li>練習モード / タイムアタック(全5問×2ステップ、目標タイム内でボーナスピース)</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-factor-combo -->
   </div>
 
   <!-- 🧰 ツール管理ページ -->
@@ -1076,7 +1096,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq', 'factor-combo'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1385,6 +1405,7 @@ async function loadQuestions() {
   renderPrimeFactorPublishBar();
   renderLogCarpenterPublishBar();
   renderSqrtEqPublishBar();
+  renderFactorComboPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1784,6 +1805,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'primeFactor')   renderPrimeFactorPublishBar();
   if (gameKey === 'logCarpenter')  renderLogCarpenterPublishBar();
   if (gameKey === 'sqrtEquation')  renderSqrtEqPublishBar();
+  if (gameKey === 'factorCombo')   renderFactorComboPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1805,6 +1827,10 @@ function renderLogCarpenterPublishBar() {
 
 function renderSqrtEqPublishBar() {
   renderGamePublishBar('sqrtEquation', '平方根の方程式', 'sqrt-eq-publish-bar');
+}
+
+function renderFactorComboPublishBar() {
+  renderGamePublishBar('factorCombo', '因数分解コンボ', 'factor-combo-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画
