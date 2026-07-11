@@ -455,7 +455,7 @@
     <div id="input-area">
       <div class="answer-template" id="answer-template"></div>
       <div class="input-row2">
-        <span class="minus-note">符号も入力! (例: +2、-3)</span>
+        <span class="minus-note" id="input-note">符号も入力! (例: +2、-3)</span>
         <button class="btn" style="padding:10px 34px;font-size:16px" onclick="submitAnswer()">撃つ!</button>
       </div>
       <div class="hint-msg" id="hint-msg"></div>
@@ -662,6 +662,10 @@ function spawnEnemy() {
 
   document.getElementById('enemy-formula').innerHTML = formulaHtml;
   document.getElementById('answer-template').innerHTML = templateHtml;
+  document.getElementById('input-note').textContent =
+    STATE.current.kind === 'expert'
+      ? '符号も入力! (例: +2、-3) / xの係数が1のときは空欄でOK'
+      : '符号も入力! (例: +2、-3)';
 
   const card = document.getElementById('enemy-card');
   card.classList.remove('destroyed', 'danger-close');
@@ -747,9 +751,11 @@ function parseSigned(raw) {
 }
 
 // xの係数(正の数)のパース: 「2」形式のみ(全角も半角に直す)
+// 空欄は「1」として扱う (係数1のときは書かなくてよい)
 function parseCoef(raw) {
   const s = raw.trim()
     .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+  if (s === '') return 1;
   if (!/^\d+$/.test(s)) return null;
   const v = parseInt(s, 10);
   return v >= 1 ? v : null;
@@ -760,10 +766,11 @@ function submitAnswer() {
   const cur = STATE.current;
   const inputs = Array.from(document.querySelectorAll('.ans-input'));
 
-  // 空チェック
+  // 空チェック (xの係数欄は空欄OK = 1として扱う)
   for (const el of inputs) {
+    if (el.classList.contains('ans-coef')) continue;
     if (el.value.trim() === '') {
-      showHint('全部埋めてね!', false);
+      showHint('数の部分を埋めてね!', false);
       el.focus();
       return;
     }
