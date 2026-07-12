@@ -5534,7 +5534,6 @@
           "studentBestName": null,
           "studentBestTime": null,
           "studentBestList": [],
-          "draft": true,
           "basic": [
             {
               "q": "x² = 9 を解け",
@@ -5879,7 +5878,6 @@
           "studentBestName": null,
           "studentBestTime": null,
           "studentBestList": [],
-          "draft": true,
           "basic": [
             {
               "q": "(x - 2)² = 9 を解け",
@@ -6224,7 +6222,6 @@
           "studentBestName": null,
           "studentBestTime": null,
           "studentBestList": [],
-          "draft": true,
           "basic": [
             {
               "q": "x² + 2x + □ = (x + 1)²　□に入る数は？",
@@ -6569,7 +6566,6 @@
           "studentBestName": null,
           "studentBestTime": null,
           "studentBestList": [],
-          "draft": true,
           "basic": [
             {
               "q": "x² + 3x + 1 = 0 の解の公式の √ の中（b²-4ac）の値は？",
@@ -6914,7 +6910,6 @@
           "studentBestName": null,
           "studentBestTime": null,
           "studentBestList": [],
-          "draft": true,
           "basic": [
             {
               "q": "(x - 2)(x - 3) = 0 を解け",
