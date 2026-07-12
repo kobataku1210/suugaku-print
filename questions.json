@@ -7945,7 +7945,8 @@
     "numSort": false,
     "primeFactor": false,
     "logCarpenter": false,
-    "sqrtEquation": false
+    "sqrtEquation": false,
+    "factorDefense": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [
