@@ -347,6 +347,10 @@
     text-shadow: 0 4px 0 #6a0000, 0 8px 24px rgba(255,60,60,0.5);
     animation: goDrop 0.5s ease-out;
   }
+  .go-title.clear {
+    color: #ffdd5a;
+    text-shadow: 0 4px 0 #6a4e00, 0 8px 24px rgba(255,221,90,0.6);
+  }
   @keyframes goDrop {
     0% { transform: translateY(-40px) scale(1.4); opacity: 0; }
     100% { transform: translateY(0) scale(1); opacity: 1; }
@@ -415,9 +419,9 @@
     <div class="title-logo">因数分解ディフェンス</div>
     <div class="title-sub">FACTOR DEFENSE</div>
     <div class="title-desc">
-      式がどんどん迫ってくる!<br>
-      <b style="color:#ce93d8">因数分解して撃ち落とせ!</b><br>
-      画面いっぱいまで迫られたら…ゲームオーバー!
+      迫ってくる式を <b style="color:#ce93d8">因数分解して撃ち落とせ!</b><br>
+      全 <b style="color:#ffdd5a">10問</b>(毎回ランダム)を倒しきれば<br>
+      <b style="color:#b2ff59">🏆 クリアボーナス</b>! 迫られたらゲームオーバー!
     </div>
 
     <div class="setup-block">
@@ -462,12 +466,12 @@
     </div>
   </div>
 
-  <!-- ゲームオーバー -->
+  <!-- ゲームオーバー / クリア -->
   <div id="gameover-screen" class="screen">
-    <div class="go-title">GAME OVER</div>
+    <div class="go-title" id="go-title">GAME OVER</div>
     <div style="text-align:center">
       <div class="go-kill-label">撃破数</div>
-      <div class="go-kills"><span id="go-kills">0</span><span class="unit"> 体</span></div>
+      <div class="go-kills"><span id="go-kills">0</span><span class="unit"> / 10 問</span></div>
       <div id="go-best" style="margin-top:6px"></div>
     </div>
     <div class="go-peas" id="go-peas-block" style="display:none">🟢 +<span id="go-peas">0</span> グリンピース!</div>
@@ -534,8 +538,10 @@ const WRONG_PENALTY = 0.08;       // ミスすると 8% 迫る
 const HINT1_AT = 0.35;   // 「たして◯かけて◯」を出す
 const HINT2_AT = 0.65;   // 片方の答えを教える
 
-// 撃破数 → グリンピース
-const PEAS_DIVISOR = { easy: 4, medium: 3, hard: 2, expert: 1 };
+// 1ゲームの問題数(プールから毎回ランダムに選ぶ)
+const TOTAL_PROBLEMS = 10;
+// 全問クリアボーナス(グリンピース)
+const CLEAR_BONUS = { easy: 3, medium: 5, hard: 10, expert: 20 };
 
 // ========== 式の表示 ==========
 function fmtQuadA(a, b, c) {
@@ -579,7 +585,7 @@ function updateBestLine() {
   const lv = getChipValue('level-chips');
   const best = parseInt(localStorage.getItem(bestKey(lv)) || '0', 10);
   document.getElementById('best-line').textContent =
-    best > 0 ? `🏅 このスピードのベスト: ${best} 体撃破` : 'まだ記録なし ─ 初挑戦!';
+    best > 0 ? `🏅 このスピードのベスト: ${best}/${TOTAL_PROBLEMS} 問` : 'まだ記録なし ─ 初挑戦!';
 }
 updateBestLine();
 
@@ -594,19 +600,22 @@ const STATE = {
   kills: 0,
   wrong: 0,
   current: null,      // {p, q}
-  recent: [],
+  queue: [],          // 今回出題する問題(ランダム10問)
 };
 
-function pickProblem() {
+function shuffleArr(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// プールから毎回ランダムに TOTAL_PROBLEMS 問を選ぶ(重複なし)
+function buildQueue() {
   const pool = STATE.level === 'expert' ? EXPERT_POOL : PROBLEM_POOL;
-  let p, tries = 0;
-  do {
-    p = pool[Math.floor(Math.random() * pool.length)];
-    tries++;
-  } while (STATE.recent.includes(p) && tries < 20);
-  STATE.recent.push(p);
-  if (STATE.recent.length > 5) STATE.recent.shift();
-  return p;
+  return shuffleArr(pool).slice(0, TOTAL_PROBLEMS);
 }
 
 // ========== ゲーム開始 ==========
@@ -616,11 +625,11 @@ function startGame() {
   STATE.duration = conf.duration;
   STATE.kills = 0;
   STATE.wrong = 0;
-  STATE.recent = [];
+  STATE.queue = buildQueue();
   STATE.running = true;
   if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
 
-  document.getElementById('hud-kills').textContent = '0';
+  document.getElementById('hud-kills').textContent = `0/${TOTAL_PROBLEMS}`;
   document.getElementById('hud-level').textContent = conf.label;
   document.getElementById('hud-best').textContent =
     parseInt(localStorage.getItem(bestKey(STATE.level)) || '0', 10);
@@ -632,7 +641,7 @@ function startGame() {
 }
 
 function spawnEnemy() {
-  const prob = pickProblem();
+  const prob = STATE.queue.shift();
   STATE.progress = 0;
   STATE.revealIdx = Math.random() < 0.5 ? 0 : 1;  // ヒントで教える方
 
@@ -713,7 +722,7 @@ function tick() {
   STATE.progress += dt / STATE.duration;
 
   if (STATE.progress >= 1) {
-    gameOver();
+    finishGame(false);
     return;
   }
   renderEnemy();
@@ -843,18 +852,23 @@ function submitAnswer() {
   if (correct) {
     // 撃破!
     STATE.kills++;
-    document.getElementById('hud-kills').textContent = STATE.kills;
+    document.getElementById('hud-kills').textContent = `${STATE.kills}/${TOTAL_PROBLEMS}`;
     showHint('✓ 撃破!', true);
     const card = document.getElementById('enemy-card');
     card.classList.add('destroyed');
     spawnBoom();
-    // 加速(下限あり)
+    // 接近を一時停止
+    STATE.running = false;
+    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+    // 全問クリア?
+    if (STATE.kills >= TOTAL_PROBLEMS) {
+      setTimeout(() => finishGame(true), 550);
+      return;
+    }
+    // 加速(下限あり)して次を出す
     const base = LEVEL_CONF[STATE.level].duration;
     STATE.duration = Math.max(base * MIN_DURATION_RATIO,
                               STATE.duration * LEVEL_CONF[STATE.level].ramp);
-    // 接近を一時停止して次を出す
-    STATE.running = false;
-    if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
     setTimeout(() => {
       STATE.running = true;
       spawnEnemy();
@@ -889,32 +903,42 @@ function showHint(msg, correct) {
   hint.className = 'hint-msg' + (correct ? ' correct' : '');
 }
 
-// ========== ゲームオーバー ==========
-function gameOver() {
+// ========== 終了(クリア / ゲームオーバー) ==========
+function finishGame(cleared) {
   STATE.running = false;
   if (STATE.rafId) cancelAnimationFrame(STATE.rafId);
+
+  // タイトル出し分け
+  const title = document.getElementById('go-title');
+  if (cleared) {
+    title.textContent = '🏆 ALL CLEAR!';
+    title.classList.add('clear');
+  } else {
+    title.textContent = 'GAME OVER';
+    title.classList.remove('clear');
+  }
 
   document.getElementById('go-kills').textContent = STATE.kills;
   document.getElementById('go-wrong').textContent = STATE.wrong;
   document.getElementById('go-level').textContent = LEVEL_CONF[STATE.level].label;
 
-  // ベスト更新
+  // ベスト更新(最大10)
   const key = bestKey(STATE.level);
   const prev = parseInt(localStorage.getItem(key) || '0', 10);
   const bestEl = document.getElementById('go-best');
   if (STATE.kills > prev) {
     localStorage.setItem(key, String(STATE.kills));
-    bestEl.textContent = prev > 0 ? `🏅 ベスト更新! (前 ${prev} 体)` : '🏅 初記録!';
+    bestEl.textContent = prev > 0 ? `🏅 ベスト更新! (前 ${prev} 問)` : '🏅 初記録!';
     bestEl.style.background = 'linear-gradient(135deg,#ffd56a,#ff8a2a)';
     bestEl.style.color = '#2a1810';
   } else {
-    bestEl.textContent = `🏅 ベスト: ${prev} 体`;
+    bestEl.textContent = `🏅 ベスト: ${prev} 問`;
     bestEl.style.background = 'rgba(255,255,255,0.1)';
     bestEl.style.color = '#fff';
   }
 
-  // グリンピース(撃破数に応じて)
-  const peas = Math.floor(STATE.kills / (PEAS_DIVISOR[STATE.level] || 4));
+  // クリアボーナス(全問クリアした時だけ)
+  const peas = cleared ? (CLEAR_BONUS[STATE.level] || 0) : 0;
   const peasBlock = document.getElementById('go-peas-block');
   if (peas > 0) {
     addPeasToHP(peas);
