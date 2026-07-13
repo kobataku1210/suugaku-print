@@ -327,6 +327,58 @@
     font-size: 11px; color: #999;
     letter-spacing: 1px;
   }
+
+  /* 画面上キーパッド */
+  #keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: min(92vw, 360px);
+  }
+  .kp {
+    height: 48px;
+    border: 2px solid #9575cd;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff 0%, #e6e0f2 100%);
+    color: #1c1030;
+    font-size: 22px;
+    font-weight: 900;
+    font-family: 'Cambria Math', 'Cambria', serif;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #7e57c2, 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.05s;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .kp:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #7e57c2;
+  }
+  .kp-sign {
+    background: linear-gradient(180deg, #ffe9b8 0%, #f5c96a 100%);
+    border-color: #c99a2e;
+    box-shadow: 0 3px 0 #a87d18, 0 4px 6px rgba(0,0,0,0.3);
+  }
+  .kp-sign:active { box-shadow: 0 1px 0 #a87d18; }
+  .kp-del {
+    background: linear-gradient(180deg, #ffd0b8 0%, #f5a06a 100%);
+    border-color: #c9662e;
+    box-shadow: 0 3px 0 #a84e18, 0 4px 6px rgba(0,0,0,0.3);
+    font-family: inherit;
+  }
+  .kp-del:active { box-shadow: 0 1px 0 #a84e18; }
+  .kp-zero { grid-column: span 2; }
+  .kp-fire {
+    grid-column: span 2;
+    background: linear-gradient(180deg, #9c6bd6 0%, #5e35b1 100%);
+    border-color: #b39ddb;
+    color: #fff;
+    font-family: inherit;
+    font-size: 18px;
+    letter-spacing: 3px;
+    box-shadow: 0 3px 0 #3a1f70, 0 4px 8px rgba(0,0,0,0.4);
+  }
+  .kp-fire:active { box-shadow: 0 1px 0 #3a1f70; }
   .hint-msg {
     color: #ff8a80;
     font-weight: bold;
@@ -458,9 +510,22 @@
 
     <div id="input-area">
       <div class="answer-template" id="answer-template"></div>
-      <div class="input-row2">
-        <span class="minus-note" id="input-note">符号も入力! (例: +2、-3)</span>
-        <button class="btn" style="padding:10px 34px;font-size:16px" onclick="submitAnswer()">撃つ!</button>
+      <div class="minus-note" id="input-note">符号も入力! (例: +2、-3) ─ 入力欄をタップして切りかえ</div>
+      <div id="keypad">
+        <button class="kp" data-k="7">7</button>
+        <button class="kp" data-k="8">8</button>
+        <button class="kp" data-k="9">9</button>
+        <button class="kp kp-del" data-k="del">⌫</button>
+        <button class="kp" data-k="4">4</button>
+        <button class="kp" data-k="5">5</button>
+        <button class="kp" data-k="6">6</button>
+        <button class="kp kp-sign" data-k="+">＋</button>
+        <button class="kp" data-k="1">1</button>
+        <button class="kp" data-k="2">2</button>
+        <button class="kp" data-k="3">3</button>
+        <button class="kp kp-sign" data-k="-">−</button>
+        <button class="kp kp-zero" data-k="0">0</button>
+        <button class="kp kp-fire" data-k="fire">撃つ!</button>
       </div>
       <div class="hint-msg" id="hint-msg"></div>
     </div>
@@ -646,8 +711,9 @@ function spawnEnemy() {
   STATE.revealIdx = Math.random() < 0.5 ? 0 : 1;  // ヒントで教える方
 
   let formulaHtml, templateHtml;
-  const inS = id => `<input class="ans-input" id="${id}" type="text">`;          // 符号付き数
-  const inC = id => `<input class="ans-input ans-coef" id="${id}" type="text">`; // x係数(正の数)
+  // inputmode="none": タブレットでOSキーボードを出さない(画面上キーパッドを使う)。PCの物理キーボードは使える
+  const inS = id => `<input class="ans-input" id="${id}" type="text" inputmode="none" autocomplete="off">`;          // 符号付き数
+  const inC = id => `<input class="ans-input ans-coef" id="${id}" type="text" inputmode="none" autocomplete="off">`; // x係数(正の数)
 
   if (STATE.level === 'expert') {
     // (ax+b)(cx+d) — 係数1の因数は後ろに回し、係数欄を出さない
@@ -990,6 +1056,47 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     submitAnswer();
   }
+});
+
+// ========== 画面上キーパッド ==========
+// いま入力対象の欄を追跡(入力欄タップで切りかえ)
+let activeInput = null;
+document.getElementById('answer-template').addEventListener('focusin', e => {
+  if (e.target.classList && e.target.classList.contains('ans-input')) {
+    activeInput = e.target;
+  }
+});
+
+function getActiveInput() {
+  if (activeInput && document.body.contains(activeInput)) return activeInput;
+  activeInput = document.querySelector('.ans-input');
+  return activeInput;
+}
+
+document.getElementById('keypad').addEventListener('pointerdown', e => {
+  const btn = e.target.closest('button[data-k]');
+  if (!btn) return;
+  e.preventDefault();  // 入力欄からフォーカスを奪わない
+  const k = btn.dataset.k;
+  if (k === 'fire') {
+    submitAnswer();
+    return;
+  }
+  if (!STATE.running) return;
+  const inp = getActiveInput();
+  if (!inp) return;
+  if (k === 'del') {
+    inp.value = inp.value.slice(0, -1);
+  } else if (k === '+' || k === '-') {
+    // 符号は先頭に付ける(すでに符号があれば置きかえ)
+    const v = inp.value;
+    inp.value = /^[+-]/.test(v) ? k + v.slice(1) : k + v;
+  } else {
+    // 数字(符号を除いて3桁まで)
+    if (inp.value.replace(/^[+-]/, '').length >= 3) return;
+    inp.value += k;
+  }
+  inp.focus();
 });
 </script>
 </body>
