@@ -50,7 +50,30 @@
   .play-title { font-size:17px; font-weight:900; }
   .play-reward { font-size:12px; color:#9ded62; font-weight:800; }
 
-  .board-wrap { display:flex; justify-content:center; margin:4px 0; touch-action:none; }
+  #app.wide { max-width: 1120px; }
+  .play-area { display:flex; justify-content:center; align-items:flex-start; margin:4px 0; }
+  .board-wrap { display:flex; justify-content:center; touch-action:none; }
+  /* ルールの説明バー（盤面の右側）。クリックで開閉 */
+  .rule-bar { width:40px; margin-left:6px; border:none; border-radius:0 12px 12px 0; cursor:pointer; font-family:inherit;
+    background:linear-gradient(180deg,#ffd86b,#ffb020); color:#3a2400; font-weight:900; font-size:15px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:10px 0; }
+  .rule-bar:hover { filter:brightness(1.08); }
+  .rb-text { writing-mode:vertical-rl; letter-spacing:6px; font-size:16px; }
+  .rule-panel { display:none; width:290px; margin-left:8px; background:#16264a; border-radius:14px; padding:12px 14px;
+    box-shadow: inset 0 0 0 1px #ffffff26; overflow-y:auto; }
+  .rule-panel.open { display:block; }
+  .rp-head { display:flex; justify-content:space-between; align-items:center; font-weight:900; font-size:15px; color:#ffd86b; cursor:pointer; }
+  .rp-close { font-size:12px; color:#e6eefc; background:#ffffff1f; border-radius:999px; padding:3px 10px; }
+  .rule-panel ol { margin:8px 0 2px 1.3em; font-size:13.5px; line-height:1.75; color:#e6eefc; }
+  .rule-panel li { margin-bottom:3px; }
+  .rule-panel b { color:#ffd86b; }
+  .rule-panel .how { margin-top:8px; padding-top:8px; border-top:1px dashed #ffffff40; font-size:13px; line-height:1.75; color:#e6eefc; }
+  .rule-panel .how-title { font-weight:900; color:#ffd86b; margin-bottom:2px; }
+  /* 画面がせまいときは右からスライドして重ねる */
+  @media (max-width: 899px) {
+    .rule-panel.open { position:fixed; top:0; right:0; bottom:0; width:min(86vw,340px); max-height:none !important;
+      margin:0; border-radius:14px 0 0 14px; z-index:40; box-shadow:-8px 0 24px rgba(0,0,0,.55); }
+  }
   .board { display:grid; background:#4a5163; gap:1px; border:3px solid #e6eefc; border-radius:4px; touch-action:none; }
   .cell { position:relative; width:var(--cs); height:var(--cs); background:#1b1e26; cursor:pointer; }
   .cell.pillar { background:#dfe4ee; cursor:default; }
@@ -128,7 +151,25 @@
       <span class="play-title" id="playTitle">問題</span>
       <span class="play-reward" id="playReward"></span>
     </div>
-    <div class="board-wrap"><div class="board" id="board"></div></div>
+    <div class="play-area">
+      <div class="board-wrap"><div class="board" id="board"></div></div>
+      <button class="rule-bar" id="ruleBar" onclick="toggleRules()" title="ルールを表示／かくす">
+        <span>📖</span><span class="rb-text">ルール</span><span id="ruleArrow">▶</span>
+      </button>
+      <div class="rule-panel" id="rulePanel">
+        <div class="rp-head" onclick="toggleRules()"><span>📖 ルール</span><span class="rp-close">✕ とじる</span></div>
+        <ol id="rulesList2"></ol>
+        <div class="how">
+          <div class="how-title">操作のしかた</div>
+          <b>クリック</b>：黒マスに枕を置く<br>
+          <b>枕からとなりのマスへドラッグ</b>：布団を1マスのばす（ドラッグし直すと向きを変えられる）<br>
+          <b>枕をクリック</b>：その布団を消す<br>
+          <b>足側をクリック</b>：足側だけ消す<br>
+          <b>右クリック</b>（または「× 入力」をオンにしてクリック）：布団を置かないマスに×をつける。なぞると続けてつけられる。もう一度で消える<br>
+          ○の数字と、まわりの枕の数が同じになると、○が<b>赤く</b>なる
+        </div>
+      </div>
+    </div>
     <div class="undo-row">
       <button class="btn btn-undo" id="undoBtn" onclick="undo()">↶ 1つ戻る</button>
       <button class="btn btn-undo" id="redoBtn" onclick="redo()">1つ進む ↷</button>
@@ -137,17 +178,6 @@
     </div>
     <button class="btn btn-check" onclick="judge()">✅ 解答する</button>
     <div class="result" id="result"></div>
-    <details class="rules">
-      <summary>ルールと操作</summary>
-      <ol id="rulesList2"></ol>
-      <div class="how">
-        <b>クリック</b>：黒マスに枕を置く<br>
-        <b>枕からとなりのマスへドラッグ</b>：布団を1マスのばす（ドラッグし直すと向きを変えられる）<br>
-        <b>枕をクリック</b>：その布団を消す ／ <b>足側をクリック</b>：足側だけ消す<br>
-        <b>右クリック</b>（または「× 入力」をオンにしてクリック）：布団を置かないマスに×をつける。なぞると続けてつけられる。もう一度で消える<br>
-        ○の数字と、まわりの枕の数が同じになると、○が<b>赤く</b>なる
-      </div>
-    </details>
   </div>
 
   <!-- クリア演出 -->
@@ -237,7 +267,36 @@ function addEarnedPeas(amount){
 }
 
 const $ = id => document.getElementById(id);
-function showScreen(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0, 0); }
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  $('app').classList.toggle('wide', id === 'play-screen'); // 盤面の右にルールを出せるよう広げる
+  window.scrollTo(0, 0);
+}
+
+// ルールの説明バー（開いているかどうかは覚えておく）
+const RULES_OPEN_KEY = 'shugaku_rules_open';
+let rulesOpen = false;
+try { rulesOpen = localStorage.getItem(RULES_OPEN_KEY) === '1'; } catch(e){}
+const isWide = () => window.innerWidth >= 900;
+function toggleRules(){
+  rulesOpen = !rulesOpen;
+  try { localStorage.setItem(RULES_OPEN_KEY, rulesOpen ? '1' : '0'); } catch(e){}
+  applyRules();
+}
+function applyRules(){
+  $('rulePanel').classList.toggle('open', rulesOpen);
+  $('ruleArrow').textContent = rulesOpen ? '◀' : '▶';
+  syncSide();
+}
+// バーとルール欄の高さを盤面にそろえる
+function syncSide(){
+  const h = $('board').offsetHeight;
+  if (!h) return;
+  $('ruleBar').style.height = h + 'px';
+  $('rulePanel').style.maxHeight = isWide() ? h + 'px' : '';
+  $('rulePanel').style.height = isWide() ? h + 'px' : '';
+}
 
 // ============================================================
 //  問題一覧
@@ -302,6 +361,7 @@ function openPuzzle(k){
   buildBoard();
   render();
   showScreen('play-screen');
+  applyRules();
 }
 
 // ============================================================
@@ -309,9 +369,11 @@ function openPuzzle(k){
 // ============================================================
 function cellSize(){
   // 横幅と、ボタンまで1画面に収まる高さの両方に合わせる
-  const byW = Math.floor((Math.min(window.innerWidth - 40, 620) - 6) / W) - 1;
+  // 右側のルールバー（46px）と、広い画面ではルール欄（300px）の分をあけておく
+  const side = 46 + (isWide() ? 300 : 0);
+  const byW = Math.floor((Math.min(window.innerWidth - 40 - side, 620) - 6) / W) - 1;
   const byH = Math.floor((window.innerHeight - 250) / H) - 1;
-  return Math.max(22, Math.min(52, byW, byH));
+  return Math.max(Math.min(22, byW), Math.min(52, byW, byH));
 }
 function buildBoard(){
   const b = $('board');
@@ -358,6 +420,7 @@ function render(){
 window.addEventListener('resize', () => {
   if (!$('play-screen').classList.contains('active')) return;
   $('board').style.setProperty('--cs', cellSize() + 'px');
+  syncSide();
 });
 
 // ============================================================
