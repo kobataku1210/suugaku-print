@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-09-25c';
+const APP_VERSION = '2026-09-25d';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -906,7 +906,7 @@ function renderHome() {
         <div class="aq-home-banner-left">
           <span class="aq-home-banner-icon">🐠</span>
           <div class="aq-home-banner-text">
-            <div class="aq-home-banner-title">グリンピース水族館 <span class="game-new-badge">NEW!</span></div>
+            <div class="aq-home-banner-title">グリンピース水族館 ${newBadge(AQUARIUM_NEW_SINCE)}</div>
             <div class="aq-home-banner-sub">${aqHomeBannerSub()}</div>
           </div>
         </div>
@@ -921,7 +921,7 @@ function renderHome() {
     <div class="gm-home-banner" onclick="navigate('games')">
       <span class="gm-home-icon">🎮</span>
       <div class="gm-home-text">
-        <div class="gm-home-title">数学ゲーム <span class="game-new-badge">NEW!</span></div>
+        <div class="gm-home-title">数学ゲーム ${categoryNewBadge(GAME_ITEMS)}</div>
         <div class="gm-home-sub">気分転換に遊んで、学習しよう！</div>
       </div>
       <div class="gm-home-arrow">›</div>
@@ -933,7 +933,7 @@ function renderHome() {
     <div class="pz-home-banner" onclick="navigate('puzzles')">
       <span class="pz-home-icon">🧩</span>
       <div class="pz-home-text">
-        <div class="pz-home-title">数学パズル <span class="game-new-badge">NEW!</span></div>
+        <div class="pz-home-title">数学パズル ${categoryNewBadge(PUZZLE_ITEMS)}</div>
         <div class="pz-home-sub">頭をつかうパズルに挑戦しよう！</div>
       </div>
       <div class="pz-home-arrow">›</div>
@@ -944,7 +944,7 @@ function renderHome() {
     <div class="tl-home-banner" onclick="navigate('tools')">
       <span class="tl-home-icon">🧰</span>
       <div class="tl-home-text">
-        <div class="tl-home-title">数学便利グッズ <span class="game-new-badge">NEW!</span></div>
+        <div class="tl-home-title">数学便利グッズ ${categoryNewBadge(TOOL_ITEMS)}</div>
         <div class="tl-home-sub">学習を助けるツールを使ってみよう！</div>
       </div>
       <div class="tl-home-arrow">›</div>
@@ -955,7 +955,7 @@ function renderHome() {
     <div class="rk-home-banner" onclick="navigate('ranking')">
       <span class="rk-home-icon">🏆</span>
       <div class="rk-home-text">
-        <div class="rk-home-title">ランキング <span class="game-new-badge">NEW!</span></div>
+        <div class="rk-home-title">ランキング ${newBadge(RANKING_NEW_SINCE)}</div>
         <div class="rk-home-sub">各タイムアタック・カードマッチの上位3名をチェック！</div>
       </div>
       <div class="rk-home-arrow">›</div>
@@ -1014,6 +1014,38 @@ function formatNewsDate(iso) {
 }
 
 
+// ===== NEW! の表示期間 =====
+// 追加・更新した日を newSince: 'YYYY-MM-DD' に書くと、その日から7日間だけ NEW! が出る（8日目に自動で消える）
+const NEW_DAYS = 7;
+function isNewSince(dateStr) {
+  if (!dateStr) return false;
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - start) / 86400000);
+  return days >= 0 && days < NEW_DAYS;
+}
+function newBadge(dateStr) {
+  return isNewSince(dateStr) ? '<span class="game-new-badge">NEW!</span>' : '';
+}
+// 生徒に公開中か（draft / draftKey の扱いは各一覧画面と同じ）
+function isItemPublic(item) {
+  if (item.draft) return false;
+  if (item.draftKey) {
+    const drafts = (mathData && mathData.gameDrafts) || {};
+    return drafts[item.draftKey] === false;
+  }
+  return true;
+}
+// ホームのバナー用：中に NEW! の項目が1つでもあれば NEW!
+function categoryNewBadge(items) {
+  return items.some(it => isNewSince(it.newSince) && (isItemPublic(it) || PREVIEW_MODE)) ? '<span class="game-new-badge">NEW!</span>' : '';
+}
+// ホームのバナーそのものを追加・更新した日（中の項目とは別に NEW! を出したいとき用）
+const AQUARIUM_NEW_SINCE = '2026-06-17';
+const RANKING_NEW_SINCE  = '2026-05-07';
+
 // ===== ゲーム選択画面 =====
 // 今後ゲームを追加する場合は GAME_ITEMS に1要素加えるだけ。
 // onclick: 外部HTML → "window.open(...)" / 内部遷移 → "navigate('xxx')"
@@ -1034,7 +1066,7 @@ const GAME_ITEMS = [
     icon: '🎈',
     onclick: "navigate('shooting')",
     gradient: 'linear-gradient(135deg, #ff6b6b, #fdcb6e)',
-    isNew: true,
+    newSince: '2026-04-30', // この日から7日間 NEW!
     category: 'factor',
   },
   {
@@ -1043,7 +1075,6 @@ const GAME_ITEMS = [
     icon: '🃏',
     onclick: "cmVariant='factor';navigate('cardmatch')",
     gradient: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
-    isNew: false,
     category: 'factor',
   },
   {
@@ -1052,7 +1083,7 @@ const GAME_ITEMS = [
     icon: '√',
     onclick: "cmVariant='sqrt';navigate('cardmatch')",
     gradient: 'linear-gradient(135deg, #4ECDC4, #45B7D1)',
-    isNew: true,
+    newSince: '2026-05-18', // この日から7日間 NEW!
     draftKey: 'cardMatchSqrt', // questions.json の gameDrafts で公開制御
     category: 'sqrt',
   },
@@ -1062,7 +1093,7 @@ const GAME_ITEMS = [
     icon: '🧱',
     onclick: "window.location.href='games/共通因数ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #ff8a2a, #e05a00)',
-    isNew: true,
+    newSince: '2026-05-03', // この日から7日間 NEW!
     category: 'factor',
   },
   {
@@ -1071,7 +1102,7 @@ const GAME_ITEMS = [
     icon: '📏',
     onclick: "window.location.href='games/ルート大小ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #4a90e2, #6c5ce7)',
-    isNew: true,
+    newSince: '2026-05-19', // この日から7日間 NEW!
     draftKey: 'rootBreak',
     category: 'sqrt',
   },
@@ -1081,7 +1112,7 @@ const GAME_ITEMS = [
     icon: '📦',
     onclick: "window.location.href='games/数の分類ウォール.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-    isNew: true,
+    newSince: '2026-05-26', // この日から7日間 NEW!
     draftKey: 'numSort',
     category: 'sqrt',
   },
@@ -1091,7 +1122,7 @@ const GAME_ITEMS = [
     icon: '⚔️',
     onclick: "window.location.href='games/計算バトル.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #3a8aff, #ff3a6a)',
-    isNew: true,
+    newSince: '2026-05-12', // この日から7日間 NEW!
     category: 'factor',
   },
   {
@@ -1100,7 +1131,7 @@ const GAME_ITEMS = [
     icon: '🃏',
     onclick: "window.location.href='games/平方根神経衰弱.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #2196f3, #0d47a1)',
-    isNew: true,
+    newSince: '2026-06-04', // この日から7日間 NEW!
     category: 'sqrt',
   },
   {
@@ -1109,7 +1140,7 @@ const GAME_ITEMS = [
     icon: '💎',
     onclick: "window.location.href='games/ルートの宝石.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #cc66ff, #4477ff)',
-    isNew: true,
+    newSince: '2026-06-07', // この日から7日間 NEW!
     category: 'sqrt',
   },
   {
@@ -1118,7 +1149,7 @@ const GAME_ITEMS = [
     icon: '📐',
     onclick: "window.location.href='games/平方根の方程式.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #26a69a, #00695c)',
-    isNew: true,
+    newSince: '2026-07-06', // この日から7日間 NEW!
     category: 'quadratic',
     draftKey: 'sqrtEquation',
   },
@@ -1128,7 +1159,7 @@ const GAME_ITEMS = [
     icon: '🛡️',
     onclick: "window.location.href='games/因数分解ディフェンス.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #7e57c2, #4527a0)',
-    isNew: true,
+    newSince: '2026-07-11', // この日から7日間 NEW!
     category: 'quadratic',
     draftKey: 'factorDefense',
   },
@@ -1138,7 +1169,7 @@ const GAME_ITEMS = [
     icon: '⚔️',
     onclick: "window.location.href='games/ルート計算バトル.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #ff5577, #c8265a)',
-    isNew: true,
+    newSince: '2026-06-29', // この日から7日間 NEW!
     category: 'sqrt',
   },
 ];
@@ -1283,7 +1314,7 @@ function renderGamesPage() {
     <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${g.gradient}"
          onclick="${g.onclick}">
       <span class="game-card-icon">${g.icon}</span>
-      <div class="game-card-title">${g.title}${g.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
+      <div class="game-card-title">${g.title}${newBadge(g.newSince)}${draftMark}</div>
       <div class="game-card-desc">${g.desc}</div>
       ${subText}
       <div class="game-card-cta">遊ぶ ›</div>
@@ -1360,7 +1391,7 @@ const TOOL_ITEMS = [
     icon: '🧩',
     onclick: "window.location.href='tools/因数分解アシスタント/index.html'",
     gradient: 'linear-gradient(135deg, #56ab2f, #a8e063)',
-    isNew: true,
+    newSince: '2026-05-07', // この日から7日間 NEW!
   },
   {
     title: '素因数分解ヘルパー',
@@ -1368,7 +1399,7 @@ const TOOL_ITEMS = [
     icon: '🔢',
     onclick: "window.location.href='tools/素因数分解ヘルパー.html'",
     gradient: 'linear-gradient(135deg, #00bcd4, #006978)',
-    isNew: true,
+    newSince: '2026-06-08', // この日から7日間 NEW!
     draftKey: 'primeFactor', // questions.json の gameDrafts で公開制御
   },
   {
@@ -1377,7 +1408,7 @@ const TOOL_ITEMS = [
     icon: '🪵',
     onclick: "window.location.href='tools/丸太から大きな四角形を切り出そう/index.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #b08a5a, #6e4a2a)',
-    isNew: true,
+    newSince: '2026-06-22', // この日から7日間 NEW!
     draftKey: 'logCarpenter',
   },
 ];
@@ -1399,7 +1430,7 @@ function renderToolsPage() {
     <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${t.gradient}"
          onclick="${t.onclick}">
       <span class="game-card-icon">${t.icon}</span>
-      <div class="game-card-title">${t.title}${t.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
+      <div class="game-card-title">${t.title}${newBadge(t.newSince)}${draftMark}</div>
       <div class="game-card-desc">${t.desc}</div>
       <div class="game-card-cta">使う ›</div>
     </div>`;
@@ -1422,7 +1453,7 @@ const PUZZLE_ITEMS = [
     icon: '🔢',
     onclick: "window.location.href='games/不等号ナンプレ.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #34d399, #059669)',
-    isNew: true,
+    newSince: '2026-07-12', // この日から7日間 NEW!
   },
   {
     title: '修学旅行の夜',
@@ -1430,7 +1461,7 @@ const PUZZLE_ITEMS = [
     icon: '🛏️',
     onclick: "window.location.href='games/修学旅行の夜.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #ff8fa3, #c9184a)',
-    isNew: true,
+    newSince: '2026-09-25', // この日から7日間 NEW!
   },
 ];
 function renderPuzzlesPage() {
@@ -1443,7 +1474,7 @@ function renderPuzzlesPage() {
     <div class="game-card${draft ? ' draft' : ''}" style="--gradient:${p.gradient}"
          onclick="${p.onclick}">
       <span class="game-card-icon">${p.icon}</span>
-      <div class="game-card-title">${p.title}${p.isNew ? '<span class="game-new-badge">NEW!</span>' : ''}${draftMark}</div>
+      <div class="game-card-title">${p.title}${newBadge(p.newSince)}${draftMark}</div>
       ${p.desc ? `<div class="game-card-desc">${p.desc}</div>` : ''}
       <div class="game-card-cta">挑戦する ›</div>
     </div>`;
