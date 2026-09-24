@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>修学旅行の夜</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #11203a; }
+  body { font-family: 'Hiragino Sans','Meiryo','Yu Gothic',sans-serif; color: #fff; }
+  #app { position: relative; width: 100%; min-height: 100%; max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  .screen { display: none; flex-direction: column; gap: 14px; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  .logo { text-align:center; font-size: clamp(26px,6vw,40px); font-weight: 900; letter-spacing: 4px;
+    background: linear-gradient(90deg,#ffb3c1,#ffd86b); -webkit-background-clip:text; background-clip:text; color: transparent; }
+  .logo-en { text-align:center; font-size: clamp(13px,3.2vw,18px); font-weight:700; letter-spacing:4px;
+    color:#ffd86b; margin-top:-8px; font-family:'Georgia','Times New Roman',serif; }
+  .btn { border:none; border-radius: 999px; font-weight:800; cursor:pointer; font-family:inherit; transition: transform .1s; }
+  .btn:active { transform: scale(.96); }
+  .btn-home { background:#ffffff22; color:#fff; font-size:13px; padding:9px 22px; border:1px solid #ffffff33; align-self:center; }
+  .btn-back { background:#ffffff18; color:#e6eefc; font-size:13px; padding:8px 18px; border:1px solid #ffffff22; align-self:flex-start; }
+
+  /* ルール */
+  .rules { background:#16264a; border-radius:14px; padding:12px 16px; box-shadow: inset 0 0 0 1px #ffffff14; width:100%; }
+  .rules summary { cursor:pointer; font-weight:900; font-size:15px; color:#ffd86b; list-style:none; }
+  .rules summary::-webkit-details-marker { display:none; }
+  .rules summary::before { content:'▶ '; font-size:12px; }
+  .rules[open] summary::before { content:'▼ '; }
+  .rules ol { margin:8px 0 2px 1.4em; font-size:14px; line-height:1.8; color:#e6eefc; }
+  .rules .how { margin-top:8px; padding-top:8px; border-top:1px dashed #ffffff33; font-size:13px; line-height:1.8; color:#e6eefc; }
+  .rules b { color:#ffd86b; }
+
+  /* 問題一覧 */
+  .puz-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:10px; }
+  .puz-btn { position:relative; aspect-ratio:1; border:none; border-radius:14px; cursor:pointer; font-family:inherit;
+    font-size:22px; font-weight:900; color:#10233f; background:linear-gradient(135deg,#ffe0e6,#ffb3c1);
+    display:flex; align-items:center; justify-content:center; transition: transform .1s; }
+  .puz-btn:active { transform: scale(.95); }
+  .puz-btn.cleared { background:linear-gradient(135deg,#ffe08a,#ffc24d); }
+  .puz-btn.boss { background:linear-gradient(135deg,#e0b3ff,#b06cff); color:#2a1640; }
+  .puz-btn.boss.cleared { background:linear-gradient(135deg,#ffe08a,#ffc24d); color:#10233f; }
+  .puz-btn .pz-check { position:absolute; top:4px; right:6px; font-size:13px; }
+  .puz-btn .pz-size { position:absolute; bottom:5px; font-size:10px; color:#3a2a4a; font-weight:800; }
+
+  /* プレイ画面 */
+  #play-screen { align-items:center; }
+  .play-head { width:100%; display:flex; justify-content:space-between; align-items:center; }
+  .play-title { font-size:17px; font-weight:900; }
+  .play-reward { font-size:12px; color:#9ded62; font-weight:800; }
+
+  .board-wrap { display:flex; justify-content:center; margin:4px 0; touch-action:none; }
+  .board { display:grid; background:#4a5163; gap:1px; border:3px solid #e6eefc; border-radius:4px; touch-action:none; }
+  .cell { position:relative; width:var(--cs); height:var(--cs); background:#1b1e26; cursor:pointer; }
+  .cell.pillar { background:#dfe4ee; cursor:default; }
+  .pillar-c { position:absolute; inset:7%; border-radius:50%; background:#fff; border:2px solid #1a1a1a;
+    display:flex; align-items:center; justify-content:center; color:#111; font-weight:700;
+    font-size:calc(var(--cs)*0.56); font-family:'Times New Roman',serif; line-height:1; }
+  /* 数字を満たしたら赤くぬる（数字は白で残す） */
+  .cell.ok-num .pillar-c { background:#e53935; border-color:#7f0000; color:#fff; }
+  /* 解答チェックで数字が合わないとき（オレンジで囲む） */
+  .cell.bad-num { background:#ffb020; }
+  .cell.bad-num .pillar-c { border:3px solid #c25e00; }
+  /* ×（布団を置かないマスの印） */
+  .xmark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#8fd0ff; font-size:calc(var(--cs)*0.62); font-weight:900; line-height:1; pointer-events:none; }
+  /* 布団：相方側は余白をなくして1枚に見せる */
+  .fz { position:absolute; top:4px; right:4px; bottom:4px; left:4px; background:#ffa3ab; border:2px solid #7a2632; }
+  .fz.half { background:#ffc9ce; border-style:dashed; }
+  .fz.jr { right:-1px; border-right:none; } .fz.jl { left:-1px; border-left:none; }
+  .fz.jd { bottom:-1px; border-bottom:none; } .fz.ju { top:-1px; border-top:none; }
+  .fz.bad { background:#ff6b6b; border-color:#b00000; }
+  .pillow { position:absolute; inset:18%; background:#fff; border:2px solid #7a2632; border-radius:4px; }
+  .cell.bad-aisle::after { content:''; position:absolute; inset:0; background:rgba(255,70,70,.55); }
+
+  .undo-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px; }
+  .btn-undo { background:#26406a; color:#e6eefc; font-size:14px; padding:9px 20px; border:1px solid #3a5a8c; }
+  .btn-undo:disabled { opacity:.4; cursor:default; }
+  .btn-x { background:#26406a; color:#e6eefc; font-size:14px; padding:9px 20px; border:1px solid #3a5a8c; }
+  .btn-x.on { background:#8fd0ff; color:#06243a; border-color:#8fd0ff; }
+  .btn-clear { background:#8c4a4a; color:#fff; font-size:14px; padding:9px 20px; border:1px solid #c76a6a; }
+  .btn-check { align-self:center; background:linear-gradient(135deg,#7af5b0,#2fb974); color:#06331f; font-size:17px; font-weight:900; padding:12px 34px; margin:4px 0 2px; box-shadow:0 4px 12px rgba(47,185,116,.4); }
+
+  .result { width:100%; max-width:520px; border-radius:14px; padding:12px 16px; font-size:14px; line-height:1.8; display:none; }
+  .result.ok { display:block; background:#123d2a; box-shadow: inset 0 0 0 2px #7af5b0; color:#caffe3; font-weight:900; text-align:center; font-size:17px; }
+  .result.ng { display:block; background:#3d1620; box-shadow: inset 0 0 0 2px #ff8a9a; color:#ffe3e7; }
+  .result.ng .ng-head { font-weight:900; font-size:15px; margin-bottom:4px; color:#ffb3c1; }
+  .result.ng ul { margin-left:1.3em; }
+  .result.ng li { margin:2px 0; }
+  .play-tip { font-size:13px; color:#e6eefc; text-align:center; line-height:1.8; }
+
+  /* クリア演出 */
+  .overlay { position:fixed; inset:0; background:rgba(6,12,26,.82); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.show { display:flex; }
+  .ov-card { background:linear-gradient(180deg,#1c2f56,#13213e); border-radius:20px; padding:26px 22px; text-align:center;
+    max-width:340px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .ov-emoji { font-size:54px; }
+  .ov-title { font-size:24px; font-weight:900; color:#ffd86b; margin:6px 0; }
+  .ov-reward { background:#0e1c36; border-radius:12px; padding:10px; font-size:18px; font-weight:800; margin:10px 0; }
+  .ov-reward .pea { color:#9ded62; font-size:24px; }
+  .ov-sub { font-size:13px; color:#e6eefc; }
+  .ov-btns { display:flex; gap:10px; margin-top:12px; }
+  .ov-btn { flex:1; border:none; border-radius:999px; padding:12px; font-weight:800; font-family:inherit; cursor:pointer; }
+  .ov-next { background:linear-gradient(135deg,#56d2ff,#3a9fd6); color:#06243a; }
+  .ov-list { background:#ffffff22; color:#fff; border:1px solid #ffffff33; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 問題一覧 -->
+  <div id="select-screen" class="screen active">
+    <div class="logo">修学旅行の夜</div>
+    <div class="logo-en">SHUGAKU</div>
+    <details class="rules" open>
+      <summary>ルール</summary>
+      <ol id="rulesList"></ol>
+    </details>
+    <div class="puz-grid" id="puzList"></div>
+    <button class="btn btn-home" onclick="window.history.back()">🏠 ホームへ戻る</button>
+  </div>
+
+  <!-- プレイ画面 -->
+  <div id="play-screen" class="screen">
+    <button class="btn btn-back" onclick="backToSelect()">← 一覧へ</button>
+    <div class="play-head">
+      <span class="play-title" id="playTitle">問題</span>
+      <span class="play-reward" id="playReward"></span>
+    </div>
+    <div class="board-wrap"><div class="board" id="board"></div></div>
+    <div class="undo-row">
+      <button class="btn btn-undo" id="undoBtn" onclick="undo()">↶ 1つ戻る</button>
+      <button class="btn btn-undo" id="redoBtn" onclick="redo()">1つ進む ↷</button>
+      <button class="btn btn-x" id="xBtn" onclick="toggleXMode()">× 入力：オフ</button>
+      <button class="btn btn-clear" onclick="clearAll()">🧹 全消去</button>
+    </div>
+    <button class="btn btn-check" onclick="judge()">✅ 解答する</button>
+    <div class="result" id="result"></div>
+    <details class="rules">
+      <summary>ルールと操作</summary>
+      <ol id="rulesList2"></ol>
+      <div class="how">
+        <b>クリック</b>：黒マスに枕を置く<br>
+        <b>枕からとなりのマスへドラッグ</b>：布団を1マスのばす（ドラッグし直すと向きを変えられる）<br>
+        <b>枕をクリック</b>：その布団を消す ／ <b>足側をクリック</b>：足側だけ消す<br>
+        <b>右クリック</b>（または「× 入力」をオンにしてクリック）：布団を置かないマスに×をつける。なぞると続けてつけられる。もう一度で消える<br>
+        ○の数字と、まわりの枕の数が同じになると、○が<b>赤く</b>なる
+      </div>
+    </details>
+  </div>
+
+  <!-- クリア演出 -->
+  <div class="overlay" id="overlay">
+    <div class="ov-card">
+      <div class="ov-emoji" id="ovEmoji">🎉</div>
+      <div class="ov-title" id="ovTitle">正解！</div>
+      <div class="ov-reward" id="ovReward" style="display:none"></div>
+      <div class="ov-sub" id="ovSub"></div>
+      <div class="ov-btns">
+        <button class="ov-btn ov-next" id="ovNext">次の問題へ ›</button>
+        <button class="ov-btn ov-list" onclick="closeOverlay();backToSelect()">一覧へ</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js?v=2"></script>
+<script>
+'use strict';
+
+// ============================================================
+//  問題（. 空きマス / o 柱 / 数字＝柱にとなり合う枕の数）
+//  10問とも「解がちょうど1つ」「当てずっぽうなしで解ける」ことをソルバーで確認済み
+// ============================================================
+const PUZZLES = [
+  { id:'s1', reward:1000, rows:[
+    'oo2..o....','....o.....','.2..o...3.','.........o','...1......',
+    '.....2..2.','..o...o...','.1o.......','.......1..','o.3..2....'] },
+  { id:'s2', reward:1000, rows:[
+    'o.........','.......o..','.....4.3..','..3.3.....','..........',
+    '....4.3...','..1.......','.2..1.3...','....0.....','.........o'] },
+  { id:'s3', reward:1000, rows:[
+    '2...o1...o','....o2....','..0....o..','...o..o...','.o....o.2.',
+    '.o.o....o.','...o..o...','..4....o..','....o2....','o...11...o'] },
+  { id:'s4', reward:1000, rows:[
+    '.......2..','.o..o.oo.o','.3.......1','..o.o..2..','.o....o...',
+    '...o....1.','o.o..o.o..','o.......o.','1.o3.o..o.','..o.......'] },
+  { id:'s5', reward:1000, rows:[
+    '...2...1o.','.o...1.o..','...2.....0','o....2....','..2....o..',
+    '....o....2','o.o...o...','....o...o.','......o...','.3...21...'] },
+  { id:'s6', reward:1000, rows:[
+    '..........','..0o1...1.','..1oo...1.','......0.0.','.....oo.o.',
+    '.2.23.....','.1.o......','.1...o10..','.1...oo0..','..........'] },
+  { id:'s7', reward:1000, rows:[
+    '....1..1..','2...1o.oo.','oo........','...o......','...23..1..',
+    '.o.....o0.','.oo.......','..........','...2...o..','...12..12.'] },
+  { id:'s8', reward:1000, rows:[
+    '...2....1.','1......o..','.o....o...','..o.o...o.','......1.o.',
+    '.o.o......','.o...o.4..','...1....o.','..o......2','.3....o...'] },
+  { id:'s9', reward:1000, rows:[
+    '..........','o1.o....o.','......3...','1..3......','....3....o',
+    '....3..2..','..o2....1.','.1..3.....','..........','..0....1.1'] },
+  { id:'s10', reward:3000, boss:true, rows:[
+    '.......1..o...1','.2.0.2.2.......','..........o.o..','...............','.0o...4..3.0.3.',
+    '.0o.o...o......','...........1...','.2...o.......o.','..3...1....o...','o......13.....3',
+    '.0.o..2........','..........o....','1o.0..o.2.o1.0.','o..............','..2..1.0.2...2.'] },
+];
+
+const RULES = [
+  '盤面に<b>2マスの布団</b>を置く。布団の片方のマスは<b>枕</b>になる。',
+  'タテの布団は、<b>上のマスを枕にしてはいけない</b>（北枕禁止）。',
+  '○（柱）のマスには布団を置けない。',
+  '○の中の数字は、<b>上下左右にある枕の数</b>を表す。',
+  '布団を置かないマスは<b>黒マス（通路）</b>。どの布団も、<b>1マス以上の通路</b>ととなり合う。',
+  '通路はすべて<b>タテヨコにつながる</b>。通路が<b>2×2</b>のカタマリになってはいけない。',
+];
+document.getElementById('rulesList').innerHTML = RULES.map(r => '<li>' + r + '</li>').join('');
+document.getElementById('rulesList2').innerHTML = RULES.map(r => '<li>' + r + '</li>').join('');
+
+// ============================================================
+//  保存（進捗・途中の盤面）
+// ============================================================
+const PROGRESS_KEY = 'shugaku_v1';
+const BOARD_KEY = 'shugaku_board_v1';
+function loadProg(){ try { const p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null'); if (p && p.cleared) return p; } catch(e){} return { cleared:{} }; }
+function saveProg(p){ try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){} }
+function loadBoards(){ try { return JSON.parse(localStorage.getItem(BOARD_KEY) || '{}') || {}; } catch(e){ return {}; } }
+function saveBoard(id){ try { const b = loadBoards(); if (futons.length || xs.size) b[id] = { f: futons, x: [...xs] }; else delete b[id]; localStorage.setItem(BOARD_KEY, JSON.stringify(b)); } catch(e){} }
+
+// 数学HPの🌱に加算（お椀＋すごろく）
+function addEarnedPeas(amount){
+  if (amount <= 0) return;
+  try { const p = JSON.parse(localStorage.getItem('mathPrint_v2') || '{}') || {}; let cur = p.peaCount || 0, cups = p.peaCupCount || 0; cur += amount; while (cur >= 45) { cur -= 45; cups++; } p.peaCount = cur; p.peaCupCount = cups; if (!p.done || typeof p.done !== 'object') p.done = {}; localStorage.setItem('mathPrint_v2', JSON.stringify(p)); } catch(e){}
+  try { const stage = parseInt(localStorage.getItem('sgCurrentStage') || '1'); const key = stage === 2 ? 'sgSave_v2' : 'sgSave_v1'; const sv = JSON.parse(localStorage.getItem(key) || '{}') || {}; sv.peas = (sv.peas || 0) + amount; localStorage.setItem(key, JSON.stringify(sv)); } catch(e){}
+}
+
+const $ = id => document.getElementById(id);
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0, 0); }
+
+// ============================================================
+//  問題一覧
+// ============================================================
+function renderSelect(){
+  const prog = loadProg();
+  $('puzList').innerHTML = PUZZLES.map((p, k) => {
+    const c = !!prog.cleared[p.id];
+    return `<button class="puz-btn${p.boss ? ' boss' : ''}${c ? ' cleared' : ''}" onclick="openPuzzle(${k})">
+      ${c ? '<span class="pz-check">✅</span>' : ''}${k + 1}<span class="pz-size">${p.rows[0].length}×${p.rows.length}</span></button>`;
+  }).join('');
+  showScreen('select-screen');
+}
+
+// ============================================================
+//  盤面の状態
+//  futons: [{p: 枕のマス番号, f: 足のマス番号 or null}]
+//  xs: ×をつけたマス番号（答え合わせには関係しない、ただの印）
+// ============================================================
+let cur = null, curIdx = 0, H = 0, W = 0, clue = [];
+let futons = [];
+let xs = new Set();
+let xMode = false;
+let undoStack = [], redoStack = [];
+
+const idx = (r, c) => r * W + c;
+const isFree = i => i >= 0 && i < H * W && clue[i] === null;
+function adjacent(a, b){
+  const ra = Math.floor(a / W), ca = a % W, rb = Math.floor(b / W), cb = b % W;
+  return Math.abs(ra - rb) + Math.abs(ca - cb) === 1;
+}
+function neighbors(i){
+  const r = Math.floor(i / W), c = i % W, out = [];
+  if (r > 0) out.push(i - W); if (r < H - 1) out.push(i + W);
+  if (c > 0) out.push(i - 1); if (c < W - 1) out.push(i + 1);
+  return out;
+}
+function pillowCount(i, own){
+  return neighbors(i).filter(j => own[j] >= 0 && futons[own[j]].p === j).length;
+}
+function ownerMap(){
+  const m = new Array(H * W).fill(-1);
+  futons.forEach((f, k) => { m[f.p] = k; if (f.f != null) m[f.f] = k; });
+  return m;
+}
+const snapshot = () => JSON.stringify({ f: futons, x: [...xs].sort((a, b) => a - b) });
+function restore(s){ const o = JSON.parse(s); futons = o.f; xs = new Set(o.x); }
+
+function openPuzzle(k){
+  curIdx = k; cur = PUZZLES[k];
+  H = cur.rows.length; W = cur.rows[0].length;
+  clue = [];
+  cur.rows.forEach(row => [...row].forEach(ch => clue.push(ch === '.' ? null : ch === 'o' ? -1 : +ch)));
+  let sv = loadBoards()[cur.id] || { f: [], x: [] };
+  if (Array.isArray(sv)) sv = { f: sv, x: [] };
+  futons = (sv.f || []).filter(f => isFree(f.p) && (f.f == null || isFree(f.f)));
+  xs = new Set((sv.x || []).filter(isFree));
+  undoStack = []; redoStack = []; marks = null;
+  $('playTitle').textContent = '問題 ' + (k + 1) + (cur.boss ? '（ボス問題）' : '') + '　' + W + '×' + H;
+  $('playReward').textContent = loadProg().cleared[cur.id] ? '✅ クリア済み' : '初クリアで🌱' + cur.reward;
+  hideResult();
+  buildBoard();
+  render();
+  showScreen('play-screen');
+}
+
+// ============================================================
+//  描画
+// ============================================================
+function cellSize(){
+  // 横幅と、ボタンまで1画面に収まる高さの両方に合わせる
+  const byW = Math.floor((Math.min(window.innerWidth - 40, 620) - 6) / W) - 1;
+  const byH = Math.floor((window.innerHeight - 250) / H) - 1;
+  return Math.max(22, Math.min(52, byW, byH));
+}
+function buildBoard(){
+  const b = $('board');
+  b.style.setProperty('--cs', cellSize() + 'px');
+  b.style.gridTemplateColumns = `repeat(${W}, var(--cs))`;
+  let html = '';
+  for (let i = 0; i < H * W; i++) {
+    if (clue[i] === null) html += `<div class="cell" data-i="${i}"></div>`;
+    else html += `<div class="cell pillar" data-i="${i}"><div class="pillar-c">${clue[i] >= 0 ? clue[i] : ''}</div></div>`;
+  }
+  b.innerHTML = html;
+}
+let marks = null; // 解答チェックで見つかった違反の表示用
+function render(){
+  const cells = $('board').children;
+  const own = ownerMap();
+  for (let i = 0; i < H * W; i++) {
+    const el = cells[i];
+    const badNum = !!(marks && marks.num.has(i));
+    el.classList.toggle('bad-num', badNum);
+    if (clue[i] !== null) {
+      // 数字を満たしたら赤くぬる（満たさなくなったら戻す）
+      const ok = clue[i] >= 0 && !badNum && pillowCount(i, own) === clue[i];
+      el.classList.toggle('ok-num', ok);
+      continue;
+    }
+    el.classList.toggle('bad-aisle', !!(marks && marks.aisle.has(i)));
+    const k = own[i];
+    if (k < 0) { el.innerHTML = xs.has(i) ? '<div class="xmark">×</div>' : ''; continue; }
+    const f = futons[k];
+    const other = i === f.p ? f.f : f.p;
+    let cls = 'fz';
+    if (other == null) cls += ' half';
+    else {
+      if (other === i + 1) cls += ' jr'; else if (other === i - 1) cls += ' jl';
+      else if (other === i + W) cls += ' jd'; else if (other === i - W) cls += ' ju';
+    }
+    if (marks && marks.futon.has(k)) cls += ' bad';
+    el.innerHTML = `<div class="${cls}">${i === f.p ? '<div class="pillow"></div>' : ''}</div>`;
+  }
+  $('undoBtn').disabled = undoStack.length === 0;
+  $('redoBtn').disabled = redoStack.length === 0;
+}
+window.addEventListener('resize', () => {
+  if (!$('play-screen').classList.contains('active')) return;
+  $('board').style.setProperty('--cs', cellSize() + 'px');
+});
+
+// ============================================================
+//  操作（クリック＝枕／枕からドラッグ＝布団をのばす）
+// ============================================================
+let drag = null; // {k: 布団番号, before: 操作前の状態, moved: bool, created: bool, startCell}
+function cellFromPoint(x, y){
+  const el = document.elementFromPoint(x, y);
+  const c = el && el.closest ? el.closest('.cell') : null;
+  return c && c.parentNode === $('board') ? +c.dataset.i : -1;
+}
+function commit(before){
+  if (before === snapshot()) return;
+  undoStack.push(before); redoStack = [];
+  if (undoStack.length > 300) undoStack.shift();
+  afterChange();
+}
+function afterChange(){
+  saveBoard(cur.id);
+  marks = null; hideResult();
+  render();
+}
+
+// ×：右クリック、または「× 入力」オンでクリック。なぞると同じ操作を続けられる
+let xdrag = null; // {paint: つける(true)/消す(false), before}
+function toggleXMode(){
+  xMode = !xMode;
+  $('xBtn').classList.toggle('on', xMode);
+  $('xBtn').textContent = '× 入力：' + (xMode ? 'オン' : 'オフ');
+}
+function applyX(i, paint){
+  if (!isFree(i) || ownerMap()[i] >= 0) return; // 布団の上には×をつけない
+  if (paint) xs.add(i); else xs.delete(i);
+}
+$('board').addEventListener('contextmenu', e => e.preventDefault());
+
+$('board').addEventListener('pointerdown', e => {
+  const btn = e.button === undefined ? 0 : e.button;
+  if (btn !== 0 && btn !== 2) return;
+  const i = cellFromPoint(e.clientX, e.clientY);
+  if (i < 0 || !isFree(i)) return;
+  e.preventDefault();
+  const before = snapshot();
+  const own = ownerMap();
+  if (btn === 2 || xMode) {
+    if (own[i] >= 0) return;
+    xdrag = { paint: !xs.has(i), before, last: i };
+    applyX(i, xdrag.paint);
+    render();
+    try { $('board').setPointerCapture(e.pointerId); } catch(err){}
+    return;
+  }
+  if (xs.has(i) && own[i] < 0) {
+    // ×をクリック → ×を消す
+    xs.delete(i);
+    commit(before);
+    return;
+  }
+  if (own[i] < 0) {
+    // 黒マス → 枕を置く（そのままドラッグで布団をのばせる）
+    futons.push({ p: i, f: null });
+    drag = { k: futons.length - 1, before, moved: false, created: true, start: i };
+    marks = null; hideResult(); render();
+  } else if (futons[own[i]].p === i) {
+    drag = { k: own[i], before, moved: false, created: false, start: i };
+  } else {
+    // 足側をクリック → 足だけ消す
+    futons[own[i]].f = null;
+    commit(before);
+    return;
+  }
+  try { $('board').setPointerCapture(e.pointerId); } catch(err){}
+});
+$('board').addEventListener('pointermove', e => {
+  if (xdrag) {
+    const j = cellFromPoint(e.clientX, e.clientY);
+    if (j < 0 || j === xdrag.last) return;
+    // 速くなぞっても間のマスが飛ばないよう、同じ行・列なら間も埋める
+    const a = xdrag.last, ra = Math.floor(a / W), ca = a % W, rj = Math.floor(j / W), cj = j % W;
+    const path = [j];
+    if (ra === rj) for (let c = Math.min(ca, cj) + 1; c < Math.max(ca, cj); c++) path.push(idx(ra, c));
+    else if (ca === cj) for (let r = Math.min(ra, rj) + 1; r < Math.max(ra, rj); r++) path.push(idx(r, ca));
+    path.forEach(k => applyX(k, xdrag.paint));
+    xdrag.last = j;
+    render();
+    return;
+  }
+  if (!drag) return;
+  const j = cellFromPoint(e.clientX, e.clientY);
+  const f = futons[drag.k];
+  if (j < 0 || j === f.p || j === f.f) return;
+  if (!isFree(j) || !adjacent(f.p, j)) return;
+  const own = ownerMap();
+  if (own[j] >= 0 && own[j] !== drag.k) return; // ほかの布団の上にはのばせない
+  f.f = j; drag.moved = true;
+  render();
+});
+function endDrag(e){
+  if (xdrag) { const b = xdrag.before; xdrag = null; commit(b); return; }
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.moved && !d.created) {
+    // 枕をクリック → 布団ごと消す
+    futons.splice(d.k, 1);
+  } else {
+    // 布団を置いたマスの×は消す
+    const f = futons[d.k];
+    xs.delete(f.p); if (f.f != null) xs.delete(f.f);
+  }
+  commit(d.before);
+}
+$('board').addEventListener('pointerup', endDrag);
+$('board').addEventListener('pointercancel', endDrag);
+
+function undo(){
+  if (!undoStack.length) return;
+  redoStack.push(snapshot());
+  restore(undoStack.pop());
+  afterChange();
+}
+function redo(){
+  if (!redoStack.length) return;
+  undoStack.push(snapshot());
+  restore(redoStack.pop());
+  afterChange();
+}
+function clearAll(){
+  if (!futons.length && !xs.size) return;
+  if (!confirm('布団と×をぜんぶ消しますか？')) return;
+  const before = snapshot();
+  futons = []; xs = new Set();
+  commit(before);
+}
+document.addEventListener('keydown', e => {
+  if (!$('play-screen').classList.contains('active')) return;
+  const k = (e.key || '').toLowerCase();
+  if (e.ctrlKey && !e.shiftKey && k === 'z') { e.preventDefault(); undo(); }
+  else if (e.ctrlKey && (k === 'y' || (e.shiftKey && k === 'z'))) { e.preventDefault(); redo(); }
+});
+
+// ============================================================
+//  答え合わせ（ルールごとに確認）
+// ============================================================
+function judge(){
+  const own = ownerMap();
+  const errs = [];
+  const m = { futon: new Set(), num: new Set(), aisle: new Set() };
+  const aisle = i => isFree(i) && own[i] < 0;
+
+  if (!futons.length) { showResult(false, ['布団がまだ1つも置かれていないよ。']); return; }
+
+  // ① 布団は2マス
+  const half = futons.map((f, k) => f.f == null ? k : -1).filter(k => k >= 0);
+  if (half.length) { half.forEach(k => m.futon.add(k)); errs.push('枕だけで、2マスになっていない布団がある（枕からとなりへドラッグしてのばそう）'); }
+
+  // ② 北枕
+  const kita = futons.map((f, k) => f.f != null && f.f === f.p + W ? k : -1).filter(k => k >= 0);
+  if (kita.length) { kita.forEach(k => m.futon.add(k)); errs.push('タテの布団で、上のマスが枕になっている（北枕）'); }
+
+  // ③ 数字
+  let numBad = false;
+  for (let i = 0; i < H * W; i++) {
+    if (clue[i] === null || clue[i] < 0) continue;
+    const n = neighbors(i).filter(j => own[j] >= 0 && futons[own[j]].p === j).length;
+    if (n !== clue[i]) { m.num.add(i); numBad = true; }
+  }
+  if (numBad) errs.push('○の数字と、上下左右にある枕の数が合っていない');
+
+  // ④ 布団は通路ととなり合う
+  let lonely = false;
+  futons.forEach((f, k) => {
+    const cells = f.f == null ? [f.p] : [f.p, f.f];
+    const touch = cells.some(c => neighbors(c).some(aisle));
+    if (!touch) { m.futon.add(k); lonely = true; }
+  });
+  if (lonely) errs.push('通路（黒マス）にとなり合っていない布団がある');
+
+  // ⑤ 通路のつながり
+  const as = []; for (let i = 0; i < H * W; i++) if (aisle(i)) as.push(i);
+  if (as.length) {
+    const comp = new Array(H * W).fill(-1); const sizes = [];
+    as.forEach(s => {
+      if (comp[s] >= 0) return;
+      const id = sizes.length; let n = 0; const st = [s]; comp[s] = id;
+      while (st.length) { const x = st.pop(); n++; neighbors(x).forEach(y => { if (aisle(y) && comp[y] < 0) { comp[y] = id; st.push(y); } }); }
+      sizes.push(n);
+    });
+    if (sizes.length > 1) {
+      const main = sizes.indexOf(Math.max(...sizes));
+      as.forEach(i => { if (comp[i] !== main) m.aisle.add(i); });
+      errs.push('通路（黒マス）がひとつながりになっていない（はなれた通路を赤で表示）');
+    }
+  }
+
+  // ⑥ 2×2 の通路
+  let block = false;
+  for (let r = 0; r < H - 1; r++) for (let c = 0; c < W - 1; c++) {
+    const q = [idx(r, c), idx(r, c + 1), idx(r + 1, c), idx(r + 1, c + 1)];
+    if (q.every(aisle)) { q.forEach(i => m.aisle.add(i)); block = true; }
+  }
+  if (block) errs.push('通路（黒マス）が2×2のカタマリになっている');
+
+  marks = errs.length ? m : null;
+  render();
+  if (errs.length) { showResult(false, errs); $('result').scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+  else { showResult(true); win(); }
+}
+function showResult(ok, errs){
+  const el = $('result');
+  if (ok) { el.className = 'result ok'; el.innerHTML = '🎉 正解！すべてのルールを満たしているよ'; return; }
+  el.className = 'result ng';
+  el.innerHTML = '<div class="ng-head">❌ 不正解… 次のルールを満たしていないよ</div><ul>' + errs.map(t => '<li>' + t + '</li>').join('') + '</ul>';
+}
+function hideResult(){ $('result').className = 'result'; $('result').innerHTML = ''; }
+
+function win(){
+  const prog = loadProg();
+  const first = !prog.cleared[cur.id];
+  if (first) { prog.cleared[cur.id] = true; saveProg(prog); addEarnedPeas(cur.reward); }
+  $('playReward').textContent = '✅ クリア済み';
+  $('ovEmoji').textContent = first ? '🎉' : '✅';
+  $('ovTitle').textContent = first ? 'クリア！' : 'またクリア！';
+  if (first) { $('ovReward').style.display = 'block'; $('ovReward').innerHTML = '🌱 <span class="pea">' + cur.reward + '</span> 個 ゲット！'; $('ovSub').textContent = ''; }
+  else { $('ovReward').style.display = 'none'; $('ovSub').textContent = '（🌱は初クリアのときだけ）'; }
+  const next = PUZZLES[curIdx + 1];
+  $('ovNext').style.display = next ? 'block' : 'none';
+  $('ovNext').onclick = () => { closeOverlay(); if (next) openPuzzle(curIdx + 1); };
+  $('overlay').classList.add('show');
+}
+function closeOverlay(){ $('overlay').classList.remove('show'); }
+function backToSelect(){ closeOverlay(); renderSelect(); }
+
+renderSelect();
+</script>
+</body>
+</html>
