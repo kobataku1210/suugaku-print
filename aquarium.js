@@ -73,12 +73,12 @@
     } catch (e) { return 0; }
   }
   // 水族館で使った累計 / 化石交換などのボーナス（aquarium_v1 に記録。お椀は減らさない）
-  function aqSpentTotal() {
-    try { return JSON.parse(localStorage.getItem(AQ_KEY) || '{}').spent || 0; } catch (e) { return 0; }
+  // 🌱は動物園(zoo_v1)と共通なので、動物園の使用分・ボーナスも合算する
+  function aqReadNum(key, field) {
+    try { return JSON.parse(localStorage.getItem(key) || '{}')[field] || 0; } catch (e) { return 0; }
   }
-  function aqBonusTotal() {
-    try { return JSON.parse(localStorage.getItem(AQ_KEY) || '{}').bonus || 0; } catch (e) { return 0; }
-  }
+  function aqSpentTotal() { return aqReadNum(AQ_KEY, 'spent') + aqReadNum('zoo_v1', 'spent'); }
+  function aqBonusTotal() { return aqReadNum(AQ_KEY, 'bonus') + aqReadNum('zoo_v1', 'bonus'); }
   // レア度（★の数）
   function aqStarCount(type) { return (fishDef(type).star.match(/★/g) || []).length; }
   // ===== 🌱の使える残高 ＝ 学習累計 ＋ 化石ボーナス − 水族館使用分 =====

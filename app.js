@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-10-04d';
+const APP_VERSION = '2026-10-04e';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -913,6 +913,20 @@ function renderHome() {
         <div class="aq-home-banner-arrow">›</div>
       </div>`;
   }
+  // ===== 動物園バナー（生徒用画面に公開） =====
+  if (typeof zooHomeBannerSub === 'function') {
+    aquariumBanner += `
+      <div class="aq-home-banner zoo-home-banner" onclick="navigate('zoo')">
+        <div class="aq-home-banner-left">
+          <span class="aq-home-banner-icon">🦁</span>
+          <div class="aq-home-banner-text">
+            <div class="aq-home-banner-title">グリンピース動物園 ${newBadge(ZOO_NEW_SINCE)}</div>
+            <div class="aq-home-banner-sub">${zooHomeBannerSub()}</div>
+          </div>
+        </div>
+        <div class="aq-home-banner-arrow">›</div>
+      </div>`;
+  }
 
   // カードマッチバナー（ホーム画面では非表示・数学ゲーム画面でのみ表示）
 
@@ -1044,6 +1058,7 @@ function categoryNewBadge(items) {
 }
 // ホームのバナーそのものを追加・更新した日（中の項目とは別に NEW! を出したいとき用）
 const AQUARIUM_NEW_SINCE = '2026-06-17';
+const ZOO_NEW_SINCE = '2026-10-04';
 const RANKING_NEW_SINCE  = '2026-05-07';
 
 // ===== ゲーム選択画面 =====
@@ -3778,6 +3793,7 @@ function render() {
   else if (state.view === 'puzzles')    content = renderPuzzlesPage();
   else if (state.view === 'sugoroku')   content = ''; // sugoroku.js が直接 main-content を書き換える
   else if (state.view === 'aquarium')   content = ''; // aquarium.js が直接 main-content を書き換える
+  else if (state.view === 'zoo')        content = ''; // zoo.js が直接 main-content を書き換える
   else if (state.view === 'shooting')   content = ''; // iframeで描画
 
   if (state.view === 'sugoroku') {
@@ -3788,8 +3804,14 @@ function render() {
   }
   if (state.view === 'aquarium') {
     document.body.classList.add('aq-mode');
-    document.body.classList.remove('sg-mode', 'shooting-mode');
+    document.body.classList.remove('sg-mode', 'shooting-mode', 'zoo-mode');
     if (typeof renderAquarium === 'function') renderAquarium();
+    return;
+  }
+  if (state.view === 'zoo') {
+    document.body.classList.add('aq-mode', 'zoo-mode');   // お椀非表示・横いっぱいは水族館と同じ
+    document.body.classList.remove('sg-mode', 'shooting-mode');
+    if (typeof renderZoo === 'function') renderZoo();
     return;
   }
   if (state.view === 'shooting') {
@@ -3806,7 +3828,7 @@ function render() {
     updateBowlWidget(false);
     return;
   }
-  document.body.classList.remove('sg-mode', 'shooting-mode', 'aq-mode');   // ① お椀を戻す
+  document.body.classList.remove('sg-mode', 'shooting-mode', 'aq-mode', 'zoo-mode');   // ① お椀を戻す
   document.getElementById('main-content').innerHTML = content;
   updateBowlWidget(false);
   if (state.view === 'home')      initBattleBanner();
