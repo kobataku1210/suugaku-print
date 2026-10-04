@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-10-04b';
+const APP_VERSION = '2026-10-04c';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1533,9 +1533,14 @@ function renderSections() {
     }
   }
 
+  // 節番号。sec.num が指定されていればその番号を使い、通し番号は増やさない
+  // （例: 導入の節に "00" を付けて、次の節を 01 から始める）
+  let secCounter = 0;
   const cards = items.length > 0
-    ? items.map((it, n) => {
-        const num = String(n+1).padStart(2,'0');
+    ? items.map((it) => {
+        const fixedNum = (it.type === 'single' && it.sec.num != null) ? String(it.sec.num) : null;
+        const num = fixedNum !== null ? fixedNum.padStart(2,'0')
+                                      : String(++secCounter).padStart(2,'0');
         if (it.type === 'single') {
           const sec = it.sec;
           const i   = it.idx;
