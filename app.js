@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-09-25d';
+const APP_VERSION = '2026-10-04b';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1410,6 +1410,15 @@ const TOOL_ITEMS = [
     gradient: 'linear-gradient(135deg, #b08a5a, #6e4a2a)',
     newSince: '2026-06-22', // この日から7日間 NEW!
     draftKey: 'logCarpenter',
+  },
+  {
+    title: 'スプラッシュマウンテン',
+    desc: '1秒で2m、2秒で8m、3秒で18m...落ちる様子をアニメで見てみよう！y = ax² の導入',
+    icon: '🎢',
+    onclick: "window.location.href='tools/スプラッシュマウンテン落下アニメ.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #4a7cb0, #0b2447)',
+    newSince: '2026-10-04', // この日から7日間 NEW!
+    draftKey: 'splashMountain', // 下書き（プレビューのみ表示）
   },
 ];
 function renderToolsPage() {
