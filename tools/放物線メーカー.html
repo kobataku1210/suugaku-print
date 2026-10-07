@@ -26,9 +26,15 @@
     margin: 0 auto;
     display: grid;
     grid-template-columns: 280px 1fr;
+    grid-template-areas:
+      "input stage"
+      "plot  stage";
     gap: 16px;
-    align-items: stretch;
+    align-items: start;
   }
+  .panel-input { grid-area: input; }
+  .panel-plot  { grid-area: plot; }
+  .stage       { grid-area: stage; }
   .panel {
     background: #fff;
     border-radius: 12px;
@@ -264,8 +270,14 @@
     margin-top: 6px;
   }
   @media (max-width: 820px) {
-    .wrap { grid-template-columns: 1fr; }
-    svg.scene { max-height: 55vh; }
+    .wrap {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "input"
+        "stage"
+        "plot";
+    }
+    svg.scene { max-height: 50vh; }
     h1 { font-size: 18px; }
   }
 </style>
@@ -275,8 +287,8 @@
 <h1>📈 放物線メーカー</h1>
 
 <div class="wrap">
-  <!-- コントロールパネル -->
-  <div class="panel">
+  <!-- コントロールパネル（入力・式・表） -->
+  <div class="panel panel-input">
     <p class="panel-title">① 比例定数 a を決めよう</p>
     <div class="a-row">
       <label>a =</label>
@@ -299,19 +311,6 @@
     </div>
     <button class="btn-check" id="checkBtn">チェック</button>
     <div class="check-msg" id="checkMsg"></div>
-
-    <p class="panel-title" style="margin-top:4px;">④ 点を打とう！</p>
-    <button class="btn-plot" id="plotBtn" disabled>
-      打つ<br><span style="font-size:12px; font-weight:500">（長押しで連続）</span>
-    </button>
-    <div class="hint">★ まず表の y を全部正解させよう。正解すると「打つ」が使えるようになります</div>
-
-    <div class="counter">
-      <div><span class="num" id="count">0</span> 個の点</div>
-    </div>
-    <div class="next-x">次の x：<span class="val" id="nextX">0</span></div>
-
-    <button class="btn-reset" id="resetBtn">🔄 リセット</button>
   </div>
 
   <!-- グラフ -->
@@ -322,7 +321,21 @@
       <g id="axes"></g>
       <g id="points"></g>
     </svg>
-    <div class="legend">赤い点＝ 整数 x に対する (x, ax²) の点</div>
+    <div class="legend">赤い点＝ (x, ax²) の点</div>
+  </div>
+
+  <!-- 打つパネル（グラフ直下に配置） -->
+  <div class="panel panel-plot">
+    <p class="panel-title">④ 点を打とう！</p>
+    <button class="btn-plot" id="plotBtn" disabled>
+      打つ<br><span style="font-size:12px; font-weight:500">（長押しで連続）</span>
+    </button>
+    <div class="hint">★ まず表の y を全部正解させよう。正解すると「打つ」が使えるようになります</div>
+    <div class="counter">
+      <div><span class="num" id="count">0</span> 個の点</div>
+    </div>
+    <div class="next-x">次の x：<span class="val" id="nextX">0</span></div>
+    <button class="btn-reset" id="resetBtn">🔄 リセット</button>
   </div>
 </div>
 
