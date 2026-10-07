@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-10-04e';
+const APP_VERSION = '2026-10-07a';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1434,6 +1434,15 @@ const TOOL_ITEMS = [
     gradient: 'linear-gradient(135deg, #4a7cb0, #0b2447)',
     newSince: '2026-10-04', // この日から7日間 NEW!
     draftKey: 'splashMountain', // 下書き（プレビューのみ表示）
+  },
+  {
+    title: '放物線メーカー',
+    desc: 'a を自分で決めて点をどんどん打とう！点が増えると y = ax² の形が浮かび上がる',
+    icon: '📈',
+    onclick: "window.location.href='tools/放物線メーカー.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #1565c0, #0d47a1)',
+    newSince: '2026-10-07', // この日から7日間 NEW!
+    draftKey: 'parabolaMaker',
   },
 ];
 function renderToolsPage() {

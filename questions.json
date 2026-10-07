@@ -8293,7 +8293,8 @@
     "logCarpenter": false,
     "sqrtEquation": false,
     "factorDefense": false,
-    "splashMountain": false
+    "splashMountain": false,
+    "parabolaMaker": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [

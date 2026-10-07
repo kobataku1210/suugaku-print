@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>放物線メーカー</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Yu Gothic", "游ゴシック", "Meiryo", sans-serif;
+    background: #f5f9ff;
+    color: #1a2a44;
+    margin: 0;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  h1 {
+    text-align: center;
+    margin: 0 0 10px;
+    font-size: 22px;
+    color: #1565c0;
+    letter-spacing: 1px;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #5c6b80;
+    margin: 0;
+  }
+  .a-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .a-row label {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: "Cambria Math", serif;
+    color: #1565c0;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 20px;
+    font-family: "Cambria Math", serif;
+    border: 2px solid #90caf9;
+    border-radius: 8px;
+    text-align: center;
+    background: #e3f2fd;
+    color: #0d47a1;
+    font-weight: 700;
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: #1565c0;
+    background: #fff;
+  }
+  input[type="text"].err {
+    border-color: #e53935;
+    background: #ffebee;
+    color: #b71c1c;
+  }
+  .eq-display {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: #fff;
+    padding: 14px 10px;
+    border-radius: 10px;
+    text-align: center;
+    font-family: "Cambria Math", serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 6px rgba(13,71,161,.3);
+  }
+  .counter {
+    text-align: center;
+    font-size: 15px;
+    color: #5c6b80;
+  }
+  .counter .num {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1565c0;
+    font-family: "Cambria Math", serif;
+  }
+  .next-x {
+    text-align: center;
+    font-size: 12px;
+    color: #78909c;
+  }
+  .next-x .val {
+    font-family: "Cambria Math", serif;
+    font-weight: 700;
+    color: #1565c0;
+    font-size: 15px;
+  }
+  button {
+    font: inherit;
+    padding: 14px 10px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform .08s, background .15s, box-shadow .15s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  button:active { transform: scale(.96); }
+  .btn-set {
+    background: #1565c0;
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+  .btn-set:hover { background: #0d47a1; }
+  .btn-plot {
+    background: #e53935;
+    color: #fff;
+    font-size: 20px;
+    padding: 20px 10px;
+    box-shadow: 0 3px 0 #b71c1c;
+  }
+  .btn-plot:hover:not(:disabled) { background: #ef5350; }
+  .btn-plot:active:not(:disabled) {
+    background: #c62828;
+    box-shadow: 0 1px 0 #b71c1c;
+    transform: translateY(2px);
+  }
+  .btn-plot.holding {
+    background: #c62828;
+    box-shadow: 0 1px 0 #b71c1c;
+    transform: translateY(2px);
+  }
+  .btn-plot:disabled {
+    background: #bdbdbd;
+    color: #eeeeee;
+    box-shadow: 0 3px 0 #9e9e9e;
+    cursor: not-allowed;
+  }
+  .btn-check {
+    background: #43a047;
+    color: #fff;
+    font-size: 15px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 0 #2e7d32;
+  }
+  .btn-check:hover { background: #4caf50; }
+  .btn-check:active {
+    box-shadow: 0 1px 0 #2e7d32;
+    transform: translateY(1px);
+  }
+  .y-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    background: #f5f9ff;
+    border: 2px solid #90caf9;
+    border-radius: 8px;
+  }
+  .y-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: "Cambria Math", serif;
+    font-size: 14px;
+    color: #1a2a44;
+  }
+  .y-x {
+    display: inline-block;
+    min-width: 48px;
+    font-weight: 700;
+    color: #1565c0;
+  }
+  .y-arrow {
+    color: #78909c;
+    margin: 0 4px;
+  }
+  .y-input {
+    flex: 1;
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 15px;
+    font-family: "Cambria Math", serif;
+    border: 1.5px solid #b0bec5;
+    border-radius: 5px;
+    text-align: center;
+    background: #fff;
+    color: #0d47a1;
+    font-weight: 700;
+    transition: background .2s, border-color .2s;
+  }
+  .y-input:focus {
+    outline: none;
+    border-color: #1565c0;
+  }
+  .y-input.ok {
+    background: #c8e6c9;
+    border-color: #388e3c;
+    color: #1b5e20;
+  }
+  .y-input.ng {
+    background: #ffcdd2;
+    border-color: #d32f2f;
+    color: #b71c1c;
+  }
+  .check-msg {
+    font-size: 13px;
+    text-align: center;
+    min-height: 1.2em;
+    font-weight: 700;
+  }
+  .check-msg.ok { color: #2e7d32; }
+  .check-msg.ng { color: #c62828; }
+  .btn-reset {
+    background: #fff;
+    color: #5c6b80;
+    border-color: #b0bec5;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .btn-reset:hover { background: #eceff1; }
+  .hint {
+    font-size: 11px;
+    color: #78909c;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .stage {
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  svg.scene {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 72vh;
+  }
+  .legend {
+    text-align: center;
+    font-size: 11px;
+    color: #78909c;
+    margin-top: 6px;
+  }
+  @media (max-width: 820px) {
+    .wrap { grid-template-columns: 1fr; }
+    svg.scene { max-height: 55vh; }
+    h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>📈 放物線メーカー</h1>
+
+<div class="wrap">
+  <!-- コントロールパネル -->
+  <div class="panel">
+    <p class="panel-title">① 比例定数 a を決めよう</p>
+    <div class="a-row">
+      <label>a =</label>
+      <input type="text" id="aInput" inputmode="decimal" value="1" maxlength="10">
+    </div>
+    <button class="btn-set" id="setBtn">セット</button>
+
+    <p class="panel-title" style="margin-top:4px;">② 式を確認</p>
+    <div class="eq-display">y = <span id="aDisplay">1</span>x²</div>
+
+    <p class="panel-title" style="margin-top:4px;">③ y の値を計算しよう</p>
+    <div class="y-table">
+      <div class="y-row"><span class="y-x">x = −3</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="-3" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = −2</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="-2" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = −1</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="-1" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = 0</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="0" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = 1</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="1" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = 2</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="2" class="y-input" maxlength="8"></div>
+      <div class="y-row"><span class="y-x">x = 3</span><span class="y-arrow">→</span>y = <input type="text" inputmode="decimal" data-x="3" class="y-input" maxlength="8"></div>
+    </div>
+    <button class="btn-check" id="checkBtn">チェック</button>
+    <div class="check-msg" id="checkMsg"></div>
+
+    <p class="panel-title" style="margin-top:4px;">④ 点を打とう！</p>
+    <button class="btn-plot" id="plotBtn" disabled>
+      打つ<br><span style="font-size:12px; font-weight:500">（長押しで連続）</span>
+    </button>
+    <div class="hint">★ まず表の y を全部正解させよう。正解すると「打つ」が使えるようになります</div>
+
+    <div class="counter">
+      <div><span class="num" id="count">0</span> 個の点</div>
+    </div>
+    <div class="next-x">次の x：<span class="val" id="nextX">0</span></div>
+
+    <button class="btn-reset" id="resetBtn">🔄 リセット</button>
+  </div>
+
+  <!-- グラフ -->
+  <div class="stage">
+    <svg class="scene" viewBox="0 0 700 500" preserveAspectRatio="xMidYMid meet">
+      <!-- グリッド & 軸 & 点を JS で描画 -->
+      <g id="grid"></g>
+      <g id="axes"></g>
+      <g id="points"></g>
+    </svg>
+    <div class="legend">赤い点＝ 整数 x に対する (x, ax²) の点</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ===== SVG 設定 =====
+  const SVG_W = 700, SVG_H = 500;
+  const PAD = { l: 55, r: 25, t: 25, b: 45 };
+  const PLOT_W = SVG_W - PAD.l - PAD.r;   // 620
+  const PLOT_H = SVG_H - PAD.t - PAD.b;   // 430
+
+  const X_MIN = -6, X_MAX = 6;            // 表示範囲 −6 〜 +6
+  const X_RANGE = X_MAX - X_MIN;          // 12
+
+  // ===== 状態 =====
+  let a = 1;                               // 比例定数
+  let yMin = 0, yMax = 100;                // Y 軸の表示範囲（a に応じて自動設定）
+  let points = [];                         // 打点済み: [{x, y, iv}, ...]
+  let holdInterval = null;                 // 長押しタイマー
+  const INTERVAL_MS = 280;                 // ≒ 3.5点/秒
+
+  // ===== DOM =====
+  const aInput = document.getElementById('aInput');
+  const aDisplay = document.getElementById('aDisplay');
+  const setBtn = document.getElementById('setBtn');
+  const plotBtn = document.getElementById('plotBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const countEl = document.getElementById('count');
+  const nextXEl = document.getElementById('nextX');
+  const gridG = document.getElementById('grid');
+  const axesG = document.getElementById('axes');
+  const pointsG = document.getElementById('points');
+  const checkBtn = document.getElementById('checkBtn');
+  const checkMsg = document.getElementById('checkMsg');
+  const yInputs = Array.from(document.querySelectorAll('.y-input'));
+
+  // ===== 変換 =====
+  const svgX = (x) => PAD.l + ((x - X_MIN) / X_RANGE) * PLOT_W;
+  const svgY = (y) => PAD.t + ((yMax - y) / (yMax - yMin)) * PLOT_H;
+
+  // ===== プログレッシブ精細化のための x 列生成 =====
+  // ラウンド 1: 整数 (0, 1, -1, 2, -2, ..., 6, -6)
+  // ラウンド 2: 半整数 (0.5, -0.5, 1.5, -1.5, ..., 5.5, -5.5)
+  // ラウンド 3: 1/4 刻みの新位置 (0.25, -0.25, 0.75, -0.75, ..., 5.75, -5.75)
+  // ラウンド N: step = 2^(1-N) の 新位置
+  let roundNum = 0;
+  let roundList = [];
+  let roundIndex = 0;
+  const X_LIMIT = 6;  // 表示範囲の端
+
+  function nextRound() {
+    roundNum++;
+    const step = Math.pow(2, 1 - roundNum); // 1, 0.5, 0.25, 0.125, ...
+    if (roundNum === 1) {
+      // 整数：0, 1, -1, 2, -2, ..., X_LIMIT, -X_LIMIT
+      roundList = [0];
+      for (let n = 1; n <= X_LIMIT; n++) {
+        roundList.push(n, -n);
+      }
+    } else {
+      // step の位置で、前のラウンドまでで打っていない位置のみ
+      // = x / step が 奇数倍 となる x
+      const positives = [];
+      const maxN = Math.ceil(X_LIMIT / step);
+      for (let n = 1; n <= maxN; n++) {
+        if (n % 2 === 1) {
+          const x = n * step;
+          if (x <= X_LIMIT + 1e-9) positives.push(x);
+        }
+      }
+      positives.sort((a, b) => a - b);
+      roundList = [];
+      for (const x of positives) {
+        roundList.push(x, -x);
+      }
+    }
+    roundIndex = 0;
+  }
+
+  // 現在のラウンドのリスト先頭をリセット
+  function resetRounds() {
+    roundNum = 0;
+    roundList = [];
+    roundIndex = 0;
+    nextRound();  // ラウンド 1 を準備
+  }
+
+  function getNextX() {
+    if (roundIndex >= roundList.length) {
+      nextRound();
+    }
+    const x = roundList[roundIndex];
+    roundIndex++;
+    return x;
+  }
+
+  // y が描画範囲内に収まる 次の x を返す（範囲外はスキップ）
+  function getNextVisibleX() {
+    let attempts = 20000;
+    while (attempts-- > 0) {
+      const x = getNextX();
+      const y = a * x * x;
+      if (y >= yMin && y <= yMax) return x;
+    }
+    return null;
+  }
+
+  // 次に打たれる x を状態を変えずに覗き見る
+  function peekNextVisibleX() {
+    const sRound = roundNum;
+    const sList = roundList.slice();
+    const sIndex = roundIndex;
+    const x = getNextVisibleX();
+    roundNum = sRound;
+    roundList = sList;
+    roundIndex = sIndex;
+    return x;
+  }
+
+  function formatX(x) {
+    if (Number.isInteger(x)) return String(x);
+    return parseFloat(x.toFixed(3)).toString();
+  }
+
+  // ===== Y 軸の目盛り刻みを決める =====
+  function niceStep(range) {
+    const target = range / 8;  // 目盛りを 8 本くらい
+    const pow = Math.pow(10, Math.floor(Math.log10(target)));
+    const n = target / pow;
+    let step;
+    if (n < 1.5) step = 1 * pow;
+    else if (n < 3) step = 2 * pow;
+    else if (n < 7) step = 5 * pow;
+    else step = 10 * pow;
+    return step;
+  }
+
+  // ===== Y 範囲の決定（固定） =====
+  // a > 0: 0 〜 10（少し余裕を下に）
+  // a < 0: -10 〜 0（少し余裕を上に）
+  function updateYRange() {
+    if (a > 0) {
+      yMin = -1;
+      yMax = 10;
+    } else {
+      yMin = -10;
+      yMax = 1;
+    }
+  }
+
+  // ===== グリッド & 軸を描画 =====
+  function drawGridAndAxes() {
+    gridG.innerHTML = '';
+    axesG.innerHTML = '';
+
+    // プロット領域の背景
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', PAD.l); bg.setAttribute('y', PAD.t);
+    bg.setAttribute('width', PLOT_W); bg.setAttribute('height', PLOT_H);
+    bg.setAttribute('fill', '#fafcff'); bg.setAttribute('stroke', 'none');
+    gridG.appendChild(bg);
+
+    // 縦のグリッド線（x = 整数ごと）
+    for (let x = X_MIN; x <= X_MAX; x++) {
+      const px = svgX(x);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', px); line.setAttribute('x2', px);
+      line.setAttribute('y1', PAD.t); line.setAttribute('y2', PAD.t + PLOT_H);
+      line.setAttribute('stroke', x === 0 ? '#90caf9' : '#e3f2fd');
+      line.setAttribute('stroke-width', x === 0 ? 1 : 1);
+      gridG.appendChild(line);
+
+      // x 軸のラベル
+      if (x % 1 === 0) {
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', px); label.setAttribute('y', PAD.t + PLOT_H + 18);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-family', 'Cambria Math');
+        label.setAttribute('font-size', '12');
+        label.setAttribute('fill', '#5c6b80');
+        label.textContent = x;
+        gridG.appendChild(label);
+      }
+    }
+
+    // 横のグリッド線（y = 刻みごと）
+    const yStep = niceStep(yMax - yMin);
+    const firstY = Math.ceil(yMin / yStep) * yStep;
+    for (let y = firstY; y <= yMax; y += yStep) {
+      const py = svgY(y);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', PAD.l); line.setAttribute('x2', PAD.l + PLOT_W);
+      line.setAttribute('y1', py); line.setAttribute('y2', py);
+      line.setAttribute('stroke', Math.abs(y) < 0.0001 ? '#90caf9' : '#e3f2fd');
+      line.setAttribute('stroke-width', 1);
+      gridG.appendChild(line);
+
+      // y 軸のラベル
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', PAD.l - 6); label.setAttribute('y', py + 4);
+      label.setAttribute('text-anchor', 'end');
+      label.setAttribute('font-family', 'Cambria Math');
+      label.setAttribute('font-size', '12');
+      label.setAttribute('fill', '#5c6b80');
+      // 小数は適度に丸める
+      label.textContent = (Math.abs(y) < 0.0001) ? 0 : (Number.isInteger(y) ? y : y.toFixed(1));
+      gridG.appendChild(label);
+    }
+
+    // x 軸（y=0 の線）
+    const yZero = svgY(0);
+    if (yZero >= PAD.t && yZero <= PAD.t + PLOT_H) {
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', PAD.l); xAxis.setAttribute('x2', PAD.l + PLOT_W);
+      xAxis.setAttribute('y1', yZero); xAxis.setAttribute('y2', yZero);
+      xAxis.setAttribute('stroke', '#1565c0'); xAxis.setAttribute('stroke-width', 2);
+      axesG.appendChild(xAxis);
+    }
+
+    // y 軸（x=0 の線）
+    const xZero = svgX(0);
+    const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    yAxis.setAttribute('x1', xZero); yAxis.setAttribute('x2', xZero);
+    yAxis.setAttribute('y1', PAD.t); yAxis.setAttribute('y2', PAD.t + PLOT_H);
+    yAxis.setAttribute('stroke', '#1565c0'); yAxis.setAttribute('stroke-width', 2);
+    axesG.appendChild(yAxis);
+
+    // 軸ラベル
+    const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xLabel.setAttribute('x', PAD.l + PLOT_W - 4); xLabel.setAttribute('y', yZero - 8);
+    xLabel.setAttribute('text-anchor', 'end');
+    xLabel.setAttribute('font-family', 'Cambria Math');
+    xLabel.setAttribute('font-size', '16'); xLabel.setAttribute('font-style', 'italic');
+    xLabel.setAttribute('font-weight', 700);
+    xLabel.setAttribute('fill', '#1565c0');
+    xLabel.textContent = 'x';
+    axesG.appendChild(xLabel);
+
+    const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yLabel.setAttribute('x', xZero + 8); yLabel.setAttribute('y', PAD.t + 14);
+    yLabel.setAttribute('text-anchor', 'start');
+    yLabel.setAttribute('font-family', 'Cambria Math');
+    yLabel.setAttribute('font-size', '16'); yLabel.setAttribute('font-style', 'italic');
+    yLabel.setAttribute('font-weight', 700);
+    yLabel.setAttribute('fill', '#1565c0');
+    yLabel.textContent = 'y';
+    axesG.appendChild(yLabel);
+
+    // 原点 O
+    const originLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    originLabel.setAttribute('x', xZero - 8); originLabel.setAttribute('y', yZero + 14);
+    originLabel.setAttribute('text-anchor', 'end');
+    originLabel.setAttribute('font-family', 'Cambria Math');
+    originLabel.setAttribute('font-size', '14');
+    originLabel.setAttribute('font-weight', 700);
+    originLabel.setAttribute('fill', '#1565c0');
+    originLabel.textContent = 'O';
+    axesG.appendChild(originLabel);
+  }
+
+  // ===== 点を描画 =====
+  function drawPoints() {
+    pointsG.innerHTML = '';
+    for (const p of points) {
+      const px = svgX(p.x);
+      const py = svgY(p.y);
+      // 範囲外なら描かない
+      if (py < PAD.t || py > PAD.t + PLOT_H) continue;
+      if (px < PAD.l || px > PAD.l + PLOT_W) continue;
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', px); dot.setAttribute('cy', py);
+      dot.setAttribute('r', 5);
+      dot.setAttribute('fill', '#e53935');
+      dot.setAttribute('stroke', '#fff');
+      dot.setAttribute('stroke-width', 1.5);
+      if (p.isNew) {
+        // ポンと出すアニメ
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        anim.setAttribute('attributeName', 'r');
+        anim.setAttribute('from', '12'); anim.setAttribute('to', '5');
+        anim.setAttribute('dur', '0.3s');
+        anim.setAttribute('fill', 'freeze');
+        dot.appendChild(anim);
+        p.isNew = false;
+      }
+      pointsG.appendChild(dot);
+    }
+  }
+
+  // ===== 1 点追加 =====
+  // 点は永遠に打てる。整数 → 半整数 → 1/4 → 1/8 → … と細かくなっていく。
+  // y が描画範囲外になる x は打たずにスキップ。
+  function addOne() {
+    const x = getNextVisibleX();
+    if (x === null) return false;
+    const y = a * x * x;
+    points.push({ x, y, isNew: true });
+    drawPoints();
+    countEl.textContent = points.length;
+    const nx = peekNextVisibleX();
+    nextXEl.textContent = (nx === null) ? '―' : formatX(nx);
+    return true;
+  }
+
+  // ===== 長押しの開始／停止 =====
+  function startHolding(e) {
+    if (e) e.preventDefault();
+    if (plotBtn.disabled) return;  // 検定前は無効
+    if (holdInterval) return;
+    addOne(); // 即座に 1 点
+    holdInterval = setInterval(() => {
+      if (!addOne()) {
+        stopHolding();
+      }
+    }, INTERVAL_MS);
+    plotBtn.classList.add('holding');
+  }
+  function stopHolding() {
+    if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    plotBtn.classList.remove('holding');
+  }
+
+  // ===== 表の正誤判定 =====
+  // 全角数字→半角、全角マイナス・ハイフンバリエーション→半角マイナス
+  function normalizeNum(s) {
+    return s
+      .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+      .replace(/[．]/g, '.')
+      .replace(/[－−ー－‐‑‒–—―⁃˗]/g, '-')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  function parseStudentNumber(s) {
+    const n = parseFloat(normalizeNum(s));
+    return isFinite(n) ? n : null;
+  }
+
+  function checkTable() {
+    let allOk = true;
+    let filled = 0;
+    for (const inp of yInputs) {
+      const x = parseFloat(inp.dataset.x);
+      const expected = a * x * x;
+      const raw = inp.value;
+      inp.classList.remove('ok', 'ng');
+      if (raw.trim() === '') {
+        allOk = false;
+        continue;
+      }
+      filled++;
+      const got = parseStudentNumber(raw);
+      if (got === null || Math.abs(got - expected) > 0.001) {
+        inp.classList.add('ng');
+        allOk = false;
+      } else {
+        inp.classList.add('ok');
+      }
+    }
+    if (filled === 0) {
+      checkMsg.textContent = '表に y の値を書いてね';
+      checkMsg.className = 'check-msg ng';
+      setPlotEnabled(false);
+      return;
+    }
+    if (allOk) {
+      checkMsg.textContent = '✓ 全部正解！「打つ」が使えるよ';
+      checkMsg.className = 'check-msg ok';
+      setPlotEnabled(true);
+    } else {
+      checkMsg.textContent = '赤いマスを見直そう';
+      checkMsg.className = 'check-msg ng';
+      setPlotEnabled(false);
+    }
+  }
+
+  function setPlotEnabled(enabled) {
+    plotBtn.disabled = !enabled;
+  }
+
+  function resetTable() {
+    for (const inp of yInputs) {
+      inp.value = '';
+      inp.classList.remove('ok', 'ng');
+    }
+    checkMsg.textContent = '';
+    checkMsg.className = 'check-msg';
+    setPlotEnabled(false);
+  }
+
+  // ===== a をセット =====
+  function setA() {
+    const raw = normalizeNum(aInput.value);
+    const val = parseFloat(raw);
+    if (!isFinite(val) || val === 0) {
+      aInput.classList.add('err');
+      aInput.focus();
+      aInput.select();
+      return;
+    }
+    aInput.classList.remove('err');
+    a = val;
+    aDisplay.textContent = (a === 1) ? '' : (a === -1 ? '−' : formatA(a));
+    updateYRange();
+    resetAll();
+    resetTable();
+  }
+
+  function formatA(x) {
+    // 整数なら整数で、小数なら 小数点以下 3 桁まで
+    if (Number.isInteger(x)) return String(x);
+    return parseFloat(x.toFixed(3)).toString();
+  }
+
+  function updateNextXDisplay() {
+    const nx = peekNextVisibleX();
+    nextXEl.textContent = (nx === null) ? '―' : formatX(nx);
+  }
+
+  function resetAll() {
+    stopHolding();
+    points = [];
+    resetRounds();
+    countEl.textContent = '0';
+    drawGridAndAxes();
+    drawPoints();
+    updateNextXDisplay();
+  }
+
+  // ===== イベント =====
+  setBtn.addEventListener('click', setA);
+  aInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); setA(); }
+  });
+  resetBtn.addEventListener('click', () => {
+    stopHolding();
+    points = [];
+    resetRounds();
+    countEl.textContent = '0';
+    drawPoints();
+    updateNextXDisplay();
+  });
+
+  // チェックボタン / 表の入力
+  checkBtn.addEventListener('click', checkTable);
+  for (const inp of yInputs) {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); checkTable(); }
+    });
+    inp.addEventListener('input', () => {
+      // 入力中は色をクリア
+      inp.classList.remove('ok', 'ng');
+    });
+  }
+
+  // ポインターイベント（マウス・タッチ・ペン 全対応）
+  // setPointerCapture により、ポインターがボタンから外れても
+  // 離す（pointerup）まで イベントがこのボタンに届き続ける。
+  plotBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    try { plotBtn.setPointerCapture(e.pointerId); } catch (_) {}
+    startHolding();
+  });
+  plotBtn.addEventListener('pointerup', (e) => {
+    try { plotBtn.releasePointerCapture(e.pointerId); } catch (_) {}
+    stopHolding();
+  });
+  plotBtn.addEventListener('pointercancel', (e) => {
+    try { plotBtn.releasePointerCapture(e.pointerId); } catch (_) {}
+    stopHolding();
+  });
+  // 保険：ウィンドウ外でボタンを離した場合も停止
+  window.addEventListener('pointerup', stopHolding);
+  window.addEventListener('blur', stopHolding);
+
+  // キーボード：Space 長押しで打つ（アクセシビリティ）
+  let spaceHeld = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space' && !spaceHeld) {
+      e.preventDefault();
+      spaceHeld = true;
+      startHolding();
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') { spaceHeld = false; stopHolding(); }
+  });
+
+  // ===== 初期化 =====
+  setA();
+})();
+</script>
+
+</body>
+</html>
