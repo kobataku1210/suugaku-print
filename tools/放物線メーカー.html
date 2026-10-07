@@ -34,7 +34,14 @@
   }
   .panel-input { grid-area: input; }
   .panel-plot  { grid-area: plot; }
-  .stage       { grid-area: stage; }
+  .stage {
+    grid-area: stage;
+    position: sticky;
+    top: 10px;
+    align-self: start;
+    max-height: calc(100vh - 20px);
+    overflow: auto;
+  }
   .panel {
     background: #fff;
     border-radius: 12px;
@@ -277,7 +284,14 @@
         "stage"
         "plot";
     }
-    svg.scene { max-height: 50vh; }
+    .stage {
+      position: sticky;
+      top: 8px;
+      max-height: 50vh;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    svg.scene { max-height: 45vh; }
     h1 { font-size: 18px; }
   }
 </style>
