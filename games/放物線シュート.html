@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>放物線シュート</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #fff;
+    user-select: none;
+    background: radial-gradient(ellipse at 50% 30%, #0f3050 0%, #081a30 55%, #040c18 100%);
+    touch-action: manipulation;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  .m { font-family: 'Cambria Math', 'Cambria', 'Times New Roman', serif; font-style: italic; }
+  .mn { font-family: 'Cambria Math', 'Cambria', 'Times New Roman', serif; }
+  sup { font-size: 0.65em; }
+
+  /* ===== タイトル / 結果 共通 ===== */
+  #title-screen, #result-screen {
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .title-emoji { font-size: 64px; }
+  .title-logo {
+    font-size: clamp(30px, 7vw, 54px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 3px 0 #00838f, 0 6px 20px rgba(0,188,212,0.5);
+  }
+  .title-sub {
+    font-size: clamp(12px, 2.3vw, 16px);
+    background: linear-gradient(90deg, #00acc1, #26a69a);
+    padding: 6px 22px;
+    border-radius: 999px;
+    font-weight: bold;
+    letter-spacing: 3px;
+  }
+  .title-desc {
+    font-size: 14px; color: #fff; text-align: center;
+    max-width: 440px; line-height: 1.8;
+    background: rgba(255,255,255,0.06);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(38,198,218,0.35);
+  }
+
+  .btn {
+    border: none;
+    background: linear-gradient(180deg, #26c6da, #00838f);
+    color: white;
+    font-weight: bold;
+    font-size: 17px;
+    padding: 14px 40px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(0,188,212,0.45);
+    cursor: pointer;
+    letter-spacing: 3px;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-go { font-size: 22px; padding: 16px 56px; }
+  .btn-back {
+    background: rgba(255,255,255,0.12); color: #fff; border: 1px solid #6f8ca0;
+    padding: 4px 14px; font-size: 12px; letter-spacing: 2px;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: #fff; color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* レベル選択 */
+  .setup-block {
+    width: min(90vw, 480px);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(38,198,218,0.3);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+  .setup-block h4 {
+    font-size: 15px; color: #80deea; letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-left: 4px solid #00acc1; padding-left: 8px;
+  }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 12px 18px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 999px; font-size: 15px; cursor: pointer;
+    font-weight: bold; color: #fff;
+  }
+  .chip.selected {
+    background: #00acc1; border-color: #b2ebf2; color: #fff;
+    box-shadow: 0 0 12px rgba(128,222,234,0.5);
+  }
+  .best-line { font-size: 13px; color: #80deea; letter-spacing: 1px; margin-top: 8px; }
+
+  /* ===== ゲーム画面 ===== */
+  #hud {
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #hud .stat { display: flex; align-items: center; gap: 6px; font-size: 14px; letter-spacing: 1px; }
+  #hud .stat .num { font-size: 22px; font-family: 'Consolas','Menlo',monospace; color: #80deea; }
+  #hud .stat .label {
+    font-size: 11px;
+    background: rgba(128,222,234,0.2);
+    color: #b2ebf2;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 2px;
+  }
+  #hud-time { min-width: 64px; text-align: right; }
+  #hud-time.low { color: #ff8a80; }
+  .penalty { color: #ff5252; font-size: 18px; font-weight: 900; opacity: 0; }
+  .penalty.show { animation: penaltyPop 0.9s ease-out; }
+  @keyframes penaltyPop {
+    0% { opacity: 1; transform: translateY(0) scale(1.3); }
+    100% { opacity: 0; transform: translateY(-14px) scale(1); }
+  }
+  #time-bar-wrap { height: 8px; background: rgba(255,255,255,0.1); }
+  #time-bar {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #26c6da, #b2ff59);
+  }
+  #time-bar.low { background: linear-gradient(90deg, #ff5252, #ffab40); }
+
+  #problem-bar {
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(128,222,234,0.25);
+    text-align: center;
+    font-size: clamp(16px, 2.8vw, 22px);
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 1.5;
+  }
+  #problem-bar .m, #problem-bar .mn { font-size: 1.15em; }
+  #problem-bar .hl { color: #ffe082; }
+
+  #game-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #field { flex: 1; position: relative; min-height: 0; min-width: 0; }
+  #field canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  #panel {
+    background: rgba(0,0,0,0.55);
+    padding: 12px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  /* 横長の画面では入力パネルを右側に */
+  @media (orientation: landscape) and (min-width: 760px) {
+    #game-body { flex-direction: row; }
+    #panel { width: 370px; justify-content: center; border-left: 1px solid rgba(128,222,234,0.2); }
+  }
+
+  .answer-template {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: clamp(26px, 5vw, 34px);
+    font-weight: bold;
+    min-height: 100px;
+  }
+  .ans-input {
+    width: 88px;
+    height: 54px;
+    padding: 4px;
+    font-size: 28px;
+    font-weight: 900;
+    text-align: center;
+    border: 3px solid #80deea;
+    border-radius: 10px;
+    background: #fff;
+    color: #062030;
+    font-family: 'Cambria Math', serif;
+    outline: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+  .ans-input.wide { width: 120px; }
+  .ans-input:focus { border-color: #ffd54f; box-shadow: 0 0 14px rgba(255,213,79,0.6); }
+  .ans-input.wrong { border-color: #f44336; animation: shakeInput 0.3s; }
+  @keyframes shakeInput {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .frac-in { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+  .frac-in .ans-input { width: 76px; height: 42px; font-size: 24px; }
+  .frac-bar { width: 100%; height: 3px; background: #fff; border-radius: 2px; }
+
+  .note { font-size: 12px; color: #e0f7fa; letter-spacing: 1px; text-align: center; }
+
+  /* 画面上キーパッド */
+  #keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: min(92vw, 340px);
+  }
+  .kp {
+    height: 48px;
+    border: 2px solid #4dd0e1;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff 0%, #dff4f7 100%);
+    color: #062030;
+    font-size: 22px;
+    font-weight: 900;
+    font-family: 'Cambria Math', 'Cambria', serif;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #00838f, 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.05s;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .kp:active { transform: translateY(2px); box-shadow: 0 1px 0 #00838f; }
+  .kp-sign {
+    background: linear-gradient(180deg, #ffe9b8 0%, #f5c96a 100%);
+    border-color: #c99a2e;
+    box-shadow: 0 3px 0 #a87d18, 0 4px 6px rgba(0,0,0,0.3);
+  }
+  .kp-del, .kp-swap {
+    background: linear-gradient(180deg, #ffd0b8 0%, #f5a06a 100%);
+    border-color: #c9662e;
+    box-shadow: 0 3px 0 #a84e18, 0 4px 6px rgba(0,0,0,0.3);
+    font-family: inherit;
+  }
+  .kp-swap { font-size: 13px; letter-spacing: 0; line-height: 1.2; }
+  .kp-zero { grid-column: span 2; }
+  .kp-fire {
+    grid-column: span 2;
+    background: linear-gradient(180deg, #ffca28 0%, #ff8f00 100%);
+    border-color: #ffe082;
+    color: #3a1d00;
+    font-family: inherit;
+    font-size: 19px;
+    letter-spacing: 3px;
+    box-shadow: 0 3px 0 #b85c00, 0 4px 8px rgba(0,0,0,0.4);
+  }
+  .kp-fire:active { box-shadow: 0 1px 0 #b85c00; }
+  .hint-msg {
+    color: #ff8a80;
+    font-weight: bold;
+    font-size: clamp(13px, 2.2vw, 15px);
+    min-height: 3em;
+    text-align: center;
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+    white-space: pre-line;
+    max-width: 340px;
+  }
+  .hint-msg.correct { color: #b2ff59; }
+
+  /* ===== 結果 ===== */
+  .go-title {
+    font-size: clamp(36px, 9vw, 64px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #ff5252;
+    text-shadow: 0 4px 0 #6a0000, 0 8px 24px rgba(255,60,60,0.5);
+    animation: goDrop 0.5s ease-out;
+  }
+  .go-title.clear { color: #ffdd5a; text-shadow: 0 4px 0 #6a4e00, 0 8px 24px rgba(255,221,90,0.6); }
+  @keyframes goDrop {
+    0% { transform: translateY(-40px) scale(1.4); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .go-label { font-size: 13px; color: #80deea; letter-spacing: 3px; font-weight: bold; }
+  .go-hits {
+    font-size: clamp(48px, 12vw, 84px);
+    font-weight: 900;
+    color: #ffdd5a;
+    font-family: 'Consolas','Menlo',monospace;
+    letter-spacing: 4px;
+    text-shadow: 0 4px 16px rgba(255,221,90,0.5);
+    line-height: 1.1;
+  }
+  .go-hits .unit { font-size: 0.4em; color: #fff; }
+  #go-best {
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-weight: 900; font-size: 13px;
+    letter-spacing: 2px;
+    display: inline-block;
+  }
+  .go-peas {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: #fff;
+    padding: 12px 32px;
+    border-radius: 16px;
+    font-size: clamp(24px, 5.5vw, 38px);
+    font-weight: 900;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    letter-spacing: 2px;
+    animation: peasPop 0.6s ease-out;
+    display: inline-block;
+  }
+  @keyframes peasPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .go-stat {
+    background: rgba(255,255,255,0.08);
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #fff;
+  }
+  .go-stat strong { color: #80deea; font-size: 20px; margin: 0 3px; }
+  .go-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <div id="title-screen" class="screen active">
+    <div class="title-emoji">🎯</div>
+    <div class="title-logo">放物線シュート</div>
+    <div class="title-sub">PARABOLA SHOT</div>
+    <div class="title-desc">
+      ⭐ を通る放物線 <span class="m">y</span> = <span class="m">ax</span><sup>2</sup> を撃て!<br>
+      比例定数 <span class="m">a</span> を求めて入力すると、<b style="color:#ffe082">原点から放物線が飛んでいく</b>よ。<br>
+      制限時間 <b style="color:#ffe082">60秒</b>で何問命中できるかな?<br>
+      はずすと <b style="color:#ff8a80">−5秒</b>!(放物線が飛んでいる間は時間が止まるよ)
+    </div>
+
+    <div class="setup-block">
+      <h4>レベルを選ぶ</h4>
+      <div class="chip-group" id="level-chips">
+        <div class="chip selected" data-val="easy">🟢 初級 (a は正の整数)</div>
+        <div class="chip" data-val="medium">🟡 中級 (負の数も)</div>
+        <div class="chip" data-val="hard">🔴 上級 (a が分数)</div>
+        <div class="chip" data-val="expert">🟣 最上級 (a を求めて y も答える)</div>
+      </div>
+      <div class="best-line" id="best-line"></div>
+    </div>
+
+    <button class="btn btn-go" onclick="startGame()">スタート!</button>
+  </div>
+
+  <!-- ゲーム -->
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div class="stat"><span class="label">正解</span><span class="num" id="hud-hits">0</span></div>
+      <div class="stat"><span class="label">のこり</span><span class="num" id="hud-time">60.0</span><span id="hud-penalty" class="penalty"></span></div>
+      <div class="stat"><span class="label">レベル</span><span class="num" id="hud-level" style="font-size:15px">―</span></div>
+      <button class="btn btn-back" onclick="quitGame()">終了</button>
+    </div>
+    <div id="time-bar-wrap"><div id="time-bar"></div></div>
+    <div id="problem-bar"></div>
+
+    <div id="game-body">
+      <div id="field"><canvas id="cv"></canvas></div>
+
+      <div id="panel">
+        <div class="answer-template" id="answer-template"></div>
+        <div class="note" id="input-note"></div>
+        <div id="keypad">
+          <button class="kp" data-k="7">7</button>
+          <button class="kp" data-k="8">8</button>
+          <button class="kp" data-k="9">9</button>
+          <button class="kp kp-del" data-k="del">⌫</button>
+          <button class="kp" data-k="4">4</button>
+          <button class="kp" data-k="5">5</button>
+          <button class="kp" data-k="6">6</button>
+          <button class="kp kp-sign" data-k="-">−</button>
+          <button class="kp" data-k="1">1</button>
+          <button class="kp" data-k="2">2</button>
+          <button class="kp" data-k="3">3</button>
+          <button class="kp kp-swap" data-k="swap" id="kp-swap">分子<br>⇅分母</button>
+          <button class="kp kp-zero" data-k="0">0</button>
+          <button class="kp kp-fire" data-k="fire">撃つ!</button>
+        </div>
+        <div class="hint-msg" id="hint-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-screen" class="screen">
+    <div class="go-title clear" id="go-title">⏱ TIME UP!</div>
+    <div style="text-align:center">
+      <div class="go-label">正解数</div>
+      <div class="go-hits"><span id="go-hits">0</span><span class="unit"> 問</span></div>
+      <div id="go-best" style="margin-top:6px"></div>
+    </div>
+    <div class="go-peas" id="go-peas-block" style="display:none">🟢 +<span id="go-peas">0</span> グリンピース!</div>
+    <div class="go-stat" id="go-capped" style="display:none">🌱 グリンピースは 1日5回まで。今日の分はもらいきったよ! (また明日)</div>
+    <div class="go-stat">
+      ミス <strong id="go-wrong">0</strong> 回&nbsp;&nbsp;
+      レベル <strong id="go-level">―</strong>
+    </div>
+    <div class="go-buttons">
+      <button class="btn" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="backToTitle()">レベル変更</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js?v=2"></script>
+<script>
+// ========== 問題プール ==========
+// [x, y] … 「y は x² に比例し、x = ○ のとき y = △」。a = y ÷ x² は自動で求める
+const POOLS = {
+  // a が正の整数・x が正
+  easy: [[2,28],[3,18],[2,12],[3,45],[4,32],[2,20],[3,27],[1,6],[2,36],[4,48],
+         [3,36],[2,32],[5,50],[3,54],[4,16],[2,24],[1,9],[5,75],[3,63],[4,80]],
+  // x や a が負の数
+  medium: [[-3,-18],[-2,12],[2,-20],[-4,-32],[3,-27],[-3,36],[-2,-28],[4,-16],[-5,50],
+           [3,-54],[-1,-8],[2,-12],[-4,48],[-3,-45],[1,-7],[-2,-24],[5,-75],[-3,27]],
+  // a が分数
+  hard: [[4,8],[3,3],[2,1],[6,9],[3,6],[4,-4],[2,-2],[6,-12],[4,12],[2,3],[3,-6],
+         [-4,8],[-6,-9],[5,10],[-2,-6],[2,6],[4,-12],[-3,-3],[6,4],[-2,5],[3,-12]],
+};
+
+const LEVEL_CONF = {
+  easy:   { label: '初級',  frac: false },
+  medium: { label: '中級',  frac: false },
+  hard:   { label: '上級',  frac: true  },
+  expert: { label: '最上級', frac: true  },
+};
+const TIME_LIMIT = 60;      // 制限時間(秒)
+const WRONG_PENALTY = 5;    // はずすと −5秒
+// 正解1問あたりのグリンピース
+const PEAS_PER = { easy: 1, medium: 1, hard: 2, expert: 2 };
+const SHOT_MS = 1000;       // 放物線が飛んでいく時間(この間はタイマー停止)
+const NEXT_MS = 1000;       // 命中から次の問題までの間(タイマー停止)
+
+// ========== 数の表示 ==========
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; }
+function makeFrac(n, d) {
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(n, d) || 1;
+  return { n: n / g, d: d / g };
+}
+function fmtNum(v) { return v < 0 ? '−' + (-v) : String(v); }
+function fracText(f) {                       // 7 / −3 / 1/2 / −3/4
+  return f.d === 1 ? fmtNum(f.n) : (f.n < 0 ? '−' : '') + Math.abs(f.n) + '/' + f.d;
+}
+function sqText(x) { return (x < 0 ? `(${fmtNum(x)})` : String(x)) + '²'; }
+// 式中の係数 a の HTML(1 → 省略、−1 → −、分数は縦に)
+function coefHtml(f) {
+  if (f.d === 1) return f.n === 1 ? '' : f.n === -1 ? '−' : fmtNum(f.n);
+  return (f.n < 0 ? '−' : '') +
+    `<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:0.8em;line-height:1.05;margin:0 2px">` +
+    `<span class="mn">${Math.abs(f.n)}</span><span style="border-top:2px solid currentColor;padding:0 3px" class="mn">${f.d}</span></span>`;
+}
+function eqHtml(f) { return `<span class="m">y</span> = ${coefHtml(f)}<span class="m">x</span><sup>2</sup>`; }
+function eqText(f) {
+  const c = f.d === 1 ? (f.n === 1 ? '' : f.n === -1 ? '−' : fmtNum(f.n)) : fracText(f);
+  return `y = ${c}x²`;
+}
+
+// ========== 画面遷移・レベル選択 ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+document.querySelectorAll('#level-chips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#level-chips .chip').forEach(x => x.classList.remove('selected'));
+    c.classList.add('selected');
+    updateBestLine();
+  });
+});
+function getLevel() {
+  const sel = document.querySelector('#level-chips .chip.selected');
+  return sel ? sel.dataset.val : 'easy';
+}
+function bestKey(level) { return `放物線シュート_ベスト_${level}`; }
+function updateBestLine() {
+  const best = parseInt(localStorage.getItem(bestKey(getLevel())) || '0', 10);
+  let text = best > 0 ? `🏅 このレベルのベスト: ${best} 問` : 'まだ記録なし ─ 初挑戦!';
+  if (typeof rewardLeft === 'function') {
+    const left = rewardLeft('parabola');
+    text += left > 0 ? `　🌱 今日あと ${left} 回もらえる` : '　🌱 今日の分はもらいきったよ';
+  }
+  document.getElementById('best-line').textContent = text;
+}
+updateBestLine();
+
+// ========== 状態 ==========
+const S = {
+  level: 'easy',
+  queue: [],
+  cur: null,          // {x, y, a:{n,d}, ask, askY}
+  phase: 'a',         // 'a' = a を求める / 'y' = 最上級の2段目
+  hits: 0,            // 正解数(最上級は a と y をそれぞれ1問)
+  wrong: 0,
+  timeLeft: TIME_LIMIT,
+  timerOn: false,     // 考えている間だけ true(放物線が飛んでいる間・次の問題までの間は止める)
+  lastTick: 0,
+  probMiss: 0,        // この問題でのミス回数
+  busy: false,        // 放物線が飛んでいる間など
+  lockUntil: 0,       // Enter 連打対策
+  view: null,         // {X, ymin, ymax}
+  star: null, mirror: null, askMark: null,
+  shot: null,         // 飛行中の放物線 {a, start, correct, crossed}
+  ghost: null,        // 直前のはずれ {a, label}
+  solved: null,       // 命中した放物線 {a, label}
+  particles: [], popups: [],
+  rafId: null,
+};
+
+function shuffle(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function makeProblem(x, y, withAsk) {
+  const a = makeFrac(y, x * x);
+  const p = { x, y, a };
+  if (withAsk) {
+    // 2段目で聞く x: y が整数になり、大きすぎないもの
+    const pick = range => {
+      const c = [];
+      for (let k = -range; k <= range; k++) {
+        if (Math.abs(k) < 2 || Math.abs(k) === Math.abs(x)) continue;
+        if ((a.n * k * k) % a.d !== 0) continue;
+        if (Math.abs(a.n * k * k / a.d) > 120) continue;
+        c.push(k);
+      }
+      return c;
+    };
+    let cands = pick(6);
+    if (!cands.length) cands = pick(10);
+    p.ask = cands[Math.floor(Math.random() * cands.length)];
+    p.askY = a.n * p.ask * p.ask / a.d;
+  }
+  return p;
+}
+
+// プールを全部シャッフルして並べる(使い切ったらまた作る)
+function buildQueue() {
+  if (S.level === 'expert') {
+    const mix = shuffle(POOLS.medium.concat(POOLS.hard));
+    return mix.map(([x, y]) => makeProblem(x, y, true));
+  }
+  return shuffle(POOLS[S.level]).map(([x, y]) => makeProblem(x, y, false));
+}
+
+// ========== ゲーム開始 ==========
+function startGame() {
+  S.gameId = (S.gameId || 0) + 1;
+  S.level = getLevel();
+  S.queue = buildQueue();
+  S.hits = 0;
+  S.wrong = 0;
+  S.timeLeft = TIME_LIMIT;
+  S.timerOn = false;
+  document.getElementById('hud-level').textContent = LEVEL_CONF[S.level].label;
+  updateHud();
+  showScreen('game-screen');
+  resizeCanvas();
+  nextProblem();
+  S.lastTick = performance.now();
+  if (S.rafId) cancelAnimationFrame(S.rafId);
+  S.rafId = requestAnimationFrame(loop);
+}
+
+function updateHud() {
+  document.getElementById('hud-hits').textContent = S.hits;
+  updateTimer();
+}
+function updateTimer() {
+  const t = Math.max(0, S.timeLeft);
+  const low = t <= 10;
+  const el = document.getElementById('hud-time');
+  el.textContent = t.toFixed(1);
+  el.classList.toggle('low', low);
+  const bar = document.getElementById('time-bar');
+  bar.style.width = (t / TIME_LIMIT * 100) + '%';
+  bar.classList.toggle('low', low);
+}
+function showPenalty() {
+  const el = document.getElementById('hud-penalty');
+  el.textContent = `−${WRONG_PENALTY}秒`;
+  el.classList.remove('show');
+  void el.offsetWidth;   // アニメーションをもう一度
+  el.classList.add('show');
+}
+
+function computeView(p) {
+  let X = Math.max(4, Math.abs(p.x) + 1);
+  let Y = Math.max(4, Math.abs(p.y));
+  if (p.ask != null) {
+    X = Math.max(X, Math.abs(p.ask) + 1);
+    Y = Math.max(Y, Math.abs(p.askY));
+  }
+  return p.y > 0 ? { X, ymin: -Y * 0.18, ymax: Y * 1.22 }
+                 : { X, ymin: -Y * 1.22, ymax: Y * 0.18 };
+}
+
+function nextProblem() {
+  if (!S.queue.length) S.queue = buildQueue();
+  const p = S.queue.shift();
+  S.cur = p;
+  S.phase = 'a';
+  S.probMiss = 0;
+  S.view = computeView(p);
+  S.star = { x: p.x, y: p.y, hit: false };
+  S.mirror = { x: -p.x, y: p.y, hit: false };
+  S.askMark = null;
+  S.shot = null; S.ghost = null; S.solved = null;
+  S.particles = []; S.popups = [];
+  S.busy = false;
+  S.timerOn = true;
+  S.lockUntil = performance.now() + 250;
+  document.getElementById('problem-bar').innerHTML =
+    `<span class="m">y</span> は <span class="m">x</span><sup>2</sup> に比例し、` +
+    `<span class="m">x</span> = <span class="mn hl">${fmtNum(p.x)}</span> のとき ` +
+    `<span class="m">y</span> = <span class="mn hl">${fmtNum(p.y)}</span>`;
+  setTemplate(LEVEL_CONF[S.level].frac ? 'frac' : 'int');
+  showHint('', false);
+}
+
+// 入力欄: int = y = □x² / frac = y = (□/□)x² / ask = y = □
+function setTemplate(kind) {
+  const inp = (id, cls = '') =>
+    `<input class="ans-input ${cls}" id="${id}" type="text" inputmode="none" autocomplete="off">`;
+  const tpl = document.getElementById('answer-template');
+  const note = document.getElementById('input-note');
+  const swap = document.getElementById('kp-swap');
+  if (kind === 'int') {
+    tpl.innerHTML = `<span class="m">y</span> = ${inp('in-a')}<span class="m">x</span><sup>2</sup>`;
+    note.textContent = S.level === 'easy' ? '比例定数 a を入力して「撃つ!」'
+                                          : '比例定数 a を入力 (負の数は − キー)';
+    swap.style.visibility = 'hidden';
+  } else if (kind === 'frac') {
+    tpl.innerHTML = `<span class="m">y</span> = <span class="frac-in">${inp('in-num')}<span class="frac-bar"></span>${inp('in-den')}</span><span class="m">x</span><sup>2</sup>`;
+    note.textContent = '分数で入力 (⇅で分子・分母を切りかえ／整数なら分母は空でOK)';
+    swap.style.visibility = 'visible';
+  } else {
+    tpl.innerHTML = `<span class="m">y</span> = ${inp('in-y', 'wide')}`;
+    note.textContent = 'y の値を入力して「撃つ!」';
+    swap.style.visibility = 'hidden';
+  }
+  activeInput = null;
+  setTimeout(() => { const f = tpl.querySelector('.ans-input'); if (f) f.focus(); }, 60);
+}
+
+function showHint(msg, correct) {
+  const h = document.getElementById('hint-msg');
+  h.textContent = msg;
+  h.className = 'hint-msg' + (correct ? ' correct' : '');
+}
+
+// ========== 入力の読み取り ==========
+function norm(s) {
+  return (s || '')
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/＋/g, '+')
+    .replace(/[−－ーｰ‐]/g, '-')
+    .replace(/[\s　]/g, '');
+}
+function parseIntStr(s) {
+  s = norm(s);
+  return /^[+-]?\d+$/.test(s) ? parseInt(s, 10) : null;
+}
+function shakeInputs() {
+  document.querySelectorAll('.ans-input').forEach(el => {
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 400);
+  });
+}
+
+function submit() {
+  if (S.busy || !S.cur || performance.now() < S.lockUntil) return;
+  if (S.phase === 'y') return submitY();
+
+  let n, d;
+  if (LEVEL_CONF[S.level].frac) {
+    const numRaw = document.getElementById('in-num').value;
+    const denRaw = norm(document.getElementById('in-den').value);
+    if (norm(numRaw) === '') { showHint('分子に数を入れてね!', false); return; }
+    n = parseIntStr(numRaw);
+    d = denRaw === '' ? 1 : parseIntStr(denRaw);
+    if (n === null || d === null) { showHint('数字で入力してね (例: 1 と 2 で 1/2)', false); return; }
+    if (d === 0) { showHint('分母に 0 は使えないよ!', false); return; }
+  } else {
+    const raw = document.getElementById('in-a').value;
+    if (norm(raw) === '') { showHint('a の値を入れてね!', false); return; }
+    n = parseIntStr(raw); d = 1;
+    if (n === null) { showHint('数字で入力してね (例: 7、−2)', false); return; }
+  }
+  if (n === 0) { showHint('a は 0 以外の数だよ! (0 だと放物線にならない)', false); return; }
+
+  const a = S.cur.a;
+  const equal = n * a.d === a.n * d;
+  if (equal && gcd(n, d) !== 1) {
+    showHint('おしい! 約分しよう!', false);   // ノーペナルティ
+    return;
+  }
+  fireShot(n / d, equal, makeFrac(n, d));
+}
+
+function submitY() {
+  const raw = document.getElementById('in-y').value;
+  if (norm(raw) === '') { showHint('y の値を入れてね!', false); return; }
+  const v = parseIntStr(raw);
+  if (v === null) { showHint('数字で入力してね (例: 48、−50)', false); return; }
+  const p = S.cur;
+  if (v === p.askY) {
+    S.askMark.hit = true;
+    const [px, py] = toPx(p.ask, p.askY);
+    boom(px, py, '#b2ff59');
+    popup(px, py - 30, '命中!', '#b2ff59', 26);
+    showHint(`✓ 命中! x = ${fmtNum(p.ask)} のとき y = ${fmtNum(p.askY)}`, true);
+    S.busy = true;
+    S.timerOn = false;
+    addHit();
+    scheduleNext();
+  } else {
+    S.probMiss++;
+    const [px, py] = toPx(p.ask, v);
+    if (inPlot(px, py)) {
+      popup(px, py, '×', '#ff5252', 26, true);
+      popup(px + (p.ask < 0 ? 70 : -70), py, `y = ${fmtNum(v)}`, '#ff8a80', 15, true);
+    }
+    let msg = `❌ ${eqText(p.a)} の x に ${fmtNum(p.ask)} を入れて計算しよう`;
+    if (S.probMiss >= 2) msg += `\n💡 y = ${fracText(p.a)} × ${sqText(p.ask)}`;
+    penalize(msg);
+  }
+}
+
+// ========== 発射 ==========
+function fireShot(aVal, correct, aFrac) {
+  S.busy = true;
+  S.timerOn = false;   // 飛んでいる間は時間を止める
+  S.shot = { a: aVal, frac: aFrac, start: performance.now(), correct, crossed: false };
+  showHint('', false);
+}
+
+// 放物線が ⭐ の x を通過した瞬間
+function onCross(shot) {
+  const p = S.cur;
+  if (shot.correct) {
+    S.star.hit = true; S.mirror.hit = true;
+    const [px, py] = toPx(p.x, p.y);
+    const [mx, my] = toPx(-p.x, p.y);
+    boom(px, py, '#ffd54f');
+    boom(mx, my, '#80deea');
+    popup(px, py - 34, '命中!', '#ffe082', 28);
+    if (inPlot(mx, my)) popup(mx, my - 26, '対称な点も!', '#80deea', 15);
+  } else {
+    // どこを通ったかを見せる
+    const yv = shot.a * p.x * p.x;
+    const [px, py] = toPx(p.x, yv);
+    if (inPlot(px, py)) popup(px, py, '×', '#ff5252', 26, true);
+  }
+}
+
+function onShotDone(shot) {
+  const p = S.cur;
+  S.shot = null;
+  if (shot.correct) {
+    S.solved = { a: shot.a, label: eqText(p.a) };
+    S.ghost = null;
+    addHit();
+    if (S.level === 'expert' && S.phase === 'a') {
+      // 2段目: 同じ放物線の上の別の点の y を答える
+      S.phase = 'y';
+      S.askMark = { x: p.ask, y: p.askY, hit: false };
+      document.getElementById('problem-bar').innerHTML =
+        `${eqHtml(p.a)} で、<span class="m">x</span> = <span class="mn hl">${fmtNum(p.ask)}</span> のとき ` +
+        `<span class="m">y</span> = <span class="hl">?</span>`;
+      setTemplate('ask');
+      showHint(`✓ 命中! ${eqText(p.a)}\n次は ❓ の y を求めて撃ち抜け!`, true);
+      S.probMiss = 0;
+      S.busy = false;
+      S.timerOn = true;
+      S.lockUntil = performance.now() + 250;
+      return;
+    }
+    showHint(`✓ 命中! ${eqText(p.a)}`, true);
+    scheduleNext();
+  } else {
+    S.probMiss++;
+    S.ghost = { a: shot.a, label: 'a = ' + fracText(shot.frac) + ' (はずれ)' };
+    penalize(wrongHint(shot.frac));
+  }
+}
+
+function wrongHint(f) {
+  const p = S.cur;
+  const val = makeFrac(f.n * p.x * p.x, f.d);
+  let msg;
+  if (Math.sign(val.n) !== Math.sign(p.y)) {
+    msg = `❌ 放物線が${f.n > 0 ? '上' : '下'}に開いたよ!\n⭐ は x 軸より${p.y > 0 ? '上' : '下'} → a の符号を考えよう`;
+  } else {
+    const under = Math.abs(val.n / val.d) < Math.abs(p.y);
+    msg = `❌ x = ${fmtNum(p.x)} のとき y = ${fracText(f)} × ${sqText(p.x)} = ${fracText(val)}\n` +
+          `⭐ の y = ${fmtNum(p.y)} ${under ? 'に届かない!' : 'を通りこした!'}`;
+  }
+  if (S.probMiss >= 2) msg += `\n💡 a = y ÷ x² = ${fmtNum(p.y)} ÷ ${p.x * p.x}`;
+  return msg;
+}
+
+// はずれ: −5秒して、同じ問題をもう一度
+function penalize(msg) {
+  S.wrong++;
+  S.timeLeft -= WRONG_PENALTY;
+  showPenalty();
+  updateTimer();
+  showHint(msg, false);
+  shakeInputs();
+  if (S.timeLeft <= 0) { timeUp(); return; }
+  S.busy = false;
+  S.timerOn = true;
+  const f = document.querySelector('#answer-template .ans-input');
+  if (f) { f.focus(); f.select(); }
+}
+
+function addHit() {
+  S.hits++;
+  updateHud();
+}
+
+function scheduleNext() {
+  // 途中で「終了」→ 新しいゲームを始めたときに、古いタイマーが動かないように
+  const id = S.gameId;
+  setTimeout(() => { if (S.gameId === id) nextProblem(); }, NEXT_MS);
+}
+
+// 時間切れ
+function timeUp() {
+  S.timerOn = false;
+  S.busy = true;
+  S.timeLeft = 0;
+  updateTimer();
+  const id = S.gameId;
+  setTimeout(() => { if (S.gameId === id) finishGame(); }, 900);
+}
+
+// ========== キャンバス描画 ==========
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let CW = 300, CH = 300;
+const PAD = { l: 44, r: 26, t: 26, b: 30 };
+
+function resizeCanvas() {
+  const r = document.getElementById('field').getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  CW = Math.max(100, r.width); CH = Math.max(100, r.height);
+  cv.width = Math.round(CW * dpr); cv.height = Math.round(CH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+new ResizeObserver(resizeCanvas).observe(document.getElementById('field'));
+
+function toPx(x, y) {
+  const v = S.view;
+  const W = CW - PAD.l - PAD.r, H = CH - PAD.t - PAD.b;
+  return [PAD.l + (x + v.X) / (2 * v.X) * W,
+          PAD.t + (v.ymax - y) / (v.ymax - v.ymin) * H];
+}
+function inPlot(px, py) {
+  return px >= PAD.l - 1 && px <= CW - PAD.r + 1 && py >= PAD.t - 1 && py <= CH - PAD.b + 1;
+}
+function niceStep(r) {
+  const e = Math.pow(10, Math.floor(Math.log10(r)));
+  const f = r / e;
+  return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e;
+}
+
+function clipPlot() {
+  ctx.beginPath();
+  ctx.rect(PAD.l, PAD.t, CW - PAD.l - PAD.r, CH - PAD.t - PAD.b);
+  ctx.clip();
+}
+
+function drawGrid() {
+  const v = S.view;
+  const fs = Math.max(12, Math.min(16, Math.min(CW, CH) / 32));
+  const ystep = niceStep((v.ymax - v.ymin) / 6);
+  const xstep = v.X > 8 ? 2 : 1;
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(128,222,234,0.16)';
+  for (let x = -Math.floor(v.X); x <= v.X; x++) {
+    const [px] = toPx(x, 0);
+    ctx.beginPath(); ctx.moveTo(px, PAD.t); ctx.lineTo(px, CH - PAD.b); ctx.stroke();
+  }
+  for (let y = Math.ceil(v.ymin / ystep) * ystep; y <= v.ymax; y += ystep) {
+    const [, py] = toPx(0, y);
+    ctx.beginPath(); ctx.moveTo(PAD.l, py); ctx.lineTo(CW - PAD.r, py); ctx.stroke();
+  }
+  // 軸
+  const [ox, oy] = toPx(0, 0);
+  ctx.strokeStyle = '#b2ebf2';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PAD.l - 8, oy); ctx.lineTo(CW - PAD.r + 8, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, CH - PAD.b + 8); ctx.lineTo(ox, PAD.t - 8); ctx.stroke();
+  // 目もり
+  ctx.fillStyle = '#e0f7fa';
+  ctx.font = `${fs}px 'Cambria Math', 'Cambria', serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let x = -Math.floor(v.X / xstep) * xstep; x <= v.X; x += xstep) {
+    if (x === 0) continue;
+    const [px] = toPx(x, 0);
+    ctx.fillText(fmtNum(x), px, oy + 4);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let y = Math.ceil(v.ymin / ystep) * ystep; y <= v.ymax; y += ystep) {
+    if (Math.abs(y) < 1e-9) continue;
+    const [, py] = toPx(0, y);
+    ctx.fillText(fmtNum(Math.round(y * 100) / 100), ox - 5, py);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('O', ox - 4, oy + 3);
+  ctx.font = `italic ${fs + 3}px 'Cambria Math', 'Cambria', serif`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('x', CW - PAD.r + 10, oy);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('y', ox, PAD.t - 8);
+  ctx.restore();
+}
+
+function curvePath(a, x0, x1) {
+  ctx.beginPath();
+  const N = 180;
+  for (let i = 0; i <= N; i++) {
+    const x = x0 + (x1 - x0) * i / N;
+    let [px, py] = toPx(x, a * x * x);
+    py = Math.max(-4000, Math.min(4000, py));
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+}
+
+// 放物線の凡例: ⭐ と重ならないよう、x 軸の外側の空いた帯(右端)に置く
+function drawLegend(text, color, dashed, size) {
+  const v = S.view;
+  const [, oy] = toPx(0, 0);
+  const py = S.cur.y > 0 ? (oy + CH - PAD.b) / 2 + 9 : (PAD.t + oy) / 2 - 9;
+  ctx.save();
+  ctx.font = `bold ${size}px 'Cambria Math', 'Cambria', 'Yu Gothic', serif`;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width;
+  const right = CW - PAD.r - 4;
+  ctx.fillStyle = 'rgba(4,12,24,0.8)';
+  ctx.fillRect(right - w - 46, py - size * 0.8, w + 52, size * 1.6);
+  ctx.strokeStyle = color; ctx.lineWidth = 3;
+  if (dashed) ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(right - w - 40, py); ctx.lineTo(right - w - 10, py); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = color;
+  ctx.fillText(text, right, py);
+  ctx.restore();
+}
+
+function drawStar(now) {
+  const p = S.cur;
+  const v = S.view;
+  const [px, py] = toPx(p.x, p.y);
+  const [ox, oy] = toPx(0, 0);
+  const fs = Math.max(13, Math.min(17, Math.min(CW, CH) / 30));
+  // 補助の点線(座標が読めるように)
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = 'rgba(255,224,130,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ox, py); ctx.stroke();
+  ctx.restore();
+
+  if (!S.star.hit) {
+    const pulse = 1 + 0.12 * Math.sin(now / 220);
+    const g = ctx.createRadialGradient(px, py, 0, px, py, 30 * pulse);
+    g.addColorStop(0, 'rgba(255,213,79,0.55)');
+    g.addColorStop(1, 'rgba(255,213,79,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px, py, 30 * pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.font = `${Math.round(30 * pulse)}px 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⭐', px, py);
+  }
+  // 対称な点(うすい星)
+  if (!S.mirror.hit && p.x !== 0) {
+    const [mx, my] = toPx(-p.x, p.y);
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.font = `20px 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⭐', mx, my);
+    ctx.restore();
+  }
+  // 座標ラベル
+  const label = `(${fmtNum(p.x)}, ${fmtNum(p.y)})`;
+  ctx.save();
+  ctx.font = `bold ${fs}px 'Cambria Math', 'Cambria', serif`;
+  const w = ctx.measureText(label).width;
+  let lx = px + 20, ly = py - 18;
+  if (lx + w > CW - PAD.r) lx = px - 20 - w;
+  if (ly < PAD.t + 8) ly = py + 22;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,12,24,0.9)';
+  ctx.strokeText(label, lx, ly);
+  ctx.fillStyle = '#ffe082';
+  ctx.fillText(label, lx, ly);
+  ctx.restore();
+}
+
+function drawAsk(now) {
+  const m = S.askMark;
+  if (!m) return;
+  const [px, py] = toPx(m.x, m.y);
+  const [, oy] = toPx(0, 0);
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = 'rgba(178,255,89,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(px, oy); ctx.lineTo(px, py); ctx.stroke();
+  ctx.restore();
+  if (!m.hit) {
+    const pulse = 1 + 0.15 * Math.sin(now / 200);
+    ctx.font = `${Math.round(28 * pulse)}px 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('❓', px, py);
+  }
+}
+
+function drawShot(now) {
+  const sh = S.shot;
+  if (!sh) return;
+  const v = S.view;
+  const t = Math.min(1, (now - sh.start) / SHOT_MS);
+  const xr = v.X * t;
+  const color = sh.correct ? '#ffd54f' : '#ff7043';
+  ctx.save();
+  clipPlot();
+  ctx.shadowColor = color; ctx.shadowBlur = 16;
+  ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  curvePath(sh.a, -xr, xr);
+  ctx.stroke();
+  // 先頭の光る玉
+  ctx.fillStyle = '#fff';
+  for (const s of [-1, 1]) {
+    const [hx, hy] = toPx(s * xr, sh.a * xr * xr);
+    if (inPlot(hx, hy)) { ctx.beginPath(); ctx.arc(hx, hy, 6, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.restore();
+  if (!sh.crossed && xr >= Math.abs(S.cur.x)) { sh.crossed = true; onCross(sh); }
+  if (t >= 1) onShotDone(sh);
+}
+
+function drawCurves() {
+  const v = S.view;
+  const fs = Math.max(14, Math.min(19, Math.min(CW, CH) / 26));
+  if (S.ghost) {
+    ctx.save();
+    clipPlot();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = 'rgba(255,112,67,0.75)'; ctx.lineWidth = 2.5;
+    curvePath(S.ghost.a, -v.X, v.X); ctx.stroke();
+    ctx.restore();
+    drawLegend(S.ghost.label, '#ff8a65', true, fs);
+  }
+  if (S.solved) {
+    ctx.save();
+    clipPlot();
+    ctx.shadowColor = '#ffd54f'; ctx.shadowBlur = 12;
+    ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 3.5;
+    curvePath(S.solved.a, -v.X, v.X); ctx.stroke();
+    ctx.restore();
+    drawLegend(S.solved.label, '#ffe082', false, fs);
+  }
+}
+
+// ---- エフェクト ----
+function boom(px, py, color) {
+  for (let i = 0; i < 34; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 1.5 + Math.random() * 4.5;
+    S.particles.push({ x: px, y: py, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+                       life: 1, color: Math.random() < 0.5 ? color : '#fff', r: 2 + Math.random() * 3 });
+  }
+  S.popups.push({ text: '💥', x: px, y: py, color: '#fff', size: 46, born: performance.now(), life: 600, emoji: true });
+}
+function popup(px, py, text, color, size, stay) {
+  S.popups.push({ text, x: px, y: py, color, size, born: performance.now(), life: stay ? 2600 : 1100, stay });
+}
+function drawEffects(now) {
+  S.particles = S.particles.filter(p => p.life > 0);
+  for (const p of S.particles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.98;
+    p.life -= 0.022;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  S.popups = S.popups.filter(p => now - p.born < p.life);
+  for (const p of S.popups) {
+    const k = (now - p.born) / p.life;
+    ctx.save();
+    ctx.globalAlpha = p.stay ? (k < 0.8 ? 1 : (1 - k) / 0.2) : 1 - k;
+    const dy = p.stay ? 0 : -24 * k;
+    const sz = p.emoji ? p.size * (0.6 + k) : p.size;
+    ctx.font = p.emoji ? `${sz}px 'Segoe UI Emoji', sans-serif` : `bold ${sz}px 'Yu Gothic', 'Meiryo', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // 画面の端で切れないように
+    const w = ctx.measureText(p.text).width;
+    const x = Math.min(Math.max(p.x, w / 2 + 6), CW - w / 2 - 6);
+    const y = Math.min(Math.max(p.y + dy, sz / 2 + 4), CH - sz / 2 - 4);
+    if (!p.emoji) { ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(4,12,24,0.9)'; ctx.strokeText(p.text, x, y); }
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.text, x, y);
+    ctx.restore();
+  }
+}
+
+function loop(now) {
+  if (!document.getElementById('game-screen').classList.contains('active')) { S.rafId = null; return; }
+  // タイマー(画面を切りかえて戻ったときに一気に減らないよう、1コマ 0.1秒まで)
+  const dt = Math.min(0.1, Math.max(0, (now - S.lastTick) / 1000));
+  S.lastTick = now;
+  if (S.timerOn) {
+    S.timeLeft -= dt;
+    updateTimer();
+    if (S.timeLeft <= 0) timeUp();
+  }
+  ctx.clearRect(0, 0, CW, CH);
+  if (S.view) {
+    drawGrid();
+    drawCurves();
+    drawStar(now);
+    drawAsk(now);
+    drawShot(now);
+    drawEffects(now);
+  }
+  S.rafId = requestAnimationFrame(loop);
+}
+
+// ========== 終了 ==========
+function finishGame() {
+  if (S.rafId) cancelAnimationFrame(S.rafId);
+  S.rafId = null;
+  document.getElementById('go-hits').textContent = S.hits;
+  document.getElementById('go-wrong').textContent = S.wrong;
+  document.getElementById('go-level').textContent = LEVEL_CONF[S.level].label;
+
+  const key = bestKey(S.level);
+  const prev = parseInt(localStorage.getItem(key) || '0', 10);
+  const bestEl = document.getElementById('go-best');
+  if (S.hits > prev) {
+    localStorage.setItem(key, String(S.hits));
+    bestEl.textContent = prev > 0 ? `🏅 ベスト更新! (前 ${prev} 問)` : '🏅 初記録!';
+    bestEl.style.background = 'linear-gradient(135deg,#ffd56a,#ff8a2a)';
+    bestEl.style.color = '#2a1810';
+  } else {
+    bestEl.textContent = `🏅 ベスト: ${prev} 問`;
+    bestEl.style.background = 'rgba(255,255,255,0.12)';
+    bestEl.style.color = '#fff';
+  }
+
+  // グリンピース(正解数に応じて)。ただし1日5回まで(student-guard.js)
+  let peas = S.hits * (PEAS_PER[S.level] || 0);
+  let capped = false;
+  if (peas > 0 && typeof rewardAllowed === 'function' && !rewardAllowed('parabola')) {
+    peas = 0;
+    capped = true;
+  }
+  const peasBlock = document.getElementById('go-peas-block');
+  if (peas > 0) {
+    addPeasToHP(peas);
+    peasBlock.style.display = 'inline-block';
+    document.getElementById('go-peas').textContent = peas;
+  } else {
+    peasBlock.style.display = 'none';
+  }
+  document.getElementById('go-capped').style.display = capped ? 'block' : 'none';
+  showScreen('result-screen');
+}
+
+// 数学HPの localStorage(mathPrint_v2)にグリンピース加算
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) { p.peaCount -= 45; cups++; }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
+}
+
+function backToTitle() {
+  updateBestLine();
+  showScreen('title-screen');
+}
+function quitGame() {
+  if (confirm('終了しますか?')) {
+    S.gameId = (S.gameId || 0) + 1;
+    if (S.rafId) cancelAnimationFrame(S.rafId);
+    S.rafId = null;
+    backToTitle();
+  }
+}
+
+// ========== キーボード ==========
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('game-screen').classList.contains('active')) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (e.repeat) return;
+    submit();
+  } else if (e.key === '/' && document.activeElement && document.activeElement.id === 'in-num') {
+    e.preventDefault();
+    document.getElementById('in-den').focus();
+  }
+});
+
+// ========== 画面上キーパッド ==========
+let activeInput = null;
+document.getElementById('answer-template').addEventListener('focusin', e => {
+  if (e.target.classList && e.target.classList.contains('ans-input')) activeInput = e.target;
+});
+function getActiveInput() {
+  if (activeInput && document.body.contains(activeInput)) return activeInput;
+  activeInput = document.querySelector('#answer-template .ans-input');
+  return activeInput;
+}
+document.getElementById('keypad').addEventListener('pointerdown', e => {
+  const btn = e.target.closest('button[data-k]');
+  if (!btn) return;
+  e.preventDefault();   // 入力欄からフォーカスを奪わない
+  const k = btn.dataset.k;
+  if (k === 'fire') { submit(); return; }
+  if (S.busy) return;
+  const inp = getActiveInput();
+  if (!inp) return;
+  if (k === 'del') {
+    inp.value = inp.value.slice(0, -1);
+  } else if (k === '-') {
+    // − は符号の切りかえ
+    inp.value = /^[-−]/.test(inp.value) ? inp.value.slice(1) : '-' + inp.value;
+  } else if (k === 'swap') {
+    const other = inp.id === 'in-num' ? 'in-den' : 'in-num';
+    const el = document.getElementById(other);
+    if (el) { el.focus(); activeInput = el; }
+    return;
+  } else {
+    if (inp.value.replace(/^[-−+]/, '').length >= 3) return;
+    inp.value += k;
+  }
+  inp.focus();
+});
+</script>
+</body>
+</html>

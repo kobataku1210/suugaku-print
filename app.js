@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-10-07c';
+const APP_VERSION = '2026-10-12a';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1072,6 +1072,8 @@ const GAME_CATEGORIES = [
     gradient: 'linear-gradient(90deg, #2196f3, #0d47a1)' },
   { id: 'quadratic', label: '二次方程式',    icon: '📐',
     gradient: 'linear-gradient(90deg, #26a69a, #00695c)' },
+  { id: 'func2', label: '関数 y=ax²',       icon: '📈',
+    gradient: 'linear-gradient(90deg, #26c6da, #00838f)' },
 ];
 
 const GAME_ITEMS = [
@@ -1177,6 +1179,16 @@ const GAME_ITEMS = [
     newSince: '2026-07-11', // この日から7日間 NEW!
     category: 'quadratic',
     draftKey: 'factorDefense',
+  },
+  {
+    title: '放物線シュート',
+    desc: '⭐ を通る放物線 y = ax² を撃て! 60秒で何問命中できるかな?',
+    icon: '🎯',
+    onclick: "window.location.href='games/放物線シュート.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #26c6da, #00838f)',
+    newSince: '2026-10-12', // この日から7日間 NEW!
+    category: 'func2',
+    draftKey: 'parabolaShot',
   },
   {
     title: 'ルート計算バトル',

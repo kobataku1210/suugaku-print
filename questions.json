@@ -8294,7 +8294,8 @@
     "sqrtEquation": false,
     "factorDefense": false,
     "splashMountain": false,
-    "parabolaMaker": false
+    "parabolaMaker": false,
+    "parabolaShot": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [

@@ -735,6 +735,7 @@
         <button class="chapter-tab" id="game-tab-rootgem" onclick="switchGameTab('rootgem')">💎 ルートの宝石</button>
         <button class="chapter-tab" id="game-tab-sqrt-eq" onclick="switchGameTab('sqrt-eq')">📐 平方根の方程式</button>
         <button class="chapter-tab" id="game-tab-factor-defense" onclick="switchGameTab('factor-defense')">🛡️ 因数分解ディフェンス</button>
+        <button class="chapter-tab" id="game-tab-parabola-shot" onclick="switchGameTab('parabola-shot')">🎯 放物線シュート</button>
       </div>
     </div>
 
@@ -994,6 +995,30 @@
         </ul>
       </div>
     </div><!-- /game-pane-factor-defense -->
+
+    <!-- 放物線シュート -->
+    <div class="game-pane hidden" id="game-pane-parabola-shot">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/放物線シュート.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="parabola-shot-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>放物線シュート</b> は、「y は x² に比例し、x = 2 のとき y = 28」から a を求め、⭐ を通る放物線を撃つタイムアタックです。</p>
+        <p>問題は組み込み済みのため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>a を入力すると原点から放物線が描かれ、⭐ を通れば命中（左右対称の点も一緒にはじける）</li>
+          <li>はずれると点線で残り「x = 3 のとき y = 90 … 通りこした!」と表示。同じ問題で2回はずすと「a = y ÷ x²」のヒント</li>
+          <li>制限時間 60秒・はずすと −5秒（放物線が飛んでいる間と次の問題までの間はタイマー停止）</li>
+          <li>🟢 初級 a は正の整数(20問) / 🟡 中級 負の数あり(18問) / 🔴 上級 a が分数(21問)</li>
+          <li>🟣 最上級: a を当てたあと「x = ○ のとき y = ?」も答える（中級＋上級の39問、a と y をそれぞれ1問と数える）</li>
+          <li>分数は分子／分母の入力欄（約分していないときは「約分しよう!」でノーペナルティ）</li>
+          <li>画面上キーパッド(0-9・−・⌫・分子⇅分母・撃つ)対応</li>
+          <li>グリンピース: 正解1問につき 🟢🟡 1個 / 🔴🟣 2個（1日5回まで）</li>
+          <li>正解数のベスト記録(端末ごと・レベル別)</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-parabola-shot -->
   </div>
 
   <!-- 🧰 ツール管理ページ -->
@@ -1103,7 +1128,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq', 'factor-defense'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq', 'factor-defense', 'parabola-shot'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1413,6 +1438,7 @@ async function loadQuestions() {
   renderLogCarpenterPublishBar();
   renderSqrtEqPublishBar();
   renderFactorDefensePublishBar();
+  renderParabolaShotPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1813,6 +1839,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'logCarpenter')  renderLogCarpenterPublishBar();
   if (gameKey === 'sqrtEquation')  renderSqrtEqPublishBar();
   if (gameKey === 'factorDefense') renderFactorDefensePublishBar();
+  if (gameKey === 'parabolaShot')  renderParabolaShotPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1838,6 +1865,10 @@ function renderSqrtEqPublishBar() {
 
 function renderFactorDefensePublishBar() {
   renderGamePublishBar('factorDefense', '因数分解ディフェンス', 'factor-defense-publish-bar');
+}
+
+function renderParabolaShotPublishBar() {
+  renderGamePublishBar('parabolaShot', '放物線シュート', 'parabola-shot-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画
