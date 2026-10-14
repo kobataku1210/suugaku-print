@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mathPrint_v2';
 
 // 公開バージョン（設定を変えたら version.json と一緒にこの値を更新する）
 // 生徒のブラウザが古いキャッシュのままにならないよう、起動時に最新版か確認する
-const APP_VERSION = '2026-10-12a';
+const APP_VERSION = '2026-10-15a';
 
 // プレビューモードは先生パスワードで保護。
 // URL に ?preview=draft があり、かつ この端末で先生認証済み(localStorage)のときだけ有効。
@@ -1453,8 +1453,17 @@ const TOOL_ITEMS = [
     icon: '📈',
     onclick: "window.location.href='tools/放物線メーカー.html?_v=' + APP_VERSION",
     gradient: 'linear-gradient(135deg, #1565c0, #0d47a1)',
-    newSince: '2026-10-07', // この日から7日間 NEW!
+    newSince: '2026-10-07',
     draftKey: 'parabolaMaker',
+  },
+  {
+    title: '制動距離シミュレーター',
+    desc: '車を走らせてブレーキ！速さを変えると止まるまでの距離はどう変わる？乾いた道と凍結路面の違いも',
+    icon: '🚗',
+    onclick: "window.location.href='tools/制動距離シミュレーター.html?_v=' + APP_VERSION",
+    gradient: 'linear-gradient(135deg, #e53935, #b71c1c)',
+    newSince: '2026-10-15', // この日から7日間 NEW!
+    draftKey: 'brakeDistance',
   },
 ];
 function renderToolsPage() {

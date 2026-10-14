@@ -8295,7 +8295,8 @@
     "factorDefense": false,
     "splashMountain": false,
     "parabolaMaker": false,
-    "parabolaShot": false
+    "parabolaShot": false,
+    "brakeDistance": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [
