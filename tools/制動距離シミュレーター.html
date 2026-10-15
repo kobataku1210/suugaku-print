@@ -370,9 +370,9 @@
   const COEF_ICY = 0.024;   // 凍結路面：約 4 倍
 
   // 道路の表示範囲（m）→ SVG 座標
-  const ROAD_MAX_M = 200;    // 200m まで表示
+  const ROAD_MAX_M = 300;    // 300m まで表示（凍結路面 100 km/h の 240m にも対応）
   const SVG_W = 1200;
-  const PX_PER_M = SVG_W / ROAD_MAX_M;  // 6px/m
+  const PX_PER_M = SVG_W / ROAD_MAX_M;  // 4px/m
 
   // 車のスタート位置
   const CAR_START_PX = 60;
@@ -437,6 +437,7 @@
   btnIcy.addEventListener('click', () => setRoad(true));
 
   // ===== 目盛り生成 =====
+  // 300m を 20m 刻みで表示（密になりすぎず読みやすく）
   function drawRuler() {
     ruler.innerHTML = '';
     for (let m = 0; m <= ROAD_MAX_M; m += 10) {
@@ -444,11 +445,11 @@
       if (x > SVG_W - 10) break;
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       tick.setAttribute('x1', x); tick.setAttribute('x2', x);
-      tick.setAttribute('y1', 345); tick.setAttribute('y2', 355);
+      tick.setAttribute('y1', 345); tick.setAttribute('y2', m % 20 === 0 ? 355 : 350);
       tick.setAttribute('stroke', '#424242');
-      tick.setAttribute('stroke-width', m % 50 === 0 ? 2 : 1);
+      tick.setAttribute('stroke-width', m % 100 === 0 ? 2 : 1);
       ruler.appendChild(tick);
-      if (m % 10 === 0) {
+      if (m % 20 === 0) {
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         label.setAttribute('x', x); label.setAttribute('y', 372);
         label.setAttribute('text-anchor', 'middle');
@@ -553,8 +554,11 @@
       valSpeed.textContent = selectedSpeed;
       valDist.textContent = '—';
 
-      // 画面右端に近づいたら自動ブレーキ
-      if (carX > SVG_W - 60) {
+      // 残り距離が制動距離を下回ったら 自動ブレーキ（画面外に飛び出さないように）
+      const coef = isIcy ? COEF_ICY : COEF_DRY;
+      const expectedBrakeDist = coef * selectedSpeed * selectedSpeed;
+      const remaining_m = ROAD_MAX_M - dist_m;
+      if (expectedBrakeDist + 5 > remaining_m) {
         stop();
       }
     } else if (state === 'braking') {
