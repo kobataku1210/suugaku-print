@@ -736,6 +736,7 @@
         <button class="chapter-tab" id="game-tab-sqrt-eq" onclick="switchGameTab('sqrt-eq')">📐 平方根の方程式</button>
         <button class="chapter-tab" id="game-tab-factor-defense" onclick="switchGameTab('factor-defense')">🛡️ 因数分解ディフェンス</button>
         <button class="chapter-tab" id="game-tab-parabola-shot" onclick="switchGameTab('parabola-shot')">🎯 放物線シュート</button>
+        <button class="chapter-tab" id="game-tab-soji-hunter" onclick="switchGameTab('soji-hunter')">🔺 相似の三角形ハンター</button>
       </div>
     </div>
 
@@ -1019,6 +1020,27 @@
         </ul>
       </div>
     </div><!-- /game-pane-parabola-shot -->
+
+    <!-- 相似の三角形ハンター -->
+    <div class="game-pane hidden" id="game-pane-soji-hunter">
+      <div style="padding:0.8rem 2rem 0;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        <a href="games/相似ハンター.html" target="_blank" rel="noopener"
+           class="preview-game-btn">🎮 ゲームを試す（新しいタブで開く）</a>
+        <div id="soji-hunter-publish-bar" class="draft-toggle-bar" style="margin:0;flex:1;min-width:280px;"></div>
+      </div>
+      <div style="padding:1rem 2rem;color:rgba(255,255,255,0.6);font-size:0.88rem;line-height:1.6;">
+        <p><b>相似の三角形ハンター</b> は、三角形の相似条件を使う練習ゲームです（5章 図形と相似）。</p>
+        <p>問題は毎回自動で作るため、編集項目はありません。</p>
+        <ul style="margin:0.5rem 0 0 1.2rem;color:rgba(255,255,255,0.5);font-size:0.82rem;">
+          <li>① 相似条件をえらべ（10問）: △ABC と △DEF を見て「① 3組の辺の比」「② 2組の辺の比と間の角」「③ 2組の角」「✖ 相似とはいえない」から選ぶ → 解説（辺の比・角の計算）</li>
+          <li>「相似とはいえない」は 初級2問／中級3問／上級4問（辺の比が1組ちがう・角がちがう・間の角ではない・条件が足りない など）</li>
+          <li>② 相似な三角形をさがせ（3ステージ）: 8つの三角形から相似な組を3つ見つけて相似条件を答える。似せた「おとり」が2つ</li>
+          <li>レベル: 🟢 初級 比が1:2・1:3 / 🟡 中級 回転・裏返し、3つ目の角の計算 / 🔴 上級 比が2:3・3:5 など</li>
+          <li>グリンピース（1日5回まで）: ① 正解1問につき 1個（上級2個） / ② 3ステージクリアで 5・8・12個</li>
+          <li>ベスト記録(端末ごと): ① 正解数 / ② クリアタイム</li>
+        </ul>
+      </div>
+    </div><!-- /game-pane-soji-hunter -->
   </div>
 
   <!-- 🧰 ツール管理ページ -->
@@ -1128,7 +1150,7 @@ function switchPage(name) {
 function switchGameTab(name) {
   currentGameTab = name;
   localStorage.setItem('adminCurrentGameTab', name);
-  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq', 'factor-defense', 'parabola-shot'].forEach(g => {
+  ['wall', 'rootbreak', 'numsort', 'cardmatch', 'cardmatch-sqrt', 'sqrt-memory', 'rootgem', 'sqrt-eq', 'factor-defense', 'parabola-shot', 'soji-hunter'].forEach(g => {
     const tab = document.getElementById('game-tab-' + g);
     const pane = document.getElementById('game-pane-' + g);
     if (tab) tab.classList.toggle('active', g === name);
@@ -1439,6 +1461,7 @@ async function loadQuestions() {
   renderSqrtEqPublishBar();
   renderFactorDefensePublishBar();
   renderParabolaShotPublishBar();
+  renderSojiHunterPublishBar();
   // NEWS 自動検知用にスナップショットを保存
   if (!Array.isArray(questionsData.news)) questionsData.news = [];
   originalSnapshot = JSON.parse(JSON.stringify(questionsData));
@@ -1840,6 +1863,7 @@ function toggleGamePublish(gameKey, gameLabel) {
   if (gameKey === 'sqrtEquation')  renderSqrtEqPublishBar();
   if (gameKey === 'factorDefense') renderFactorDefensePublishBar();
   if (gameKey === 'parabolaShot')  renderParabolaShotPublishBar();
+  if (gameKey === 'sojiHunter')    renderSojiHunterPublishBar();
   alert('変更しました。「🚀 GitHubに反映」で保存してください。');
 }
 
@@ -1869,6 +1893,10 @@ function renderFactorDefensePublishBar() {
 
 function renderParabolaShotPublishBar() {
   renderGamePublishBar('parabolaShot', '放物線シュート', 'parabola-shot-publish-bar');
+}
+
+function renderSojiHunterPublishBar() {
+  renderGamePublishBar('sojiHunter', '相似の三角形ハンター', 'soji-hunter-publish-bar');
 }
 
 // カードマッチ平方根版の公開/下書き状態を描画

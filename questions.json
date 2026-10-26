@@ -11048,7 +11048,8 @@
     "splashMountain": false,
     "parabolaMaker": false,
     "parabolaShot": false,
-    "brakeDistance": false
+    "brakeDistance": false,
+    "sojiHunter": false
   },
   "kyotsuingenWallRankings": {
     "lv1": [

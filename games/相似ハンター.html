@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>相似の三角形ハンター</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+    color: #fff;
+    user-select: none;
+    background: radial-gradient(ellipse at 50% 25%, #1d4a36 0%, #0e2a1f 55%, #06150f 100%);
+    touch-action: manipulation;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル / 結果 ===== */
+  #title-screen, #result-screen {
+    align-items: center; justify-content: center; gap: 16px;
+    padding: 22px; overflow-y: auto;
+  }
+  .title-emoji { font-size: 58px; }
+  .title-logo {
+    font-size: clamp(28px, 6.5vw, 50px); font-weight: 900; letter-spacing: 3px;
+    text-shadow: 0 3px 0 #2e7d32, 0 6px 20px rgba(102,187,106,0.5);
+    text-align: center;
+  }
+  .title-sub {
+    font-size: clamp(11px, 2.2vw, 15px); font-weight: bold; letter-spacing: 3px;
+    background: linear-gradient(90deg, #66bb6a, #26a69a); padding: 6px 22px; border-radius: 999px;
+  }
+  .mode-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .mode-card {
+    width: min(88vw, 300px); padding: 16px 18px; border-radius: 16px; cursor: pointer;
+    background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.25);
+    line-height: 1.6; font-size: 14px;
+  }
+  .mode-card h3 { font-size: 18px; margin-bottom: 4px; }
+  .mode-card.selected { border-color: #ffd54f; background: rgba(255,213,79,0.14); box-shadow: 0 0 16px rgba(255,213,79,0.35); }
+  .setup-block {
+    width: min(90vw, 620px); background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(102,187,106,0.35); border-radius: 16px; padding: 14px 18px;
+  }
+  .setup-block h4 {
+    font-size: 15px; color: #a5d6a7; margin-bottom: 10px;
+    border-left: 4px solid #66bb6a; padding-left: 8px;
+  }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 11px 18px; border-radius: 999px; font-size: 15px; font-weight: bold; cursor: pointer;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.25); color: #fff;
+  }
+  .chip.selected { background: #43a047; border-color: #c8e6c9; box-shadow: 0 0 12px rgba(165,214,167,0.5); }
+  .best-line { font-size: 13px; color: #c8e6c9; margin-top: 8px; }
+  .btn {
+    border: none; color: #fff; font-weight: bold; font-size: 17px; font-family: inherit;
+    padding: 14px 40px; border-radius: 999px; cursor: pointer; letter-spacing: 3px;
+    background: linear-gradient(180deg, #66bb6a, #2e7d32);
+    box-shadow: 0 4px 14px rgba(102,187,106,0.45);
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-go { font-size: 22px; padding: 16px 56px; }
+  .btn-back {
+    background: rgba(255,255,255,0.12); border: 1px solid #7f9c8c; box-shadow: none;
+    padding: 4px 14px; font-size: 12px; letter-spacing: 2px;
+  }
+  .btn-secondary { background: #fff; color: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+  /* ===== HUD ===== */
+  .hud {
+    padding: 8px 14px; background: rgba(0,0,0,0.5);
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-weight: bold;
+  }
+  .hud .stat { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+  .hud .num { font-size: 21px; font-family: 'Consolas', 'Menlo', monospace; color: #a5d6a7; }
+  .hud .label {
+    font-size: 11px; background: rgba(165,214,167,0.2); color: #c8e6c9;
+    padding: 2px 8px; border-radius: 999px; letter-spacing: 2px;
+  }
+
+  /* ===== 三角形カード(共通) ===== */
+  .tri-card {
+    background: #fffdf7; border-radius: 14px; position: relative;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35); border: 3px solid transparent;
+  }
+  .tri-card svg { display: block; width: 100%; height: auto; }
+  .tri-name {
+    position: absolute; top: 6px; left: 10px; color: #1b3a2a; font-weight: 900; font-size: 18px;
+  }
+
+  /* ===== モード① ===== */
+  .q1-body {
+    flex: 1; overflow-y: auto; padding: 12px 14px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .tri-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
+  .tri-row .tri-card { width: min(46vw, 380px); }
+  .q-text { font-size: clamp(15px, 2.6vw, 19px); font-weight: bold; text-align: center; line-height: 1.5; }
+  .q-text .hl { color: #ffd54f; }
+  .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: min(94vw, 760px); }
+  .choice {
+    font-family: inherit; font-size: clamp(13px, 2.2vw, 16px); font-weight: bold; line-height: 1.4;
+    padding: 12px 12px; border-radius: 12px; cursor: pointer; text-align: left;
+    background: #fff; color: #1b3a2a; border: 3px solid #81c784;
+    box-shadow: 0 3px 0 #388e3c;
+  }
+  .choice .no { display: inline-block; min-width: 1.6em; color: #2e7d32; font-size: 1.15em; }
+  .choice.no-sim { border-color: #ef9a9a; box-shadow: 0 3px 0 #c62828; }
+  .choice.no-sim .no { color: #c62828; }
+  .choice:active { transform: translateY(2px); box-shadow: 0 1px 0 #388e3c; }
+  .choice.correct { background: #e8f5e9; border-color: #2e7d32; }
+  .choice.wrong { background: #ffebee; border-color: #c62828; }
+  .choice:disabled { cursor: default; }
+  .expl {
+    width: min(94vw, 760px); background: #fff; color: #1b2a22; border-radius: 12px;
+    padding: 12px 16px; line-height: 1.7; font-size: clamp(14px, 2.3vw, 16px);
+    border-left: 8px solid #2e7d32;
+  }
+  .expl.ng { border-left-color: #c62828; }
+  .expl .head { font-weight: 900; font-size: 1.08em; margin-bottom: 4px; }
+  .expl .head.ok { color: #2e7d32; }
+  .expl .head.ng { color: #c62828; }
+  .expl .line { font-family: 'Cambria Math', 'Cambria', 'Yu Gothic', serif; }
+  .expl .bad { color: #c62828; font-weight: bold; }
+
+  /* ===== モード② ===== */
+  .board {
+    flex: 1; overflow-y: auto; padding: 10px 12px;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start;
+  }
+  /* タブレット縦は3列(8枚が1画面に入る)、スマホは2列 */
+  @media (orientation: portrait) {
+    .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .board .tri-card { cursor: pointer; transition: transform 0.1s; }
+  .board .tri-card:active { transform: scale(0.98); }
+  .board .tri-card.selected { border-color: #ffb300; box-shadow: 0 0 0 3px #ffe082, 0 4px 14px rgba(0,0,0,0.35); }
+  .board .tri-card.found { cursor: default; }
+  .board .tri-card.flash { animation: flashBad 0.6s; }
+  @keyframes flashBad {
+    0%, 100% { border-color: transparent; }
+    30%, 70% { border-color: #e53935; box-shadow: 0 0 0 3px #ef9a9a; }
+  }
+  .found-badge {
+    position: absolute; top: 6px; right: 8px; color: #fff; font-weight: 900; font-size: 13px;
+    padding: 2px 10px; border-radius: 999px;
+  }
+  .panel2 {
+    background: rgba(0,0,0,0.6); padding: 10px 14px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .msg2 { font-size: clamp(14px, 2.4vw, 17px); font-weight: bold; text-align: center; min-height: 1.5em; line-height: 1.5; }
+  .msg2.ok { color: #b9f6ca; }
+  .msg2.ng { color: #ff8a80; }
+  .cond-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .cond-row .choice { padding: 10px 12px; font-size: clamp(12px, 2vw, 15px); max-width: 300px; }
+  .cond-row .cancel { background: rgba(255,255,255,0.15); color: #fff; border-color: #9e9e9e; box-shadow: none; }
+
+  /* ステージクリア */
+  .stage-clear {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); z-index: 20; flex-direction: column; gap: 14px;
+  }
+  .stage-clear.show { display: flex; }
+  .stage-clear .big {
+    font-size: clamp(34px, 8vw, 60px); font-weight: 900; color: #ffd54f;
+    text-shadow: 0 4px 0 #6a4e00, 0 8px 24px rgba(255,221,90,0.6); animation: goDrop 0.5s ease-out;
+  }
+
+  /* ===== 結果 ===== */
+  .go-title {
+    font-size: clamp(34px, 8.5vw, 60px); font-weight: 900; letter-spacing: 5px; color: #ffdd5a;
+    text-shadow: 0 4px 0 #6a4e00, 0 8px 24px rgba(255,221,90,0.6); animation: goDrop 0.5s ease-out;
+    text-align: center;
+  }
+  @keyframes goDrop {
+    0% { transform: translateY(-40px) scale(1.4); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .go-label { font-size: 13px; color: #a5d6a7; letter-spacing: 3px; font-weight: bold; }
+  .go-big {
+    font-size: clamp(46px, 11vw, 80px); font-weight: 900; color: #ffdd5a; line-height: 1.1;
+    font-family: 'Consolas', 'Menlo', monospace; text-shadow: 0 4px 16px rgba(255,221,90,0.5);
+  }
+  .go-big .unit { font-size: 0.4em; color: #fff; }
+  #go-best { padding: 6px 18px; border-radius: 999px; font-weight: 900; font-size: 13px; letter-spacing: 2px; display: inline-block; }
+  .go-peas {
+    background: linear-gradient(135deg, #4caf50, #2e7d32); color: #fff; padding: 12px 32px; border-radius: 16px;
+    font-size: clamp(24px, 5.5vw, 36px); font-weight: 900; box-shadow: 0 6px 20px rgba(76,175,80,0.55);
+    display: inline-block; animation: peasPop 0.6s ease-out;
+  }
+  @keyframes peasPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .go-stat { background: rgba(255,255,255,0.08); padding: 10px 22px; border-radius: 10px; font-size: 14px; text-align: center; }
+  .go-stat strong { color: #a5d6a7; font-size: 20px; margin: 0 3px; }
+  .go-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <div id="title-screen" class="screen active">
+    <div class="title-emoji">🔺🔍</div>
+    <div class="title-logo">相似の三角形ハンター</div>
+    <div class="title-sub">SIMILAR TRIANGLE HUNTER</div>
+
+    <div class="mode-row" id="mode-cards">
+      <div class="mode-card selected" data-mode="1">
+        <h3>① 相似条件をえらべ</h3>
+        2つの三角形が、どの相似条件で相似といえるかを選ぶ。<br>
+        「相似とはいえない」もあるよ!<br>全10問
+      </div>
+      <div class="mode-card" data-mode="2">
+        <h3>② 相似な三角形をさがせ</h3>
+        8つの三角形から、相似な組を3つ見つけて相似条件を答える。<br>
+        相似ではない「おとり」も2つあるよ!<br>全3ステージ
+      </div>
+    </div>
+
+    <div class="setup-block">
+      <h4>レベルを選ぶ</h4>
+      <div class="chip-group" id="level-chips">
+        <div class="chip selected" data-val="easy">🟢 初級 (比が整数倍)</div>
+        <div class="chip" data-val="medium">🟡 中級 (回転・裏返し、角の計算)</div>
+        <div class="chip" data-val="hard">🔴 上級 (比が 2:3 など)</div>
+      </div>
+      <div class="best-line" id="best-line"></div>
+    </div>
+
+    <button class="btn btn-go" onclick="startGame()">スタート!</button>
+  </div>
+
+  <!-- モード① -->
+  <div id="q1-screen" class="screen">
+    <div class="hud">
+      <div class="stat"><span class="label">問題</span><span class="num" id="q1-no">1/10</span></div>
+      <div class="stat"><span class="label">正解</span><span class="num" id="q1-score">0</span></div>
+      <div class="stat"><span class="label">レベル</span><span class="num" id="q1-level" style="font-size:15px">―</span></div>
+      <button class="btn btn-back" onclick="quitGame()">終了</button>
+    </div>
+    <div class="q1-body">
+      <div class="tri-row">
+        <div class="tri-card"><div class="tri-name">△ABC</div><svg id="q1-svg1" viewBox="0 0 300 230"></svg></div>
+        <div class="tri-card"><div class="tri-name">△DEF</div><svg id="q1-svg2" viewBox="0 0 300 230"></svg></div>
+      </div>
+      <div class="q-text" id="q1-text"></div>
+      <div class="choices" id="q1-choices"></div>
+      <div class="expl" id="q1-expl" style="display:none"></div>
+      <button class="btn" id="q1-next" style="display:none" onclick="nextQ1()">次へ ▶</button>
+    </div>
+  </div>
+
+  <!-- モード② -->
+  <div id="q2-screen" class="screen">
+    <div class="hud">
+      <div class="stat"><span class="label">ステージ</span><span class="num" id="q2-stage">1/3</span></div>
+      <div class="stat"><span class="label">見つけた</span><span class="num" id="q2-found">0/3</span></div>
+      <div class="stat"><span class="label">ミス</span><span class="num" id="q2-miss">0</span></div>
+      <div class="stat"><span class="label">タイム</span><span class="num" id="q2-time">0</span></div>
+      <button class="btn btn-back" onclick="quitGame()">終了</button>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="panel2">
+      <div class="msg2" id="msg2"></div>
+      <div class="cond-row" id="cond-row"></div>
+    </div>
+    <div class="stage-clear" id="stage-clear">
+      <div class="big" id="stage-clear-text">STAGE CLEAR!</div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-screen" class="screen">
+    <div class="go-title" id="go-title">🏆 おつかれさま!</div>
+    <div style="text-align:center">
+      <div class="go-label" id="go-label">正解数</div>
+      <div class="go-big"><span id="go-main">0</span><span class="unit" id="go-unit"> / 10 問</span></div>
+      <div id="go-best" style="margin-top:6px"></div>
+    </div>
+    <div class="go-peas" id="go-peas-block" style="display:none">🟢 +<span id="go-peas">0</span> グリンピース!</div>
+    <div class="go-stat" id="go-capped" style="display:none">🌱 グリンピースは 1日5回まで。今日の分はもらいきったよ! (また明日)</div>
+    <div class="go-stat" id="go-stat"></div>
+    <div class="go-buttons">
+      <button class="btn" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="backToTitle()">メニューへ</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="../student-guard.js?v=2"></script>
+<script>
+// =====================================================
+//  設定
+// =====================================================
+const COND = {
+  SSS: { no: '①', text: '3組の辺の比が、すべて等しい' },
+  SAS: { no: '②', text: '2組の辺の比とその間の角が、それぞれ等しい' },
+  AA:  { no: '③', text: '2組の角が、それぞれ等しい' },
+  NO:  { no: '✖', text: '相似とはいえない' },
+};
+const LEVEL_LABEL = { easy: '初級', medium: '中級', hard: '上級' };
+const Q1_TOTAL = 10;
+const Q2_STAGES = 3;
+// モード①の「相似とはいえない」の問題数(10問中)
+const Q1_NO_COUNT = { easy: 2, medium: 3, hard: 4 };
+// グリンピース: ①は正解1問ごと / ②は3ステージクリアで
+const PEAS1 = { easy: 1, medium: 1, hard: 2 };
+const PEAS2 = { easy: 5, medium: 8, hard: 12 };
+const PAIR_COLORS = ['#43a047', '#1e88e5', '#fb8c00'];
+const KANA = ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク'];
+
+// 三角形のもと(辺はすべてちがう長さ＝二等辺三角形にしない)
+const SSS_BASES = [[2,3,4],[3,4,6],[3,5,7],[4,5,6],[4,6,7],[5,6,8],[4,7,9],[5,7,8],
+                   [3,4,5],[2,4,5],[3,6,7],[4,5,7],[6,7,8],[5,6,9]];
+const SAS_BASES = [[3,4],[4,5],[3,5],[5,6],[5,7],[4,7],[6,7],[3,7],[2,5],[4,9],[5,8]];
+const SAS_ANGLES = [40, 45, 50, 55, 60, 65, 70, 75, 80, 100, 110];
+// [もとの三角形の倍率, 相手の倍率]
+const MULTS = {
+  easy:   [[1,2],[1,3],[2,1],[3,1]],
+  medium: [[1,2],[1,3],[2,1],[3,1],[1,4],[4,1]],
+  hard:   [[2,3],[3,2],[3,4],[4,3],[2,5],[5,2],[3,5],[5,3]],
+};
+const MAX_SIDE = 40;
+
+// =====================================================
+//  小さな道具
+// =====================================================
+const DEG = Math.PI / 180;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function shuffle(a) {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; }
+function ratioText(x, y) {
+  const g = gcd(x, y);
+  return g > 1 ? `${x} : ${y} = ${x / g} : ${y / g}` : `${x} : ${y}`;
+}
+function pickMult(level, maxBase) {
+  const ok = MULTS[level].filter(([m, n]) => maxBase * Math.max(m, n) <= MAX_SIDE);
+  return pick(ok.length ? ok : [[1, 2]]);
+}
+
+// ---- 三角形の形(頂点 0,1,2 / 辺 a=12, b=20, c=01) ----
+function anglesFromSides(a, b, c) {
+  const A = Math.acos((b * b + c * c - a * a) / (2 * b * c)) / DEG;
+  const B = Math.acos((a * a + c * c - b * b) / (2 * a * c)) / DEG;
+  return [A, B, 180 - A - B];
+}
+function geoFromSides(a, b, c) {
+  const B = anglesFromSides(a, b, c)[1] * DEG;
+  return [[c * Math.cos(B), c * Math.sin(B)], [0, 0], [a, 0]];
+}
+function validTri(a, b, c) { return a + b > c + 0.2 && b + c > a + 0.2 && c + a > b + 0.2; }
+// 細すぎる三角形(数字が重なる)にしない: どの角も 20° 以上
+function fatTri(a, b, c) { return validTri(a, b, c) && Math.min(...anglesFromSides(a, b, c)) >= 20; }
+function fatSAS(s1, s2, ang) { return fatTri(s2, sasThird(s1, s2, ang), s1); }
+function geoFromAngles(A, B) {
+  const C = 180 - A - B;
+  return geoFromSides(Math.sin(A * DEG), Math.sin(B * DEG), Math.sin(C * DEG));
+}
+// 頂点1 の角が ang、辺 01 = s1, 辺 12 = s2
+function sasThird(s1, s2, ang) { return Math.sqrt(s1 * s1 + s2 * s2 - 2 * s1 * s2 * Math.cos(ang * DEG)); }
+function geoFromSAS(s1, s2, ang) { return geoFromSides(s2, sasThird(s1, s2, ang), s1); }
+// 角がどれも 8° 以上ちがう(見た目で二等辺に見えない)
+function distinctAngles(angs) {
+  return Math.abs(angs[0] - angs[1]) >= 8 && Math.abs(angs[1] - angs[2]) >= 8 && Math.abs(angs[0] - angs[2]) >= 8;
+}
+function randAngles() {
+  for (;;) {
+    const a = pick([35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85]);
+    const b = pick([30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105]);
+    const c = 180 - a - b;
+    if (c < 30) continue;
+    if (Math.abs(a - b) < 10 || Math.abs(a - c) < 10 || Math.abs(b - c) < 10) continue;
+    return [a, b, c];
+  }
+}
+
+// =====================================================
+//  三角形の描画(SVG)
+// =====================================================
+// tri = { geo:[[x,y]×3], labels:[..]|null, info:[{k:'side',i,j,val}|{k:'angle',i,val}], rot, flip, size }
+function renderTri(svg, tri, W, H, pad) {
+  let pts = tri.geo.map(([x, y]) => [tri.flip ? -x : x, -y]);
+  const c = Math.cos(tri.rot * DEG), s = Math.sin(tri.rot * DEG);
+  pts = pts.map(([x, y]) => [x * c - y * s, x * s + y * c]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const bw = Math.max(...xs) - Math.min(...xs), bh = Math.max(...ys) - Math.min(...ys);
+  const k = Math.min((W - 2 * pad) / bw, (H - 2 * pad) / bh) * (tri.size || 1);
+  const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+  pts = pts.map(([x, y]) => [W / 2 + (x - cx) * k, H / 2 + (y - cy) * k + 6]);
+  const G = [(pts[0][0] + pts[1][0] + pts[2][0]) / 3, (pts[0][1] + pts[1][1] + pts[2][1]) / 3];
+  const unit = (x, y) => { const L = Math.hypot(x, y) || 1; return [x / L, y / L]; };
+  const halo = 'paint-order="stroke" stroke="#fffdf7" stroke-width="5" stroke-linejoin="round"';
+  let out = `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="#e8f5e9" stroke="#1b3a2a" stroke-width="2.6" stroke-linejoin="round"/>`;
+
+  // 角(弧＋大きさ)
+  const angLabels = [];
+  for (const it of tri.info.filter(t => t.k === 'angle')) {
+    const P = pts[it.i], Q = pts[(it.i + 1) % 3], R = pts[(it.i + 2) % 3];
+    const u1 = unit(Q[0] - P[0], Q[1] - P[1]), u2 = unit(R[0] - P[0], R[1] - P[1]);
+    const r = Math.max(14, Math.min(24, 0.3 * Math.min(Math.hypot(Q[0] - P[0], Q[1] - P[1]), Math.hypot(R[0] - P[0], R[1] - P[1]))));
+    const sweep = (u1[0] * u2[1] - u1[1] * u2[0]) > 0 ? 1 : 0;
+    const p1 = [P[0] + u1[0] * r, P[1] + u1[1] * r], p2 = [P[0] + u2[0] * r, P[1] + u2[1] * r];
+    out += `<path d="M ${p1[0]} ${p1[1]} A ${r} ${r} 0 0 ${sweep} ${p2[0]} ${p2[1]}" fill="none" stroke="#c62828" stroke-width="2.2"/>`;
+    angLabels.push({ P, bi: unit(u1[0] + u2[0], u1[1] + u2[1]), d: r + 15, val: it.val });
+  }
+  // 2つの角の数字が重なりそうなら、角の奥へずらす
+  const lpos = l => [l.P[0] + l.bi[0] * l.d, l.P[1] + l.bi[1] * l.d];
+  for (let step = 0; step < 6; step++) {
+    let moved = false;
+    for (let a = 0; a < angLabels.length; a++)
+      for (let b = a + 1; b < angLabels.length; b++) {
+        const pa = lpos(angLabels[a]), pb = lpos(angLabels[b]);
+        if (Math.abs(pa[0] - pb[0]) < 40 && Math.abs(pa[1] - pb[1]) < 20) { angLabels[a].d += 7; angLabels[b].d += 7; moved = true; }
+      }
+    if (!moved) break;
+  }
+  for (const l of angLabels) {
+    const [lx, ly] = lpos(l);
+    out += `<text x="${lx}" y="${ly}" font-size="15" font-weight="bold" fill="#c62828" text-anchor="middle" dominant-baseline="central" ${halo}>${l.val}°</text>`;
+  }
+  // 辺の長さ
+  for (const it of tri.info.filter(t => t.k === 'side')) {
+    const P = pts[it.i], Q = pts[it.j];
+    const M = [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2];
+    const n = unit(M[0] - G[0], M[1] - G[1]);
+    out += `<text x="${M[0] + n[0] * 15}" y="${M[1] + n[1] * 15}" font-size="17" font-weight="bold" fill="#0d47a1" text-anchor="middle" dominant-baseline="central" ${halo}>${it.val}</text>`;
+  }
+  // 頂点の文字
+  if (tri.labels) {
+    pts.forEach((P, i) => {
+      const n = unit(P[0] - G[0], P[1] - G[1]);
+      out += `<text x="${P[0] + n[0] * 16}" y="${P[1] + n[1] * 16}" font-size="18" font-weight="900" fill="#1b1b1b" text-anchor="middle" dominant-baseline="central" ${halo}>${tri.labels[i]}</text>`;
+    });
+  }
+  svg.innerHTML = out;
+}
+
+// =====================================================
+//  問題づくり(共通)
+//  どの三角形も「頂点 i どうしが対応」するように作る
+// =====================================================
+function sidesInfo(vals) {   // vals = [a(12), b(20), c(01)]
+  return [{ k: 'side', i: 1, j: 2, val: vals[0] }, { k: 'side', i: 2, j: 0, val: vals[1] }, { k: 'side', i: 0, j: 1, val: vals[2] }];
+}
+function anglePair(angs, pair) { return pair.map(i => ({ k: 'angle', i, val: angs[i] })); }
+const PAIRS3 = [[0, 1], [1, 2], [2, 0]];
+
+// ---- 相似になる2つ ----
+function makeSimilar(type, level) {
+  if (type === 'SSS') {
+    const base = pick(SSS_BASES);
+    const [m, n] = pickMult(level, Math.max(...base));
+    const geo = geoFromSides(...base);
+    const v1 = base.map(x => x * m), v2 = base.map(x => x * n);
+    return { type, base, t1: { geo, info: sidesInfo(v1), scale: m }, t2: { geo, info: sidesInfo(v2), scale: n },
+             desc1: { t: 'SSS', s: v1.slice().sort((a, b) => a - b) }, desc2: { t: 'SSS', s: v2.slice().sort((a, b) => a - b) } };
+  }
+  if (type === 'SAS') {
+    for (;;) {
+      const [s1, s2] = shuffle(pick(SAS_BASES));
+      const ang = pick(SAS_ANGLES);
+      const third = sasThird(s1, s2, ang);
+      if (Math.abs(third - s1) < 0.6 || Math.abs(third - s2) < 0.6) continue;
+      if (!distinctAngles(anglesFromSides(s2, third, s1)) || !fatSAS(s1, s2, ang)) continue;
+      const [m, n] = pickMult(level, Math.max(s1, s2));
+      const geo = geoFromSAS(s1, s2, ang);
+      const info = (k) => [{ k: 'side', i: 0, j: 1, val: s1 * k }, { k: 'side', i: 1, j: 2, val: s2 * k }, { k: 'angle', i: 1, val: ang }];
+      return { type, s1, s2, ang, t1: { geo, info: info(m), scale: m }, t2: { geo, info: info(n), scale: n },
+               desc1: { t: 'SAS', s1: s1 * m, s2: s2 * m, ang }, desc2: { t: 'SAS', s1: s1 * n, s2: s2 * n, ang } };
+    }
+  }
+  // AA
+  const angs = randAngles();
+  const geo = geoFromAngles(angs[0], angs[1]);
+  const p1 = pick(PAIRS3);
+  const p2 = level === 'easy' ? p1 : pick(PAIRS3);
+  const d = { t: 'AA', ang: angs.slice().sort((a, b) => a - b) };
+  return { type: 'AA', angs, pair1: p1, pair2: p2,
+           t1: { geo, info: anglePair(angs, p1), scale: 0 }, t2: { geo, info: anglePair(angs, p2), scale: 0 },
+           desc1: d, desc2: d };
+}
+
+// ---- 相似とはいえない2つ(モード①) ----
+function makeNotSimilar(kind, level) {
+  if (kind === 'SSS_off') {
+    for (;;) {
+      const base = pick(SSS_BASES);
+      const [m, n] = pickMult(level, Math.max(...base) + 1);
+      const v1 = base.map(x => x * m);
+      const v2 = base.map(x => x * n);
+      const idx = Math.floor(Math.random() * 3);
+      v2[idx] += pick([-1, 1]) * (n >= 3 ? 2 : 1);
+      if (!fatTri(...v2) || new Set(v2).size < 3) continue;
+      return { kind, t1: { geo: geoFromSides(...v1), info: sidesInfo(v1), scale: m },
+               t2: { geo: geoFromSides(...v2), info: sidesInfo(v2), scale: n }, v1, v2, idx };
+    }
+  }
+  if (kind === 'AA_off') {
+    for (;;) {
+      const angs = randAngles();
+      const p = pick(PAIRS3);
+      const angs2 = angs.slice();
+      const which = pick(p);
+      angs2[which] += pick([-10, 10]);
+      const others = [0, 1, 2].filter(i => i !== which);
+      // 3つ目の角で帳尻をあわせる(表示しない角)
+      const hidden = [0, 1, 2].find(i => !p.includes(i));
+      angs2[hidden] = 180 - angs2[p[0]] - angs2[p[1]];
+      if (angs2[hidden] < 25 || !distinctAngles(angs2)) continue;
+      return { kind, t1: { geo: geoFromAngles(angs[0], angs[1]), info: anglePair(angs, p), scale: 0 },
+               t2: { geo: geoFromAngles(angs2[0], angs2[1]), info: anglePair(angs2, p), scale: 0 },
+               angs, angs2, which, pair: p, others };
+    }
+  }
+  if (kind === 'SAS_wrong') {
+    for (;;) {
+      const [s1, s2] = shuffle(pick(SAS_BASES));
+      const ang = pick(SAS_ANGLES);
+      const ang2 = ang + pick([-15, 15]);
+      if (ang2 < 30 || ang2 > 130) continue;
+      if (!distinctAngles(anglesFromSides(s2, sasThird(s1, s2, ang), s1))) continue;
+      if (!fatSAS(s1, s2, ang) || !fatSAS(s1, s2, ang2)) continue;
+      const [m, n] = pickMult(level, Math.max(s1, s2));
+      const info = (k, a) => [{ k: 'side', i: 0, j: 1, val: s1 * k }, { k: 'side', i: 1, j: 2, val: s2 * k }, { k: 'angle', i: 1, val: a }];
+      return { kind, t1: { geo: geoFromSAS(s1, s2, ang), info: info(m, ang), scale: m },
+               t2: { geo: geoFromSAS(s1, s2, ang2), info: info(n, ang2), scale: n }, s1, s2, m, n, ang, ang2 };
+    }
+  }
+  if (kind === 'SSA') {
+    // 辺 12 = a、辺 01 = c、角は頂点2(2辺の間ではない) → 三角形が2通りできる
+    for (;;) {
+      const a = pick([6, 7, 8, 9, 10]);
+      const C = pick([30, 35, 40]);
+      const h = a * Math.sin(C * DEG);
+      const cands = [];
+      for (let c = 2; c < a; c++) if (c > h + 0.7 && c < a - 0.7) cands.push(c);
+      if (!cands.length) continue;
+      const c = pick(cands);
+      const root = Math.sqrt(c * c - h * h);
+      const b1 = a * Math.cos(C * DEG) + root, b2 = a * Math.cos(C * DEG) - root;
+      if (b2 < 1.5 || !fatTri(a, b1, c) || !fatTri(a, b2, c)) continue;
+      const [m, n] = pickMult(level, a);
+      const info = (k) => [{ k: 'side', i: 1, j: 2, val: a * k }, { k: 'side', i: 0, j: 1, val: c * k }, { k: 'angle', i: 2, val: C }];
+      const swap = Math.random() < 0.5;
+      return { kind, t1: { geo: geoFromSides(a, swap ? b2 : b1, c), info: info(m), scale: m },
+               t2: { geo: geoFromSides(a, swap ? b1 : b2, c), info: info(n), scale: n }, a, c, C, m, n };
+    }
+  }
+  // SA: 1組の辺と1組の角だけ
+  for (;;) {
+    const [s1, s2] = shuffle(pick(SAS_BASES));
+    const ang = pick(SAS_ANGLES);
+    const s2b = s2 + pick([-2, 2, 3]);
+    if (s2b < 2) continue;
+    const [m, n] = pickMult(level, s1);
+    const info = (k) => [{ k: 'side', i: 0, j: 1, val: s1 * k }, { k: 'angle', i: 1, val: ang }];
+    if (!distinctAngles(anglesFromSides(s2, sasThird(s1, s2, ang), s1))) continue;
+    if (!fatSAS(s1, s2, ang) || !fatSAS(s1, s2b, ang)) continue;
+    return { kind: 'SA', t1: { geo: geoFromSAS(s1, s2, ang), info: info(m), scale: m },
+             t2: { geo: geoFromSAS(s1, s2b, ang), info: info(n), scale: n }, s1, m, n, ang };
+  }
+}
+
+// =====================================================
+//  モード① 相似条件をえらべ
+// =====================================================
+const S = {
+  mode: 1, level: 'easy', gameId: 0,
+  // ①
+  queue: [], qi: 0, score: 0, cur: null, step: 'cond',
+  // ②
+  stage: 0, board: [], sel: [], found: 0, miss: 0, startAt: 0, timerId: null,
+};
+
+function q1Types(level) {
+  const noKinds = { easy: ['SSS_off', 'AA_off'],
+                    medium: ['SSS_off', 'AA_off', 'SAS_wrong', 'SSA'],
+                    hard: ['SSS_off', 'AA_off', 'SAS_wrong', 'SSA', 'SA'] }[level];
+  const nNo = Q1_NO_COUNT[level];
+  const yes = [];
+  for (let i = 0; i < Q1_TOTAL - nNo; i++) yes.push(['SSS', 'SAS', 'AA'][i % 3]);
+  const no = shuffle(noKinds.concat(noKinds)).slice(0, nNo).map(k => 'NO:' + k);
+  return shuffle(yes.concat(no));
+}
+
+// 頂点の文字を決める(対応はランダム)
+function labelPair() { return { L1: shuffle(['A', 'B', 'C']), L2: shuffle(['D', 'E', 'F']) }; }
+// △ABC の辺の名前を AB / BC / CA の向きにそろえ、相手も同じ対応順で書く
+function sideNames(L1, L2, i, j) {
+  const p = L1[i] + L1[j];
+  if (['AB', 'BC', 'CA'].includes(p)) return [p, L2[i] + L2[j]];
+  return [L1[j] + L1[i], L2[j] + L2[i]];
+}
+// 辺の比の行を AB → BC → CA の順に並べる
+function sortSideLines(lines) {
+  const order = ['AB', 'BC', 'CA'];
+  lines.sort((x, y) => order.indexOf(x.text.slice(0, 2)) - order.indexOf(y.text.slice(0, 2)));
+}
+
+function buildQ1(spec, level) {
+  const { L1, L2 } = labelPair();
+  const rot1 = level === 'hard' ? Math.random() * 360 : (level === 'medium' ? Math.random() * 60 - 30 : 0);
+  const rot2 = level === 'easy' ? rot1 : Math.random() * 360;
+  const flip2 = level !== 'easy' && Math.random() < 0.5;
+  const q = { L1, L2, lines: [] };
+  let t1, t2;
+  const sideLine = (it1, it2, bad) => {
+    const [n1, n2] = sideNames(L1, L2, it1.i, it1.j);
+    return { text: `${n1} : ${n2} = ${ratioText(it1.val, it2.val)}`, bad };
+  };
+
+  if (!spec.startsWith('NO:')) {
+    const sim = makeSimilar(spec, level);
+    q.answer = spec;
+    t1 = sim.t1; t2 = sim.t2;
+    if (spec === 'SSS') {
+      t1.info.forEach((it, k) => q.lines.push(sideLine(it, t2.info[k])));
+      sortSideLines(q.lines);
+    } else if (spec === 'SAS') {
+      q.lines.push(sideLine(t1.info[0], t2.info[0]));
+      q.lines.push(sideLine(t1.info[1], t2.info[1]));
+      q.lines.push({ text: `∠${L1[1]} = ∠${L2[1]} = ${t1.info[2].val}° (2組の辺の間の角)` });
+    } else {
+      // AA: 2つの三角形で見えている角がちがうときは、△ABC の残りの角を計算するとそろう
+      const shown1 = sim.pair1, shown2 = sim.pair2;
+      let use = shown1;
+      if (shown1.slice().sort().join() !== shown2.slice().sort().join()) {
+        const miss1 = [0, 1, 2].find(i => !shown1.includes(i));   // = △DEF に見えている角のうち △ABC に見えていない方
+        q.lines.push({ text: `△ABC で ∠${L1[miss1]} = 180° − ${sim.angs[shown1[0]]}° − ${sim.angs[shown1[1]]}° = ${sim.angs[miss1]}°` });
+        use = shown2;
+      }
+      use.slice().sort((i, j) => (L1[i] < L1[j] ? -1 : 1))
+         .forEach(i => q.lines.push({ text: `∠${L1[i]} = ∠${L2[i]} = ${sim.angs[i]}°` }));
+    }
+  } else {
+    const kind = spec.slice(3);
+    const ns = makeNotSimilar(kind, level);
+    q.answer = 'NO';
+    t1 = ns.t1; t2 = ns.t2;
+    if (kind === 'SSS_off') {
+      // ns.idx の辺だけ長さをずらしてある(info の並びも [12, 20, 01] で同じ)
+      t1.info.forEach((it, k) => q.lines.push(sideLine(it, t2.info[k], k === ns.idx)));
+      sortSideLines(q.lines);
+      q.lines.push({ text: '→ 比が等しくない組がある', bad: true });
+    } else if (kind === 'AA_off') {
+      ns.pair.forEach(i => {
+        const v1 = ns.angs[i], v2 = ns.angs2[i];
+        q.lines.push({ text: `∠${L1[i]} = ${v1}°、∠${L2[i]} = ${v2}°` + (v1 === v2 ? '' : ' → 等しくない'), bad: v1 !== v2 });
+      });
+    } else if (kind === 'SAS_wrong') {
+      q.lines.push(sideLine(t1.info[0], t2.info[0]));
+      q.lines.push(sideLine(t1.info[1], t2.info[1]));
+      q.lines.push({ text: `間の角 ∠${L1[1]} = ${ns.ang}°、∠${L2[1]} = ${ns.ang2}° → 等しくない`, bad: true });
+    } else if (kind === 'SSA') {
+      q.lines.push(sideLine(t1.info[0], t2.info[0]));
+      q.lines.push(sideLine(t1.info[1], t2.info[1]));
+      q.lines.push({ text: `∠${L1[2]} = ∠${L2[2]} = ${ns.C}° だけど、2組の辺の間の角ではない`, bad: true });
+      q.lines.push({ text: '→ 同じ条件で形のちがう三角形がかけてしまう(2つの図の形がちがう!)', bad: true });
+    } else {
+      q.lines.push(sideLine(t1.info[0], t2.info[0]));
+      q.lines.push({ text: `∠${L1[1]} = ∠${L2[1]} = ${ns.ang}°` });
+      q.lines.push({ text: '→ わかっているのは「1組の辺の比」と「1組の角」だけ。条件が足りない', bad: true });
+    }
+  }
+  // 大きいほうを大きく描く(辺の長さがない問題は少し大きさを変えるだけ)
+  const big = Math.max(t1.scale || 1, t2.scale || 1);
+  t1.size = t1.scale ? 0.55 + 0.45 * t1.scale / big : 0.8;
+  t2.size = t2.scale ? 0.55 + 0.45 * t2.scale / big : 1;
+  t1.labels = L1; t2.labels = L2;
+  t1.rot = rot1; t2.rot = rot2; t1.flip = false; t2.flip = flip2;
+  q.t1 = t1; q.t2 = t2;
+  return q;
+}
+
+function startQ1() {
+  S.queue = q1Types(S.level).map(spec => buildQ1(spec, S.level));
+  S.qi = 0; S.score = 0;
+  document.getElementById('q1-level').textContent = LEVEL_LABEL[S.level];
+  showScreen('q1-screen');
+  showQ1();
+}
+
+function showQ1() {
+  const q = S.queue[S.qi];
+  S.cur = q; S.step = 'cond';
+  document.getElementById('q1-no').textContent = `${S.qi + 1}/${Q1_TOTAL}`;
+  document.getElementById('q1-score').textContent = S.score;
+  renderTri(document.getElementById('q1-svg1'), q.t1, 300, 230, 34);
+  renderTri(document.getElementById('q1-svg2'), q.t2, 300, 230, 34);
+  document.getElementById('q1-text').innerHTML =
+    '△ABC と △DEF は相似といえる？ いえるなら、<span class="hl">どの相似条件</span>？';
+  const box = document.getElementById('q1-choices');
+  box.innerHTML = ['SSS', 'SAS', 'AA', 'NO'].map(k =>
+    `<button class="choice${k === 'NO' ? ' no-sim' : ''}" data-ans="${k}"><span class="no">${COND[k].no}</span>${COND[k].text}</button>`).join('');
+  box.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => answerCond(b)));
+  document.getElementById('q1-expl').style.display = 'none';
+  document.getElementById('q1-next').style.display = 'none';
+  document.querySelector('.q1-body').scrollTop = 0;
+}
+
+function answerCond(btn) {
+  if (S.step !== 'cond') return;
+  const q = S.cur;
+  const ok = btn.dataset.ans === q.answer;
+  document.querySelectorAll('#q1-choices .choice').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.ans === q.answer) b.classList.add('correct');
+  });
+  if (!ok) btn.classList.add('wrong');
+  finishQ1(ok);
+}
+
+function finishQ1(ok) {
+  const q = S.cur;
+  S.step = 'done';
+  if (ok) S.score++;
+  document.getElementById('q1-score').textContent = S.score;
+  const ex = document.getElementById('q1-expl');
+  const head = ok ? '⭕ 正解!' : '❌ ざんねん';
+  let html = `<div class="head ${ok ? 'ok' : 'ng'}">${head}　答え: ${COND[q.answer].no} ${COND[q.answer].text}</div>`;
+  html += q.lines.map(l => `<div class="line${l.bad ? ' bad' : ''}">${l.text}</div>`).join('');
+  ex.innerHTML = html;
+  ex.className = 'expl' + (ok ? '' : ' ng');
+  ex.style.display = 'block';
+  const nx = document.getElementById('q1-next');
+  nx.textContent = S.qi + 1 >= Q1_TOTAL ? '結果を見る ▶' : '次へ ▶';
+  nx.style.display = 'inline-block';
+  setTimeout(() => ex.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+function nextQ1() {
+  S.qi++;
+  if (S.qi >= Q1_TOTAL) { finishGame(); return; }
+  showQ1();
+}
+
+// =====================================================
+//  モード② 相似な三角形をさがせ
+// =====================================================
+// 見えている情報だけで相似が言えるか
+function provable(d1, d2) {
+  if (d1.t !== d2.t) return false;
+  const eq = (x, y) => Math.abs(x - y) < 1e-9;
+  if (d1.t === 'SSS') { const r = d1.s[0] / d2.s[0]; return eq(d1.s[1] / d2.s[1], r) && eq(d1.s[2] / d2.s[2], r); }
+  if (d1.t === 'SAS') {
+    if (d1.ang !== d2.ang) return false;
+    return eq(d1.s1 / d2.s1, d1.s2 / d2.s2) || eq(d1.s1 / d2.s2, d1.s2 / d2.s1);
+  }
+  return d1.ang.every((v, i) => eq(v, d2.ang[i]));
+}
+
+// おとり: 同じ種類の相似な組(sim)に似せて、少しだけずらす
+function makeDecoy(sim, level) {
+  if (sim.type === 'SSS') {
+    for (;;) {
+      const f = pick(level === 'hard' ? [2, 3, 4] : [1, 2, 3]);
+      const v = sim.base.map(x => x * f);
+      v[Math.floor(Math.random() * 3)] += pick([-1, 1]);   // 1つの辺だけ 1 ずらす
+      if (!fatTri(...v) || new Set(v).size < 3) continue;
+      return { geo: geoFromSides(...v), info: sidesInfo(v), scale: f, desc: { t: 'SSS', s: v.slice().sort((a, b) => a - b) } };
+    }
+  }
+  if (sim.type === 'SAS') {
+    for (;;) {
+      const f = pick([1, 2, 3]);
+      let s1 = sim.s1 * f, s2 = sim.s2 * f, ang = sim.ang;
+      if (Math.random() < 0.5) ang += pick([-15, 15]);   // 間の角だけずらす
+      else s2 += pick([-1, 1]);                          // 辺の比だけずらす
+      if (ang < 30 || ang > 130 || s2 < 2) continue;
+      if (!distinctAngles(anglesFromSides(s2, sasThird(s1, s2, ang), s1)) || !fatSAS(s1, s2, ang)) continue;
+      return { geo: geoFromSAS(s1, s2, ang),
+               info: [{ k: 'side', i: 0, j: 1, val: s1 }, { k: 'side', i: 1, j: 2, val: s2 }, { k: 'angle', i: 1, val: ang }],
+               scale: f, desc: { t: 'SAS', s1, s2, ang } };
+    }
+  }
+  for (;;) {
+    // 角の1つだけ 10° ずらす(見えている2つの角のうち1つは同じ)
+    const angs = sim.angs.slice();
+    const p = pick(PAIRS3);
+    angs[pick(p)] += pick([-10, 10]);
+    const hidden = [0, 1, 2].find(i => !p.includes(i));
+    angs[hidden] = 180 - angs[p[0]] - angs[p[1]];
+    if (angs[hidden] < 25 || !distinctAngles(angs)) continue;
+    return { geo: geoFromAngles(angs[0], angs[1]), info: anglePair(angs, p), scale: 0,
+             desc: { t: 'AA', ang: angs.slice().sort((a, b) => a - b) } };
+  }
+}
+
+function genBoard(level) {
+  for (let tries = 0; tries < 500; tries++) {
+    const tris = [];
+    const sims = [];
+    shuffle(['SSS', 'SAS', 'AA']).forEach((t, pi) => {
+      const sim = makeSimilar(t, level);
+      sims.push(sim);
+      tris.push(Object.assign(sim.t1, { pair: pi, cond: t, desc: sim.desc1 }));
+      tris.push(Object.assign(sim.t2, { pair: pi, cond: t, desc: sim.desc2 }));
+    });
+    // おとりは2つ。相似な組のどれかに似せる(比べたくなるように)
+    shuffle(sims).slice(0, 2).forEach(sim => tris.push(Object.assign(makeDecoy(sim, level), { pair: -1, cond: sim.type })));
+    // ねらった組だけが相似になっているか確認
+    let ok = true;
+    for (let i = 0; i < tris.length && ok; i++)
+      for (let j = i + 1; j < tris.length && ok; j++) {
+        const want = tris[i].pair >= 0 && tris[i].pair === tris[j].pair;
+        if (provable(tris[i].desc, tris[j].desc) !== want) ok = false;
+      }
+    if (!ok) continue;
+    const maxScale = Math.max(...tris.map(t => t.scale || 0), 1);
+    tris.forEach(t => {
+      t.size = t.scale ? 0.72 + 0.28 * t.scale / maxScale : 0.85 + Math.random() * 0.15;
+      t.rot = level === 'easy' ? Math.random() * 50 - 25 : Math.random() * 360;
+      t.flip = level !== 'easy' && Math.random() < 0.5;
+      t.labels = null;
+      t.done = false;
+    });
+    return shuffle(tris);
+  }
+  throw new Error('board generation failed');
+}
+
+function startQ2() {
+  S.stage = 0; S.miss = 0;
+  S.startAt = performance.now();
+  clearInterval(S.timerId);
+  S.timerId = setInterval(updateQ2Time, 200);
+  showScreen('q2-screen');
+  nextStage();
+}
+function updateQ2Time() {
+  document.getElementById('q2-time').textContent = Math.floor((performance.now() - S.startAt) / 1000);
+}
+
+function nextStage() {
+  S.stage++;
+  S.board = genBoard(S.level);
+  S.sel = []; S.found = 0;
+  document.getElementById('q2-stage').textContent = `${S.stage}/${Q2_STAGES}`;
+  document.getElementById('q2-found').textContent = '0/3';
+  document.getElementById('q2-miss').textContent = S.miss;
+  const board = document.getElementById('board');
+  board.innerHTML = S.board.map((t, i) =>
+    `<div class="tri-card" data-i="${i}"><div class="tri-name">${KANA[i]}</div><svg viewBox="0 0 240 190"></svg></div>`).join('');
+  board.querySelectorAll('.tri-card').forEach((el, i) => {
+    renderTri(el.querySelector('svg'), S.board[i], 240, 190, 30);
+    el.addEventListener('click', () => tapCard(i));
+  });
+  board.scrollTop = 0;
+  setMsg2('相似な三角形を2つタップしよう(相似な組は3つ)', '');
+  renderCondRow();
+}
+
+function setMsg2(text, cls) {
+  const m = document.getElementById('msg2');
+  m.textContent = text;
+  m.className = 'msg2' + (cls ? ' ' + cls : '');
+}
+
+function tapCard(i) {
+  const t = S.board[i];
+  if (t.done || S.busy) return;
+  const k = S.sel.indexOf(i);
+  if (k >= 0) S.sel.splice(k, 1);
+  else if (S.sel.length < 2) S.sel.push(i);
+  else S.sel = [S.sel[1], i];
+  refreshSel();
+}
+
+function refreshSel() {
+  document.querySelectorAll('#board .tri-card').forEach((el, i) => el.classList.toggle('selected', S.sel.includes(i)));
+  if (S.sel.length === 2) setMsg2(`${KANA[S.sel[0]]} と ${KANA[S.sel[1]]}。どの相似条件で相似？`, '');
+  else if (S.sel.length === 1) setMsg2(`${KANA[S.sel[0]]} を選んだよ。相似だと思う相手をタップ`, '');
+  else setMsg2('相似な三角形を2つタップしよう', '');
+  renderCondRow();
+}
+
+function renderCondRow() {
+  const row = document.getElementById('cond-row');
+  if (S.sel.length !== 2) { row.innerHTML = ''; return; }
+  row.innerHTML = ['SSS', 'SAS', 'AA'].map(k =>
+    `<button class="choice" data-ans="${k}"><span class="no">${COND[k].no}</span>${COND[k].text}</button>`).join('') +
+    `<button class="choice cancel" data-ans="cancel">選びなおす</button>`;
+  row.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => answerQ2(b.dataset.ans)));
+}
+
+function answerQ2(ans) {
+  if (ans === 'cancel') { S.sel = []; refreshSel(); return; }
+  const [i, j] = S.sel;
+  const a = S.board[i], b = S.board[j];
+  const cards = document.querySelectorAll('#board .tri-card');
+  const flash = () => [i, j].forEach(k => { cards[k].classList.remove('flash'); void cards[k].offsetWidth; cards[k].classList.add('flash'); });
+  if (!(a.pair >= 0 && a.pair === b.pair)) {
+    S.miss++;
+    document.getElementById('q2-miss').textContent = S.miss;
+    flash();
+    setMsg2(`❌ ${KANA[i]} と ${KANA[j]} は、わかっていることだけでは相似とはいえないよ`, 'ng');
+    S.sel = []; renderCondRow();
+    document.querySelectorAll('#board .tri-card').forEach(el => el.classList.remove('selected'));
+    return;
+  }
+  if (ans !== a.cond) {
+    S.miss++;
+    document.getElementById('q2-miss').textContent = S.miss;
+    flash();
+    setMsg2(`❌ 相似な組だけど、条件がちがうよ。わかっているのは「辺」？「角」？`, 'ng');
+    return;
+  }
+  // 正解
+  a.done = b.done = true;
+  const color = PAIR_COLORS[S.found % PAIR_COLORS.length];
+  [i, j].forEach(k => {
+    cards[k].classList.remove('selected', 'flash');
+    cards[k].classList.add('found');
+    cards[k].style.borderColor = color;
+    cards[k].insertAdjacentHTML('beforeend', `<div class="found-badge" style="background:${color}">${COND[ans].no} ${KANA[i]}∽${KANA[j]}</div>`);
+  });
+  S.found++;
+  S.sel = [];
+  document.getElementById('q2-found').textContent = `${S.found}/3`;
+  renderCondRow();
+  setMsg2(`⭕ ${KANA[i]} ∽ ${KANA[j]}　${COND[ans].no} ${COND[ans].text}`, 'ok');
+  if (S.found >= 3) {
+    S.busy = true;
+    const id = S.gameId;
+    setTimeout(() => {
+      if (S.gameId !== id) return;
+      const sc = document.getElementById('stage-clear');
+      document.getElementById('stage-clear-text').textContent = S.stage >= Q2_STAGES ? 'ALL CLEAR!' : 'STAGE CLEAR!';
+      sc.classList.add('show');
+      setTimeout(() => {
+        if (S.gameId !== id) return;
+        sc.classList.remove('show');
+        S.busy = false;
+        if (S.stage >= Q2_STAGES) finishGame();
+        else nextStage();
+      }, 1400);
+    }, 700);
+  }
+}
+
+// =====================================================
+//  画面・開始・終了
+// =====================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+document.querySelectorAll('#mode-cards .mode-card').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('#mode-cards .mode-card').forEach(x => x.classList.remove('selected'));
+  c.classList.add('selected');
+  updateBestLine();
+}));
+document.querySelectorAll('#level-chips .chip').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('#level-chips .chip').forEach(x => x.classList.remove('selected'));
+  c.classList.add('selected');
+  updateBestLine();
+}));
+function getMode() { return parseInt(document.querySelector('#mode-cards .selected').dataset.mode, 10); }
+function getLevel() { return document.querySelector('#level-chips .selected').dataset.val; }
+function bestKey(mode, level) { return `相似ハンター_ベスト${mode}_${level}`; }
+function rewardKey(mode) { return mode === 1 ? 'sojiHunter1' : 'sojiHunter2'; }
+
+function updateBestLine() {
+  const mode = getMode(), level = getLevel();
+  const raw = localStorage.getItem(bestKey(mode, level));
+  let text;
+  if (mode === 1) text = raw ? `🏅 このレベルのベスト: ${raw}/${Q1_TOTAL} 問` : 'まだ記録なし ─ 初挑戦!';
+  else text = raw ? `🏅 このレベルのベスト: ${raw} 秒` : 'まだ記録なし ─ 初挑戦!';
+  if (typeof rewardLeft === 'function') {
+    const left = rewardLeft(rewardKey(mode));
+    text += left > 0 ? `　🌱 今日あと ${left} 回もらえる` : '　🌱 今日の分はもらいきったよ';
+  }
+  document.getElementById('best-line').textContent = text;
+}
+updateBestLine();
+
+function startGame() {
+  S.gameId++;
+  S.busy = false;
+  S.mode = getMode();
+  S.level = getLevel();
+  if (S.mode === 1) startQ1(); else startQ2();
+}
+
+function finishGame() {
+  clearInterval(S.timerId);
+  const mode = S.mode, level = S.level;
+  const key = bestKey(mode, level);
+  const prevRaw = localStorage.getItem(key);
+  const bestEl = document.getElementById('go-best');
+  let peas, isBest, mainVal;
+  if (mode === 1) {
+    mainVal = S.score;
+    document.getElementById('go-title').textContent = S.score === Q1_TOTAL ? '🏆 パーフェクト!' : '🏁 おつかれさま!';
+    document.getElementById('go-label').textContent = '正解数';
+    document.getElementById('go-unit').textContent = ` / ${Q1_TOTAL} 問`;
+    document.getElementById('go-stat').innerHTML = `レベル <strong>${LEVEL_LABEL[level]}</strong>`;
+    const prev = prevRaw ? parseInt(prevRaw, 10) : -1;
+    isBest = S.score > prev;
+    if (isBest) localStorage.setItem(key, String(S.score));
+    bestEl.textContent = isBest ? (prev >= 0 ? `🏅 ベスト更新! (前 ${prev} 問)` : '🏅 初記録!') : `🏅 ベスト: ${prev} 問`;
+    peas = S.score * PEAS1[level];
+  } else {
+    const sec = Math.round((performance.now() - S.startAt) / 1000);
+    mainVal = sec;
+    document.getElementById('go-title').textContent = '🏆 ALL CLEAR!';
+    document.getElementById('go-label').textContent = 'タイム';
+    document.getElementById('go-unit').textContent = ' 秒';
+    document.getElementById('go-stat').innerHTML = `ミス <strong>${S.miss}</strong> 回&nbsp;&nbsp;レベル <strong>${LEVEL_LABEL[level]}</strong>`;
+    const prev = prevRaw ? parseInt(prevRaw, 10) : Infinity;
+    isBest = sec < prev;
+    if (isBest) localStorage.setItem(key, String(sec));
+    bestEl.textContent = isBest ? (isFinite(prev) ? `🏅 ベスト更新! (前 ${prev} 秒)` : '🏅 初記録!') : `🏅 ベスト: ${prev} 秒`;
+    peas = PEAS2[level];
+  }
+  document.getElementById('go-main').textContent = mainVal;
+  bestEl.style.background = isBest ? 'linear-gradient(135deg,#ffd56a,#ff8a2a)' : 'rgba(255,255,255,0.12)';
+  bestEl.style.color = isBest ? '#2a1810' : '#fff';
+
+  // グリンピース(1日5回まで)
+  let capped = false;
+  if (peas > 0 && typeof rewardAllowed === 'function' && !rewardAllowed(rewardKey(mode))) { peas = 0; capped = true; }
+  const pb = document.getElementById('go-peas-block');
+  if (peas > 0) { addPeasToHP(peas); pb.style.display = 'inline-block'; document.getElementById('go-peas').textContent = peas; }
+  else pb.style.display = 'none';
+  document.getElementById('go-capped').style.display = capped ? 'block' : 'none';
+  showScreen('result-screen');
+}
+
+// 数学HPの localStorage(mathPrint_v2)にグリンピース加算
+function addPeasToHP(n) {
+  try {
+    const KEY = 'mathPrint_v2';
+    const raw = localStorage.getItem(KEY);
+    const p = raw ? JSON.parse(raw) : { done: {}, peaCount: 0 };
+    if (!p || typeof p !== 'object') return;
+    p.peaCount = (p.peaCount || 0) + n;
+    let cups = p.peaCupCount || 0;
+    while (p.peaCount >= 45) { p.peaCount -= 45; cups++; }
+    p.peaCupCount = cups;
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch (e) {
+    console.warn('addPeasToHP failed', e);
+  }
+}
+
+function backToTitle() { updateBestLine(); showScreen('title-screen'); }
+function quitGame() {
+  if (!confirm('終了しますか?')) return;
+  S.gameId++;
+  clearInterval(S.timerId);
+  document.getElementById('stage-clear').classList.remove('show');
+  backToTitle();
+}
+</script>
+</body>
+</html>
